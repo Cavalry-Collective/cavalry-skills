@@ -20,6 +20,7 @@ mockups/
         feedback.md              the brief you read
         feedback.json            the same, structured
       pending                    sentinel — written on send, deleted by you
+      url                        the live URL — exists only while serving
 ```
 
 ## Commands
@@ -34,8 +35,9 @@ node "$SKILL/assets/review-server.mjs" publish --file "$FILE" \
 node "$SKILL/assets/review-server.mjs" reply --file "$FILE" \
   --comment c7f2a1 --text "Every overdue row, or only the ones assigned to you?" 
 
-# serve (run_in_background: true)
+# serve (run_in_background: true) — closes itself 90s after the tab does
 node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788
+node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --idle-timeout 0   # stay up until stopped
 
 # where are we
 node "$SKILL/assets/review-server.mjs" status --file "$FILE"
@@ -57,11 +59,17 @@ fixing up a version nobody has reviewed yet.
 
 ```bash
 STORE="$(dirname "$FILE")/.ui-review/$(basename "$FILE" .html)"
-until [ -f "$STORE/pending" ]; do sleep 3; done; cat "$STORE/pending"
+until [ -f "$STORE/pending" ] || [ ! -f "$STORE/url" ]; do sleep 2; done
+[ -f "$STORE/pending" ] && cat "$STORE/pending" || echo "review closed"
 ```
 
-Run with `run_in_background: true`. It exits when the user hits **Send to
-Claude**, which re-invokes you. First thing after waking: delete `pending`.
+Run with `run_in_background: true`. It ends when the user hits **Send to
+Claude**, or when they close the tab and the server shuts itself down — the
+`url` file exists only while the server is listening, so the loop can never
+outlive the review. First thing after waking on a review: delete `pending`.
+
+**Arm exactly one waiter per review.** Re-arming without stopping the previous
+one leaves loops polling paths that no longer exist.
 
 ## Reading the feedback
 
@@ -112,8 +120,9 @@ reviewer reloading anything.
 
 ## Troubleshooting
 
-**Workspace says it can't reach the server.** The background `serve` process
-died or was never started. Check the background task output; restart it.
+**Workspace says it can't reach the server.** Either the tab was closed long
+enough for the server to close itself (that's by design — start it again), or
+the process died. Check the background task output.
 
 **`EADDRINUSE`.** Another review server holds the port — reuse it, or
 `--port 7789`.

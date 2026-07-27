@@ -93,10 +93,14 @@ There is no resolve button: **you** close comments out by addressing them. Comme
 After starting the server, arm a waiter with **`run_in_background: true`**. It exits the moment a review lands, which re-invokes you:
 
 ```bash
-until [ -f "$(dirname "$FILE")/.ui-review/$(basename "$FILE" .html)/pending" ]; do sleep 3; done
+STORE="$(dirname "$FILE")/.ui-review/$(basename "$FILE" .html)"
+until [ -f "$STORE/pending" ] || [ ! -f "$STORE/url" ]; do sleep 2; done
+[ -f "$STORE/pending" ] && cat "$STORE/pending" || echo "review closed"
 ```
 
-When it fires:
+It ends either way: a review landed, or the user closed the tab and the server
+shut itself down. On **`review closed`**, don't re-arm — say the review is
+closed. Otherwise:
 
 1. Delete the `pending` file — or the next waiter returns instantly.
 2. Read `feedback.md` (its path is inside `pending`). It carries a markdown brief plus a JSON block with every comment's place, anchor text, severity, screen size and thread.
@@ -115,6 +119,14 @@ When it fires:
    ```
    Only `--addressed` marks a comment done — the user has no button for it, so a comment you quietly skip stays open and comes back.
 7. **Re-arm the waiter** and say what changed in a few lines. Then wait — don't ask "shall I continue?", the loop is the point.
+
+**Closing the browser tab closes the review.** The workspace holds an SSE
+connection; when the last one goes and none returns within the grace period
+(`--idle-timeout`, default 90s — long enough that a reload reconnects), the
+server removes `url` and exits. That exit re-invokes you and ends the waiter.
+`--idle-timeout 0` keeps it up until you stop it with TaskStop. Either way,
+**say when the review is closed** — the user should never have to guess whether
+a socket is still open.
 
 The workspace never swaps the page out from under the reviewer: while you work it shows *"Claude is working…"*, and on publish it offers **"vN is ready — Review changes"**. Publish once, when the round is done.
 

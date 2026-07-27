@@ -9,7 +9,7 @@
  *
  * Node >= 18, standard library only.
  *
- *   node review-server.mjs serve   --file <page.html> [--port 7788]
+ *   node review-server.mjs serve   --file <page.html> [--port 7788] [--idle-timeout 90]
  *   node review-server.mjs publish --file <page.html> --label "…" [--addressed c1,c3]
  *   node review-server.mjs reply   --file <page.html> --comment <id> --text "…"
  *   node review-server.mjs status  --file <page.html>
@@ -20,6 +20,12 @@
  *     versions/v<n>.html    frozen copy of each published version
  *     reviews/v<n>/         annotations.json · feedback.json · feedback.md
  *     pending               sentinel written on send, watched by Claude
+ *     url                   the live URL — present only while the server runs
+ *
+ * The server closes itself when the browser tab does: the workspace holds an
+ * SSE connection, and once the last one goes away and none returns within the
+ * grace period the server removes `url` and exits. That exit re-invokes Claude
+ * and ends the waiter, so nothing is left listening.
  */
 
 import http from 'node:http'
@@ -64,6 +70,7 @@ const P = {
   version: n => path.join(STORE, 'versions', `v${n}.html`),
   review: n => path.join(STORE, 'reviews', `v${n}`),
   pending: () => path.join(STORE, 'pending'),
+  url: () => path.join(STORE, 'url'),
 }
 
 const readJSON = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')) } catch { return d } }
@@ -184,6 +191,9 @@ function cmdStatus () {
 
 const clients = new Set()
 let reloadTimer = null
+/* Live-page bookkeeping, so the server can close itself when the tab does. */
+let everConnected = false
+let idleSince = null
 function broadcast (event, data = {}) {
   const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
   for (const res of clients) { try { res.write(payload) } catch {} }
@@ -279,8 +289,14 @@ async function handle (req, res) {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' })
     res.write('retry: 1000\n\n')
     clients.add(res)
+    everConnected = true
+    idleSince = null
     const ping = setInterval(() => { try { res.write(': ping\n\n') } catch {} }, 25000)
-    req.on('close', () => { clearInterval(ping); clients.delete(res) })
+    req.on('close', () => {
+      clearInterval(ping)
+      clients.delete(res)
+      if (!clients.size) idleSince = Date.now()
+    })
     return
   }
   const vm = p.match(/^\/api\/version\/(\d+)$/)
@@ -346,11 +362,37 @@ function cmdServe () {
     }
     throw e
   })
+  const url = `http://localhost:${port}/`
+
+  /* Dropping the url file tells the session's waiter the link is over, so it
+     stops waiting instead of hanging until its timeout. */
+  const close = why => {
+    try { fs.rmSync(P.url(), { force: true }) } catch {}
+    console.log(`closed (${why})`)
+    process.exit(0)
+  }
+
+  const idleTimeout = args['idle-timeout'] === undefined ? 90 : Number(args['idle-timeout'])
+  if (idleTimeout > 0) {
+    setInterval(() => {
+      if (!everConnected || clients.size || idleSince === null) return
+      if (Date.now() - idleSince > idleTimeout * 1000) {
+        console.log(`no tab for ${idleTimeout}s — closing the review`)
+        close('tab closed')
+      }
+    }, 2000).unref?.()
+  }
+  for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => close(sig.toLowerCase()))
+
   server.listen(port, '127.0.0.1', () => {
+    fs.mkdirSync(STORE, { recursive: true })
+    fs.writeFileSync(P.url(), url + '\n')
     console.log(`ui-review · ${pageName()} · v${loadState().version}`)
-    console.log(`  workspace  http://localhost:${port}/`)
+    console.log(`  workspace  ${url}`)
     console.log(`  page       ${FILE}`)
-    console.log('  ready')
+    console.log(idleTimeout > 0
+      ? `  ready — closes itself ${idleTimeout}s after the tab does`
+      : '  ready — stays up until stopped')
   })
 }
 
