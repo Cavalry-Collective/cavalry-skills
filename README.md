@@ -39,7 +39,7 @@ Ask Claude for a story map and it builds a **self-contained, interactive user st
 - **Drag a card into any cell** to re-slice which phase & activity a story belongs to; drop above/below other cards to rank it — cards, columns and rows slide live while you drag
 - **Drag a column or row by its ⠿ handle** — a Notion-style pill that appears on hover at the top of each column / left of each row — to reorder the journey and the release phases
 - **Track status per story** — open / in progress / in review / done; the card's accent stripe is coloured by status (a legend above the grid explains the colours), and the ● button on each card opens a status dropdown
-- **Multi-select for bulk edits** — ▢ on cards or ⌘/Ctrl-click to select several, then set status, tag, or delete them all from the floating bar
+- **Multi-select for bulk edits** — hit **Select** (top right) and click cards to pick them (▢ / ⌘-Ctrl-click work too), then set status, tag, or delete them all from the floating bar
 - **Tag cross-cutting themes** (e.g. `AI`) via the ⌗ menu on each card — add a tag to a card, create new tags, or delete a tag from the whole map
 - **Double-click any text** to edit inline; dashed `＋ story` / `＋ activity` / `＋ phase` buttons in the grid grow the map
 - **EN | 中文 toggle** (top right) for the UI language

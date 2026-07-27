@@ -53,6 +53,8 @@
   .btn:hover{background:var(--surface-2);color:var(--ink)}
   .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
   .btn.primary:hover{background:color-mix(in srgb,var(--brand) 88%,#000);color:#fff}
+  .btn.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .selmode .card,.selmode .card [contenteditable]{cursor:pointer}
   .btn svg{width:15px;height:15px}
   .split{position:relative;display:inline-flex}
   .split #export{border-top-right-radius:0;border-bottom-right-radius:0}
@@ -138,7 +140,7 @@
   dialog textarea{width:100%;min-height:200px;font-family:var(--mono);font-size:.78rem;border:1px solid var(--line-2);border-radius:8px;padding:.6rem;background:var(--surface-2);color:var(--ink);resize:vertical}
   dialog .row{display:flex;justify-content:flex-end;gap:.5rem;margin-top:.8rem}
 
-  .tagmenu{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--line-2);border-radius:9px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:.5rem;width:210px}
+  .tagmenu{position:fixed;z-index:75;background:var(--surface);border:1px solid var(--line-2);border-radius:9px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:.5rem;width:210px}
   .tagmenu[hidden]{display:none}
   #stmenu{width:150px;padding:.3rem}
   .st-opt{display:flex;align-items:center;gap:.45rem;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:.74rem;color:var(--ink-2);padding:.32rem .45rem;border-radius:6px;cursor:pointer}
@@ -176,6 +178,7 @@
         <button data-lang="en">EN</button><button data-lang="zh">中文</button>
       </div>
       <div class="crow">
+        <button class="btn" id="selmode">Select</button>
         <button class="btn" id="import">Import</button>
         <div class="split">
           <button class="btn primary" id="export">Copy to Clipboard</button>
@@ -275,6 +278,7 @@
       addActivity:"＋ activity", addActTitle:"Add a journey activity (column)",
       import:"Import", copy:"Copy to Clipboard", download:"Download JSON", moreExport:"More export options",
       grip:"Drag to move", selTitle:"Select (⌘/Ctrl-click also works)",
+      selModeBtn:"Select", selModeTitle:"Multi-select mode — click cards to select them",
       bbCount:n=>`${n} selected`, bbStatus:"Status", bbTag:"Tag", bbDelete:"Delete", bbClear:"Clear selection",
       stLabel:{open:"Open",progress:"In progress",review:"In review",done:"Done"},
       legend:"Status · card accent",
@@ -296,6 +300,7 @@
       addActivity:"＋ 活动", addActTitle:"添加旅程活动（列）",
       import:"导入", copy:"复制到剪贴板", download:"下载 JSON", moreExport:"更多导出选项",
       grip:"拖动以移动", selTitle:"选择（也可 ⌘/Ctrl+点击）",
+      selModeBtn:"多选", selModeTitle:"多选模式——点击卡片进行选择",
       bbCount:n=>`已选 ${n} 项`, bbStatus:"状态", bbTag:"标签", bbDelete:"删除", bbClear:"清除选择",
       stLabel:{open:"待办",progress:"进行中",review:"审查中",done:"已完成"},
       legend:"状态 · 卡片左边框",
@@ -327,6 +332,7 @@
       STATUSES.map(s=>`<span class="li st-${s}"><span class="sw"></span>${esc(T("stLabel")[s])}</span>`).join("");
     $("bb-status").textContent=T("bbStatus"); $("bb-tag").textContent=T("bbTag");
     $("bb-del").textContent=T("bbDelete"); $("bb-clear").title=T("bbClear");
+    $("selmode").textContent=T("selModeBtn"); $("selmode").title=T("selModeTitle");
     if(sel.size) $("bb-count").textContent=T("bbCount",sel.size);
   }
 
@@ -435,6 +441,8 @@
     [...sel].forEach(id=>{ if(!state.stories.some(s=>s.id===id)) sel.delete(id); });
     $("bulkbar").hidden = sel.size===0;
     if(sel.size) $("bb-count").textContent = T("bbCount",sel.size);
+    $("selmode").classList.toggle("on",selMode);
+    document.body.classList.toggle("selmode",selMode);
   }
   function toggleSel(id){ sel.has(id)?sel.delete(id):sel.add(id); render(); }
 
@@ -462,6 +470,7 @@
   // to state, Escape (or an invalid release) snaps everything back.
   let dragId=null, dragAct=null, dragPhase=null, dragFrom=null, dragDirty=false;
   const sel = new Set();   // multi-selected story ids (session-only, not exported)
+  let selMode = false;     // toggled by the Select button: clicking a card selects it
   function editing(el){ const f=document.activeElement; return f && el.contains(f) && f.isContentEditable; }
   function clearDragState(){ dragId=dragAct=dragPhase=dragFrom=null; dragDirty=false; document.querySelectorAll(".dragging").forEach(c=>c.classList.remove("dragging")); }
 
@@ -545,9 +554,13 @@
   function wire(){
     // story cards
     document.querySelectorAll(".card").forEach(el=>{
-      el.addEventListener("mousedown",e=>{ if(e.metaKey||e.ctrlKey) e.preventDefault(); });
-      el.addEventListener("click",e=>{ if(e.metaKey||e.ctrlKey){ e.preventDefault(); toggleSel(el.dataset.card); } });
+      el.addEventListener("mousedown",e=>{ if(selMode||e.metaKey||e.ctrlKey) e.preventDefault(); });
+      el.addEventListener("click",e=>{
+        if(e.target.closest(".ctrls")) return;
+        if(selMode||e.metaKey||e.ctrlKey){ e.preventDefault(); toggleSel(el.dataset.card); }
+      });
       el.addEventListener("dragstart",e=>{
+        if(selMode){ e.preventDefault(); return; }
         dragId=el.dataset.card; dragDirty=false;
         const s=state.stories.find(x=>x.id===dragId);
         dragFrom=s?{phase:s.phase,act:s.activity}:null;
@@ -656,7 +669,8 @@
     if(tagmenu.hidden) tagmenu.hidden=false;
     const r=btn.getBoundingClientRect();
     tagmenu.style.left=Math.max(8,Math.min(r.left,innerWidth-218))+"px";
-    tagmenu.style.top=Math.max(8,Math.min(r.bottom+6,innerHeight-tagmenu.offsetHeight-8))+"px";
+    const below=r.bottom+6;
+    tagmenu.style.top=Math.max(8,(below+tagmenu.offsetHeight>innerHeight-8) ? r.top-tagmenu.offsetHeight-6 : below)+"px";
     $("tm-new").focus({preventScroll:true});
   }
   function renderTagMenu(){
@@ -708,12 +722,13 @@
   });
 
   // bulk actions on the multi-selection
+  $("selmode").onclick=()=>{ selMode=!selMode; if(!selMode) sel.clear(); render(); };
   $("bb-clear").onclick=()=>{ sel.clear(); render(); };
   $("bb-del").onclick=()=>armConfirm($("bb-del"),()=>{ state.stories=state.stories.filter(s=>!sel.has(s.id)); sel.clear(); save(); render(); });
   $("bb-status").onclick=e=>{ e.stopPropagation(); openStMenu($("bb-status"),null); };
   $("bb-tag").onclick=e=>{ e.stopPropagation(); openTagMenu($("bb-tag"),null); };
   document.addEventListener("keydown",e=>{
-    if(e.key==="Escape" && sel.size && !(document.activeElement&&document.activeElement.isContentEditable)){ sel.clear(); render(); }
+    if(e.key==="Escape" && (sel.size||selMode) && !(document.activeElement&&document.activeElement.isContentEditable)){ sel.clear(); selMode=false; render(); }
   });
 
   document.querySelectorAll("#lang-toggle button").forEach(b=>b.onclick=()=>{
