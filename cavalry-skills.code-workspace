@@ -1,0 +1,14 @@
+{
+  "folders": [
+    { "name": "cavalry-skills", "path": "." }
+  ],
+  "settings": {
+    "files.associations": {
+      "SKILL.md": "markdown",
+      "*.code-workspace": "jsonc"
+    },
+    "search.exclude": {
+      "docs/*.png": true
+    }
+  }
+}

@@ -5,15 +5,15 @@ A growing collection of [Claude Code](https://claude.com/claude-code) skills by 
 ## Install
 
 ```
-/plugin marketplace add Cavalry-Collective/claude-skills
+/plugin marketplace add Cavalry-Collective/cavalry-skills
 /plugin install cavalry@cavalry-collective
 ```
 
 Or copy an individual skill manually into your skills directory:
 
 ```bash
-git clone https://github.com/Cavalry-Collective/claude-skills.git
-cp -R claude-skills/plugins/cavalry/skills/<skill-name> ~/.claude/skills/
+git clone https://github.com/Cavalry-Collective/cavalry-skills.git
+cp -R cavalry-skills/plugins/cavalry/skills/<skill-name> ~/.claude/skills/
 ```
 
 ## Skills
