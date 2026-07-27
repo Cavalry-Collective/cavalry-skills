@@ -66,8 +66,10 @@
   .split .caret{border-top-left-radius:0;border-bottom-left-radius:0;border-left:1px solid color-mix(in srgb,#fff 30%,var(--brand));padding:.28rem .4rem}
   .menu{position:absolute;top:calc(100% + 4px);right:0;z-index:70;background:var(--surface);border:1px solid var(--line-2);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:.25rem;min-width:150px}
   .menu[hidden]{display:none}
-  .menu button{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:.74rem;color:var(--ink-2);padding:.35rem .5rem;border-radius:6px;cursor:pointer;white-space:nowrap}
+  .menu button{display:flex;align-items:center;gap:.45rem;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:.74rem;color:var(--ink-2);padding:.35rem .5rem;border-radius:6px;cursor:pointer;white-space:nowrap}
   .menu button:hover{background:var(--surface-2);color:var(--ink)}
+  .menu button:disabled{opacity:.6;cursor:default;pointer-events:none}
+  .soon{font-family:var(--mono);font-size:.52rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);background:var(--surface-2);border:1px solid var(--line-2);border-radius:999px;padding:.05rem .35rem;margin-left:auto}
 
   .tag{display:inline-flex;align-items:center;gap:.25rem;font-family:var(--mono);font-size:.54rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--tc,var(--ink-3));background:color-mix(in srgb,var(--tc,var(--ink-3)) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--tc,var(--ink-3)) 30%,transparent);padding:.05rem .3rem;border-radius:4px}
   .tag .d{width:5px;height:5px;border-radius:50%;background:var(--tc,var(--ink-3))}
@@ -186,7 +188,10 @@
         <div class="split">
           <button class="btn primary" id="export">Copy to Clipboard</button>
           <button class="btn primary caret" id="export-more" aria-haspopup="true" aria-label="More export options">▾</button>
-          <div class="menu" id="export-menu" hidden><button id="download">Download JSON</button></div>
+          <div class="menu" id="export-menu" hidden>
+            <button id="download">Download JSON</button>
+            <button id="jira" disabled>Export to JIRA <span class="soon">Coming soon</span></button>
+          </div>
         </div>
       </div>
     </div>
@@ -280,6 +285,7 @@
       addPhase:"＋ phase", addPhaseTitle:"Add a release phase (row)",
       addActivity:"＋ activity", addActTitle:"Add a journey activity (column)",
       import:"Import", copy:"Copy to Clipboard", download:"Download JSON", moreExport:"More export options",
+      jira:"Export to JIRA", soon:"Coming soon",
       grip:"Drag to move",
       selModeBtn:"Bulk select", selModeTitle:"Bulk select — click any card to select it",
       bbCount:n=>`${n} selected`, bbStatus:"Status", bbTag:"Tag", bbDelete:"Delete", bbClear:"Clear selection",
@@ -302,6 +308,7 @@
       addPhase:"＋ 阶段", addPhaseTitle:"添加发布阶段（行）",
       addActivity:"＋ 活动", addActTitle:"添加旅程活动（列）",
       import:"导入", copy:"复制到剪贴板", download:"下载 JSON", moreExport:"更多导出选项",
+      jira:"导出到 JIRA", soon:"即将推出",
       grip:"拖动以移动",
       selModeBtn:"批量选择", selModeTitle:"批量选择——点击任意卡片进行选择",
       bbCount:n=>`已选 ${n} 项`, bbStatus:"状态", bbTag:"标签", bbDelete:"删除", bbClear:"清除选择",
@@ -328,6 +335,7 @@
     $("eyebrow").textContent=T("eyebrow");
     $("import").textContent=T("import"); $("export").textContent=T("copy");
     $("download").textContent=T("download"); $("export-more").setAttribute("aria-label",T("moreExport"));
+    $("jira").innerHTML=esc(T("jira"))+`<span class="soon">${esc(T("soon"))}</span>`;
     document.querySelectorAll("#lang-toggle button").forEach(b=>b.classList.toggle("on",b.dataset.lang===lang));
     $("io-cancel").textContent=T("cancel"); $("io-ok").textContent=T("loadBtn");
     $("tm-new").placeholder=T("tmNew"); $("tm-add").textContent=T("tmAdd");
