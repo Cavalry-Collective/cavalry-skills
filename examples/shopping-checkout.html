@@ -40,30 +40,30 @@
   header .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);font-weight:600;margin:0 0 .5rem;display:inline-flex;align-items:center;gap:.5rem}
   .eyebrow::before{content:"";width:1.5rem;height:2px;background:var(--brand);border-radius:2px}
   h1{font-size:clamp(1.5rem,3.5vw,2.3rem);line-height:1.05;letter-spacing:-.03em;font-weight:800;margin:0 0 .5rem;text-wrap:balance}
-  .lang-toggle{display:inline-flex;flex:none;margin-top:.2rem;border:1px solid var(--line-2);border-radius:8px;overflow:hidden;background:var(--surface);box-shadow:var(--shadow)}
+  .controls{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.5rem;align-items:center;flex:none;margin-top:.2rem}
+  .lang-toggle{display:inline-flex;flex:none;border:1px solid var(--line-2);border-radius:8px;overflow:hidden;background:var(--surface);box-shadow:var(--shadow)}
   .lang-toggle button{border:0;background:none;font:inherit;font-size:.74rem;font-weight:600;color:var(--ink-3);padding:.32rem .65rem;cursor:pointer}
   .lang-toggle button+button{border-left:1px solid var(--line-2)}
   .lang-toggle button.on{background:var(--brand);color:#fff}
 
-  .toolbar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:1.4rem 0 .4rem}
   .btn{display:inline-flex;align-items:center;gap:.4rem;font:inherit;font-size:.82rem;font-weight:500;color:var(--ink-2);background:var(--surface);border:1px solid var(--line-2);border-radius:7px;padding:.4rem .7rem;cursor:pointer}
   .btn:hover{background:var(--surface-2);color:var(--ink)}
   .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.primary:hover{background:color-mix(in srgb,var(--brand) 88%,#000);color:#fff}
   .btn svg{width:15px;height:15px}
-  .toolbar .spacer{flex:1}
 
   .tag{display:inline-flex;align-items:center;gap:.25rem;font-family:var(--mono);font-size:.54rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--tc,var(--ink-3));background:color-mix(in srgb,var(--tc,var(--ink-3)) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--tc,var(--ink-3)) 30%,transparent);padding:.05rem .3rem;border-radius:4px}
   .tag .d{width:5px;height:5px;border-radius:50%;background:var(--tc,var(--ink-3))}
   .t0{--tc:var(--p4)}.t1{--tc:var(--p5)}.t2{--tc:var(--p1)}.t3{--tc:var(--p2)}.t4{--tc:var(--p3)}.t5{--tc:var(--p0)}
 
-  .scroll{overflow:auto;max-height:80vh;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);scrollbar-width:thin}
+  .scroll{overflow:auto;max-height:80vh;margin-top:1rem;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);scrollbar-width:thin}
   .map{display:grid}
   .cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
 
   .corner{position:sticky;top:0;left:0;z-index:30;background:var(--surface-2);border-bottom:1px solid var(--line-2);border-right:1px solid var(--line-2);padding:.6rem .7rem;display:flex;align-items:flex-end}
   .corner span{font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
 
-  .act{position:sticky;top:0;z-index:20;background:var(--surface-2);border-bottom:1px solid var(--line-2);padding:.45rem .5rem;min-width:0;cursor:grab}
+  .act{position:sticky;top:0;z-index:20;background:var(--surface-2);border-bottom:1px solid var(--line-2);padding:.7rem .5rem .45rem;min-width:0;cursor:grab}
   .act .an{font-size:.76rem;font-weight:700;letter-spacing:-.01em;line-height:1.15;outline:none;border-radius:4px}
   .act .at{margin:.18rem 0 0;font-size:.63rem;line-height:1.25;color:var(--ink-3);outline:none;border-radius:4px}
   .act .actls{display:flex;align-items:center;gap:.3rem}
@@ -72,14 +72,12 @@
   .act:hover .x-act{opacity:.7}
   .x-act:hover{color:var(--brand);opacity:1}
   .act.dragging,.rail.dragging{opacity:.45}
-  .act.target{outline:2px dashed var(--brand);outline-offset:-2px}
-  .rail.target{outline:2px dashed var(--pc);outline-offset:-2px}
-  .act::after{content:"⠿";position:absolute;right:6px;bottom:3px;font-size:.58rem;color:var(--ink-3);opacity:0;transition:opacity .12s;pointer-events:none}
+  .act::after{content:"⠿ ⠿";position:absolute;top:1px;left:50%;transform:translateX(-50%);font-size:.58rem;letter-spacing:.1em;color:var(--ink-3);opacity:0;transition:opacity .12s;pointer-events:none}
   .act:hover::after{opacity:.85}
-  .rail::after{content:"⠿";position:absolute;right:6px;top:4px;font-size:.58rem;color:var(--ink-3);opacity:0;transition:opacity .12s;pointer-events:none}
+  .rail::after{content:"⠿";position:absolute;left:3px;top:50%;transform:translateY(-50%);font-size:.58rem;color:var(--ink-3);opacity:0;transition:opacity .12s;pointer-events:none;writing-mode:vertical-rl}
   .rail:hover::after{opacity:.85}
 
-  .rail{position:sticky;left:0;z-index:20;background:color-mix(in srgb,var(--pc) var(--band),var(--surface));border-right:1px solid var(--line-2);padding:.5rem .45rem;display:flex;flex-direction:column;gap:.2rem;min-width:0;cursor:grab}
+  .rail{position:sticky;left:0;z-index:20;background:color-mix(in srgb,var(--pc) var(--band),var(--surface));border-right:1px solid var(--line-2);padding:.5rem .45rem .5rem .85rem;display:flex;flex-direction:column;gap:.2rem;min-width:0;cursor:grab}
   .rail .pn{font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--pc);outline:none}
   .rail .pt{font-size:.76rem;font-weight:700;letter-spacing:-.01em;line-height:1.12;outline:none;border-radius:4px}
   .rail .pg{font-size:.62rem;line-height:1.25;color:var(--ink-3);outline:none;border-radius:4px;margin-top:2px}
@@ -88,8 +86,7 @@
   .x-phase{opacity:0;border:0;background:none;color:var(--ink-3);cursor:pointer;font-size:.85rem;padding:0 .2rem}
   .rail:hover .x-phase{opacity:.7}.x-phase:hover{color:var(--brand);opacity:1}
 
-  .stories{padding:.35rem;display:flex;flex-direction:column;gap:.3rem;min-height:46px;background:color-mix(in srgb,var(--pc) calc(var(--band) - 4%),var(--surface));transition:background .1s}
-  .stories.over{background:color-mix(in srgb,var(--pc) 22%,var(--surface));outline:2px dashed var(--pc);outline-offset:-3px}
+  .stories{padding:.35rem;display:flex;flex-direction:column;gap:.3rem;min-height:46px;background:color-mix(in srgb,var(--pc) calc(var(--band) - 4%),var(--surface))}
   .card{position:relative;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--pc);border-radius:6px;padding:.32rem .42rem .36rem;box-shadow:var(--shadow);cursor:grab}
   .card.dragging{opacity:.4}
   .card p{margin:0;font-size:.7rem;line-height:1.28;color:var(--ink);font-weight:500;outline:none;word-break:break-word}
@@ -106,6 +103,7 @@
   .addhdr{flex:1;border:1px dashed var(--line-2);background:none;color:var(--ink-3);border-radius:5px;padding:.15rem .4rem;font:inherit;font-size:.64rem;cursor:pointer;white-space:nowrap}
   .addhdr:hover{color:var(--ink);border-color:var(--ink-3)}
   .filler{background:var(--surface)}
+  .fillp{background:color-mix(in srgb,var(--pc) calc(var(--band) - 4%),var(--surface))}
 
   .p0{--pc:var(--p0)}.p1{--pc:var(--p1)}.p2{--pc:var(--p2)}.p3{--pc:var(--p3)}.p4{--pc:var(--p4)}.p5{--pc:var(--p5)}
 
@@ -138,18 +136,14 @@
       <p class="eyebrow" id="eyebrow">User story map</p>
       <h1 id="title" contenteditable spellcheck="false"></h1>
     </div>
-    <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language">
-      <button data-lang="en">EN</button><button data-lang="zh">中文</button>
+    <div class="controls">
+      <button class="btn" id="import">Import</button>
+      <button class="btn primary" id="export">Copy to Clipboard</button>
+      <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language">
+        <button data-lang="en">EN</button><button data-lang="zh">中文</button>
+      </div>
     </div>
   </header>
-
-  <div class="toolbar">
-    <span class="spacer"></span>
-    <button class="btn" id="import">Import</button>
-    <button class="btn" id="download">Export</button>
-    <button class="btn primary" id="export">Copy to Clipboard</button>
-    <button class="btn" id="reset" title="Discard edits, restore the original">Reset</button>
-  </div>
 
   <div class="scroll"><div class="map" id="map" role="grid" aria-label="User story map"></div></div>
 </div>
@@ -392,8 +386,7 @@
       eyebrow:"User story map", corner:"Phase ↓ / Journey →",
       addPhase:"＋ phase", addPhaseTitle:"Add a release phase (row)",
       addActivity:"＋ activity", addActTitle:"Add a journey activity (column)",
-      import:"Import", copy:"Copy to Clipboard", download:"Export",
-      reset:"Reset", resetTitle:"Discard edits, restore the original",
+      import:"Import", copy:"Copy to Clipboard",
       grip:"Drag to move",
       count:n=>`${n} ${n===1?"story":"stories"}`, addStory:"＋ story", newStory:"New story",
       newPhaseName:n=>"Phase "+n, newPhaseGoal:"New phase — describe the goal",
@@ -403,19 +396,17 @@
       tmEmpty:"No tags yet — add one below.", tmNew:"New tag…", tmAdd:"Add",
       ioImport:"Paste map JSON", ioCopy:"Map JSON (copy it)", cancel:"Cancel", loadBtn:"Load",
       tCopied:"JSON copied", tMoved:n=>"Moved to "+n, tReordered:"Reordered",
-      tActReordered:"Activity reordered", tPhReordered:"Phase reordered", tLoaded:"Loaded", tReset:"Reset",
+      tActReordered:"Activity reordered", tPhReordered:"Phase reordered", tLoaded:"Loaded",
       cDelPhase:n=>`Delete this phase and its ${n} ${n===1?"story":"stories"}?`,
       cDelAct:n=>`Delete this activity and its ${n} ${n===1?"story":"stories"}?`,
       cDelTag:t=>`Delete tag "${t}" from the whole map?`,
-      cReset:"Discard all edits and restore the original map?",
       badJson:"That doesn't look like a valid story-map JSON (needs activities, phases, stories)."
     },
     zh: {
       eyebrow:"用户故事地图", corner:"阶段 ↓ / 旅程 →",
       addPhase:"＋ 阶段", addPhaseTitle:"添加发布阶段（行）",
       addActivity:"＋ 活动", addActTitle:"添加旅程活动（列）",
-      import:"导入", copy:"复制到剪贴板", download:"导出",
-      reset:"重置", resetTitle:"放弃修改，恢复原始地图",
+      import:"导入", copy:"复制到剪贴板",
       grip:"拖动以移动",
       count:n=>`${n} 个故事`, addStory:"＋ 故事", newStory:"新故事",
       newPhaseName:n=>"阶段 "+n, newPhaseGoal:"新阶段——描述目标",
@@ -425,11 +416,10 @@
       tmEmpty:"还没有标签——在下方添加。", tmNew:"新标签…", tmAdd:"添加",
       ioImport:"粘贴地图 JSON", ioCopy:"地图 JSON（请复制）", cancel:"取消", loadBtn:"加载",
       tCopied:"已复制 JSON", tMoved:n=>"已移至 "+n, tReordered:"已重新排序",
-      tActReordered:"活动已重新排序", tPhReordered:"阶段已重新排序", tLoaded:"已加载", tReset:"已重置",
+      tActReordered:"活动已重新排序", tPhReordered:"阶段已重新排序", tLoaded:"已加载",
       cDelPhase:n=>`删除此阶段及其 ${n} 个故事？`,
       cDelAct:n=>`删除此活动及其 ${n} 个故事？`,
       cDelTag:t=>`从整张地图中删除标签“${t}”？`,
-      cReset:"放弃所有修改并恢复原始地图？",
       badJson:"这看起来不是有效的故事地图 JSON（需要 activities、phases、stories）。"
     }
   };
@@ -439,8 +429,7 @@
   function applyLang(){
     document.documentElement.lang = lang==="zh" ? "zh-CN" : "en";
     $("eyebrow").textContent=T("eyebrow");
-    $("import").textContent=T("import"); $("export").textContent=T("copy"); $("download").textContent=T("download");
-    $("reset").textContent=T("reset"); $("reset").title=T("resetTitle");
+    $("import").textContent=T("import"); $("export").textContent=T("copy");
     document.querySelectorAll("#lang-toggle button").forEach(b=>b.classList.toggle("on",b.dataset.lang===lang));
     $("io-cancel").textContent=T("cancel"); $("io-ok").textContent=T("loadBtn");
     $("tm-new").placeholder=T("tmNew"); $("tm-add").textContent=T("tmAdd");
@@ -464,26 +453,45 @@
   let toastT;
   function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1600); }
 
-  // FLIP: snapshot positions before a re-render, animate the deltas after it
+  // FLIP: snapshot positions before a DOM change, animate the deltas after it.
+  // Cells and cards are both tracked; a card riding inside a moving cell only
+  // animates the residual delta, so nothing double-moves.
   const canAnimate = typeof Element!=="undefined" && !!Element.prototype.animate;
   const reduceMotion = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
-  function flipKey(el){ return el.dataset.card?"c"+el.dataset.card:el.dataset.act?"a"+el.dataset.act:"p"+el.dataset.phase; }
+  const FLIP_SEL = "[data-card],[data-act],[data-phase],[data-drop-act],[data-fill-phase]";
+  function flipKey(el){
+    if(el.dataset.card) return "c"+el.dataset.card;
+    if(el.dataset.act) return "a"+el.dataset.act;
+    if(el.dataset.phase) return "p"+el.dataset.phase;
+    if(el.dataset.dropAct) return "s"+el.dataset.dropPhase+"|"+el.dataset.dropAct;
+    return "f"+el.dataset.fillPhase;
+  }
   function snapshot(){
     if(reduceMotion || !canAnimate) return null;
     const m = new Map();
-    document.querySelectorAll("[data-card],[data-act],[data-phase]").forEach(el=>m.set(flipKey(el),el.getBoundingClientRect()));
+    document.querySelectorAll(FLIP_SEL).forEach(el=>m.set(flipKey(el),el.getBoundingClientRect()));
     return m.size?m:null;
   }
   function playFlip(prev){
     if(!prev) return;
-    document.querySelectorAll("[data-card],[data-act],[data-phase]").forEach(el=>{
+    const deltas = new Map();
+    document.querySelectorAll(FLIP_SEL).forEach(el=>{
       const r0 = prev.get(flipKey(el));
       if(!r0){ if(el.dataset.card) el.animate([{opacity:0,transform:"scale(.9)"},{opacity:1,transform:"none"}],{duration:160,easing:"ease-out"}); return; }
       const r1 = el.getBoundingClientRect();
       const dx = r0.left-r1.left, dy = r0.top-r1.top;
+      if(dx||dy) deltas.set(el,{dx,dy});
+    });
+    deltas.forEach((d,el)=>{
+      let dx=d.dx, dy=d.dy;
+      if(el.dataset.card){
+        const pc = el.closest(".stories"), pd = pc && deltas.get(pc);
+        if(pd){ dx-=pd.dx; dy-=pd.dy; }
+      }
       if(dx||dy) el.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:"none"}],{duration:220,easing:"cubic-bezier(.2,.8,.2,1)"});
     });
   }
+  function withFlip(mutate){ const prev=snapshot(); mutate(); playFlip(prev); }
 
   function render(){
     const sc = document.querySelector(".scroll");
@@ -519,7 +527,7 @@
         cards.forEach(s=>{ h += cardHtml(s); });
         h += `<button class="addcard" data-add="${p.id}|${a.id}">${T("addStory")}</button></div>`;
       });
-      h += `<div class="cell filler"></div>`;
+      h += `<div class="cell fillp ${pc}" data-fill-phase="${p.id}"></div>`;
     });
     h += `<div class="cell addphase"><button class="addhdr" id="add-phase" title="${T("addPhaseTitle")}">${T("addPhase")}</button></div><div class="cell filler" style="grid-column:2 / -1"></div>`;
     map.innerHTML = h;
@@ -543,73 +551,126 @@
   }
   function esc(t){ return String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
-  let dragId=null, dragAct=null, dragPhase=null;
+  // Live drag & drop — the real elements move in the DOM while dragging, so
+  // cards, columns and rows slide out of the way; releasing commits DOM order
+  // to state, Escape (or an invalid release) snaps everything back.
+  let dragId=null, dragAct=null, dragPhase=null, dragFrom=null, dragDirty=false;
   function editing(el){ const f=document.activeElement; return f && el.contains(f) && f.isContentEditable; }
-  function wire(){
-    // story cards — drag between cells, drop position sets the rank
-    document.querySelectorAll(".card").forEach(el=>{
-      el.addEventListener("dragstart",e=>{ dragId=el.dataset.card; el.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain",dragId); });
-      el.addEventListener("dragend",()=>{ el.classList.remove("dragging"); document.querySelectorAll(".stories.over").forEach(c=>c.classList.remove("over")); dragId=null; });
-    });
-    document.querySelectorAll(".stories").forEach(cell=>{
-      cell.addEventListener("dragover",e=>{ if(!dragId) return; e.preventDefault(); cell.classList.add("over"); });
-      cell.addEventListener("dragleave",()=>cell.classList.remove("over"));
-      cell.addEventListener("drop",e=>{
-        if(!dragId) return;
-        e.preventDefault(); cell.classList.remove("over");
-        const id = dragId;
-        const s = state.stories.find(x=>x.id===id); if(!s) return;
-        const np=cell.dataset.dropPhase, na=cell.dataset.dropAct;
-        const changed = s.phase!==np || s.activity!==na;
-        let beforeId=null;
-        for(const c of cell.querySelectorAll(".card")){
-          if(c.dataset.card===id) continue;
-          const r=c.getBoundingClientRect();
-          if(e.clientY < r.top + r.height/2){ beforeId=c.dataset.card; break; }
-        }
-        state.stories = state.stories.filter(x=>x.id!==id);
-        s.phase=np; s.activity=na;
-        if(beforeId){ state.stories.splice(state.stories.findIndex(x=>x.id===beforeId),0,s); }
-        else{ let last=-1; state.stories.forEach((x,i)=>{ if(x.phase===np&&x.activity===na) last=i; }); state.stories.splice(last+1,0,s); }
-        save(); render();
-        toast(changed ? T("tMoved",(state.phases.find(p=>p.id===np)||{}).name||"") : T("tReordered"));
+  function clearDragState(){ dragId=dragAct=dragPhase=dragFrom=null; dragDirty=false; document.querySelectorAll(".dragging").forEach(c=>c.classList.remove("dragging")); }
+
+  function liveMoveCard(cell,e){
+    const el=document.querySelector(`.card[data-card="${dragId}"]`); if(!el) return;
+    let ref=cell.querySelector(".addcard");
+    for(const c of cell.querySelectorAll(".card")){
+      if(c===el) continue;
+      const r=c.getBoundingClientRect();
+      if(e.clientY < r.top + r.height/2){ ref=c; break; }
+    }
+    if(ref===el || (el.parentElement===cell && el.nextElementSibling===ref)) return;
+    withFlip(()=>cell.insertBefore(el,ref));
+    dragDirty=true;
+  }
+  function liveMoveColumn(target,e){
+    const map=$("map"), headers=[...map.querySelectorAll(".act")];
+    const dragHeader=map.querySelector(`.act[data-act="${dragAct}"]`);
+    if(!dragHeader||dragHeader===target) return;
+    const r=target.getBoundingClientRect();
+    const after = e.clientX > r.left + r.width/2;
+    const ref = after ? headers[headers.indexOf(target)+1]||null : target;
+    if(ref===dragHeader) return;
+    if(!after && dragHeader.nextElementSibling===target) return;
+    if(after && target.nextElementSibling===dragHeader) return;
+    withFlip(()=>{
+      map.insertBefore(dragHeader, ref || map.querySelector(".addact"));
+      map.querySelectorAll(".rail[data-phase]").forEach(rail=>{
+        const p=rail.dataset.phase;
+        const cellDrag=map.querySelector(`.stories[data-drop-phase="${p}"][data-drop-act="${dragAct}"]`);
+        const cellRef = ref ? map.querySelector(`.stories[data-drop-phase="${p}"][data-drop-act="${ref.dataset.act}"]`) : map.querySelector(`.fillp[data-fill-phase="${p}"]`);
+        if(cellDrag&&cellRef) map.insertBefore(cellDrag,cellRef);
       });
     });
-    // activities (columns) — drag a header onto another to reorder
+    dragDirty=true;
+  }
+  function rowNodes(id){
+    const map=$("map");
+    return [map.querySelector(`.rail[data-phase="${id}"]`), ...map.querySelectorAll(`.stories[data-drop-phase="${id}"]`), map.querySelector(`.fillp[data-fill-phase="${id}"]`)].filter(Boolean);
+  }
+  function liveMoveRow(target,e){
+    const map=$("map"), rails=[...map.querySelectorAll(".rail")];
+    const dragRail=map.querySelector(`.rail[data-phase="${dragPhase}"]`);
+    if(!dragRail||dragRail===target) return;
+    const r=target.getBoundingClientRect();
+    const after = e.clientY > r.top + r.height/2;
+    const ref = after ? rails[rails.indexOf(target)+1]||null : target;
+    if(ref===dragRail) return;
+    const nodes=rowNodes(dragPhase);
+    const anchor = ref || map.querySelector(".addphase");
+    if(nodes[nodes.length-1].nextElementSibling===anchor) return;
+    withFlip(()=>nodes.forEach(n=>map.insertBefore(n,anchor)));
+    dragDirty=true;
+  }
+
+  function commitStories(){
+    const id=dragId, from=dragFrom;
+    const order=[];
+    document.querySelectorAll(".stories").forEach(cell=>{
+      cell.querySelectorAll(".card").forEach(c=>{
+        const s=state.stories.find(x=>x.id===c.dataset.card);
+        if(s){ s.phase=cell.dataset.dropPhase; s.activity=cell.dataset.dropAct; order.push(s); }
+      });
+    });
+    if(order.length===state.stories.length) state.stories=order;
+    clearDragState(); save(); render();
+    const moved=state.stories.find(x=>x.id===id);
+    if(moved&&from) toast((moved.phase!==from.phase||moved.activity!==from.act) ? T("tMoved",(state.phases.find(p=>p.id===moved.phase)||{}).name||"") : T("tReordered"));
+  }
+  function commitActs(){
+    const ids=[...document.querySelectorAll(".act")].map(el=>el.dataset.act);
+    state.activities.sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id));
+    clearDragState(); save(); render(); toast(T("tActReordered"));
+  }
+  function commitPhases(){
+    const ids=[...document.querySelectorAll(".rail")].map(el=>el.dataset.phase);
+    state.phases.sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id));
+    clearDragState(); save(); render(); toast(T("tPhReordered"));
+  }
+
+  function wire(){
+    // story cards
+    document.querySelectorAll(".card").forEach(el=>{
+      el.addEventListener("dragstart",e=>{
+        dragId=el.dataset.card; dragDirty=false;
+        const s=state.stories.find(x=>x.id===dragId);
+        dragFrom=s?{phase:s.phase,act:s.activity}:null;
+        e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain",dragId);
+        requestAnimationFrame(()=>el.classList.add("dragging"));
+      });
+      el.addEventListener("dragend",()=>{ const revert=dragDirty&&dragId; clearDragState(); if(revert) render(); });
+    });
+    document.querySelectorAll(".stories").forEach(cell=>{
+      cell.addEventListener("dragover",e=>{ if(!dragId) return; e.preventDefault(); e.dataTransfer.dropEffect="move"; liveMoveCard(cell,e); });
+    });
+    // activities (columns) — the whole column slides while its header is dragged
     document.querySelectorAll(".act").forEach(el=>{
       el.addEventListener("dragstart",e=>{
         if(editing(el)){ e.preventDefault(); return; }
-        dragAct=el.dataset.act; el.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain","act:"+dragAct);
+        dragAct=el.dataset.act; dragDirty=false;
+        e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain","act:"+dragAct);
+        requestAnimationFrame(()=>el.classList.add("dragging"));
       });
-      el.addEventListener("dragend",()=>{ dragAct=null; document.querySelectorAll(".act.target,.act.dragging").forEach(c=>c.classList.remove("target","dragging")); });
-      el.addEventListener("dragover",e=>{ if(!dragAct||dragAct===el.dataset.act) return; e.preventDefault(); el.classList.add("target"); });
-      el.addEventListener("dragleave",()=>el.classList.remove("target"));
-      el.addEventListener("drop",e=>{
-        if(!dragAct||dragAct===el.dataset.act) return; e.preventDefault();
-        const a=state.activities.splice(state.activities.findIndex(x=>x.id===dragAct),1)[0];
-        const r=el.getBoundingClientRect();
-        let to=state.activities.findIndex(x=>x.id===el.dataset.act);
-        if(e.clientX > r.left + r.width/2) to++;
-        state.activities.splice(to,0,a); dragAct=null; save(); render(); toast(T("tActReordered"));
-      });
+      el.addEventListener("dragend",()=>{ const revert=dragDirty&&dragAct; clearDragState(); if(revert) render(); });
+      el.addEventListener("dragover",e=>{ if(!dragAct) return; e.preventDefault(); e.dataTransfer.dropEffect="move"; liveMoveColumn(el,e); });
     });
-    // phases (rows) — drag a rail onto another to reorder
+    // phases (rows) — the whole row slides while its rail is dragged
     document.querySelectorAll(".rail").forEach(el=>{
       el.addEventListener("dragstart",e=>{
         if(editing(el)){ e.preventDefault(); return; }
-        dragPhase=el.dataset.phase; el.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain","phase:"+dragPhase);
+        dragPhase=el.dataset.phase; dragDirty=false;
+        e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain","phase:"+dragPhase);
+        requestAnimationFrame(()=>el.classList.add("dragging"));
       });
-      el.addEventListener("dragend",()=>{ dragPhase=null; document.querySelectorAll(".rail.target,.rail.dragging").forEach(c=>c.classList.remove("target","dragging")); });
-      el.addEventListener("dragover",e=>{ if(!dragPhase||dragPhase===el.dataset.phase) return; e.preventDefault(); el.classList.add("target"); });
-      el.addEventListener("dragleave",()=>el.classList.remove("target"));
-      el.addEventListener("drop",e=>{
-        if(!dragPhase||dragPhase===el.dataset.phase) return; e.preventDefault();
-        const p=state.phases.splice(state.phases.findIndex(x=>x.id===dragPhase),1)[0];
-        const r=el.getBoundingClientRect();
-        let to=state.phases.findIndex(x=>x.id===el.dataset.phase);
-        if(e.clientY > r.top + r.height/2) to++;
-        state.phases.splice(to,0,p); dragPhase=null; save(); render(); toast(T("tPhReordered"));
-      });
+      el.addEventListener("dragend",()=>{ const revert=dragDirty&&dragPhase; clearDragState(); if(revert) render(); });
+      el.addEventListener("dragover",e=>{ if(!dragPhase) return; e.preventDefault(); e.dataTransfer.dropEffect="move"; liveMoveRow(el,e); });
     });
     // inline edits
     document.querySelectorAll("[data-edit]").forEach(el=>{
@@ -694,7 +755,14 @@
     if(n && !confirm(T("cDelAct",n))) return;
     state.activities=state.activities.filter(a=>a.id!==id); state.stories=state.stories.filter(s=>s.activity!==id); save(); render();
   }
-  $("reset").onclick=()=>{ if(confirm(T("cReset"))){ state=normalize(clone(raw)); try{localStorage.removeItem(KEY);}catch(e){} render(); toast(T("tReset")); } };
+  // release anywhere commits the current live-preview arrangement
+  document.addEventListener("dragover",e=>{ if((dragId||dragAct||dragPhase)&&dragDirty){ e.preventDefault(); e.dataTransfer.dropEffect="move"; } });
+  document.addEventListener("drop",e=>{
+    if(dragId){ e.preventDefault(); dragDirty?commitStories():clearDragState(); }
+    else if(dragAct){ e.preventDefault(); dragDirty?commitActs():clearDragState(); }
+    else if(dragPhase){ e.preventDefault(); dragDirty?commitPhases():clearDragState(); }
+  });
+
   document.querySelectorAll("#lang-toggle button").forEach(b=>b.onclick=()=>{
     if(lang===b.dataset.lang) return;
     lang=b.dataset.lang; try{localStorage.setItem("usm:lang",lang);}catch(e){}
@@ -704,7 +772,6 @@
   // import / export
   const io=$("io");
   $("export").onclick=()=>{ const t=JSON.stringify(state,null,2); (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast(T("tCopied"))).catch(()=>{ openIO(T("ioCopy"),t,true); }); };
-  $("download").onclick=()=>{ const b=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}); const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=(KEY)+".json"; a.click(); URL.revokeObjectURL(u); };
   $("import").onclick=()=>openIO(T("ioImport"),'',false);
   function openIO(title,text,readonly){ $("io-title").textContent=title; $("io-text").value=text; $("io-text").readOnly=!!readonly; $("io-ok").style.display=readonly?"none":""; io.showModal(); }
   $("io-cancel").onclick=()=>io.close();
