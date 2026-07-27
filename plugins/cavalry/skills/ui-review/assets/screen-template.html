@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Name this screen — the review is named after it</title>
+<style>
+/* ── design tokens ──────────────────────────────────────────────────────
+   Replace this block with the tokens from the resolved design source:
+   the project's own design system, or the palette/type/spacing extracted
+   from the reference site. Keep it a token block — screens reference
+   variables, never raw values, so a restyle is a one-file change.
+   Self-contained by design: no external fonts, no external CSS. The same
+   file has to work served over http AND inlined into an Artifact bundle.
+   Use min-height:100vh, never height:100vh or overflow:hidden on body — the
+   page lays out at full height inside the review workspace's window. */
+:root{
+  --bg:#ffffff; --surface:#f6f4f8; --line:#e6e2ec; --line-strong:#cfc9d8;
+  --ink:#171320; --ink-2:#665e72; --ink-3:#aaa2b3;
+  --accent:#e02b20; --accent-soft:#fff1f0; --accent-line:#ffb3ad;
+  --ok:#12805c; --ok-soft:#e9f9f2; --warn:#b7791f; --warn-soft:#fdf6e7;
+
+  --text-xs:11px; --text-sm:13px; --text-md:15px; --text-lg:19px; --text-xl:26px; --text-2xl:34px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;
+  --r-sm:6px; --r-md:9px; --r-lg:14px;
+  --shadow:0 1px 2px rgba(23,19,32,.06),0 8px 24px rgba(23,19,32,.07);
+  --font:ui-sans-serif,-apple-system,"Segoe UI",Inter,system-ui,sans-serif;
+  --font-display:var(--font);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:var(--text-sm)/1.5 var(--font);
+  -webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;font-family:var(--font-display);line-height:1.2}
+</style>
+</head>
+<body>
+
+<!-- The mockup goes here. One file, one screen. Reviewers comment by pointing
+     at the page, so what matters is that the layout reads clearly — they never
+     see or think about the markup. -->
+
+</body>
+</html>

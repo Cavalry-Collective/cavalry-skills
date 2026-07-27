@@ -1,0 +1,1354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review</title>
+<style>
+/* ══════════════════════════ workspace chrome ══════════════════════════
+   Opens one HTML file in its own browser window and lets you comment on it.
+   The wrapper knows nothing about the page inside it. Two modes, two kinds of
+   comment, nothing else. */
+:root{
+  --bg:#f4f3f6; --panel:#ffffff; --sunken:#eceaf0; --ink:#171320; --ink-2:#665e72;
+  --ink-3:#8f889c; --line:#e2dfe8; --line-2:#cfc9d8;
+  --accent:#e02b20; --accent-soft:#fff1f0; --accent-line:#ffb3ad;
+  --must:#e02b20; --should:#b7791f; --nice:#5b6b8c;
+  --ok:#12805c; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(23,19,32,.06),0 8px 24px rgba(23,19,32,.08);
+  --window-shadow:0 2px 6px rgba(23,19,32,.10),0 18px 48px rgba(23,19,32,.16);
+  --panelw:320px;
+  --font:ui-sans-serif,-apple-system,"Segoe UI",Inter,system-ui,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.45 var(--font);
+  -webkit-font-smoothing:antialiased;overflow:hidden}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+#app{display:grid;grid-template-rows:auto 1fr;height:100%}
+#top{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
+  background:var(--panel);border-bottom:1px solid var(--line);position:relative;z-index:40}
+#main{display:grid;grid-template-columns:1fr var(--panelw);min-height:0}
+@media (max-width:820px){ #main{grid-template-columns:1fr} #panel{display:none} }
+
+/* ── topbar ── */
+.brand{display:flex;align-items:center;gap:8px;min-width:0}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none}
+.brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+.sep{width:1px;height:20px;background:var(--line);flex:none}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+  border:1px solid var(--line-2);background:var(--panel);color:var(--ink);font-weight:550;white-space:nowrap}
+.btn:hover{background:var(--sunken)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.primary[disabled]{opacity:.45;cursor:default;filter:none}
+.btn.sm{height:26px;padding:0 9px;font-size:12px}
+.btn .kbd{font:500 10px/1 var(--mono);opacity:.6}
+
+/* segmented controls */
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;background:var(--panel)}
+.seg button{height:30px;padding:0 12px;font-weight:550;color:var(--ink-2);display:inline-flex;
+  align-items:center;gap:6px;border-right:1px solid var(--line-2)}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--sunken)}
+/* The mode switch is a control, not a call to action — the accent belongs to
+   Send to Claude alone. */
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+.seg .kbd{font:500 10px/1 var(--mono);opacity:.65}
+.seg.icons button{width:36px;padding:0;justify-content:center;color:var(--ink-3)}
+.seg.icons button:hover{color:var(--ink)}
+.seg.icons button[aria-pressed=true]{background:var(--sunken);color:var(--ink)}
+#modeSwitch button[aria-pressed=true]{background:var(--ink);color:#fff}
+#langSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
+.seg svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+
+/* ── canvas + the page's own browser window ── */
+#canvasArea{display:grid;grid-template-rows:minmax(0,1fr) auto;min-width:0}
+/* The dots live on the non-scrolling frame so they are painted once, instead of
+   being repainted across the whole scrollable canvas on every scroll. */
+#stageArea{position:relative;overflow:hidden;background:var(--sunken);
+  background-image:radial-gradient(circle at 1px 1px,var(--line-2) 1px,transparent 0);
+  background-size:22px 22px}
+#canvasWrap{position:absolute;inset:0;overflow:auto}
+#canvas{padding:26px;display:flex;justify-content:center;min-height:100%;align-items:flex-start}
+
+/* transform-origin is top-left so the negative margins in setZoom() shrink the
+   layout box to exactly the scaled size — anything else and the window drifts. */
+#browser{background:var(--panel);border-radius:11px;box-shadow:var(--window-shadow);
+  transform-origin:top left;flex:none;overflow:hidden;border:1px solid var(--line-2);
+  will-change:transform;backface-visibility:hidden}
+.window-bar{display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;
+  background:linear-gradient(var(--panel),var(--sunken));border-bottom:1px solid var(--line-2)}
+.window-bar .reload{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;
+  color:var(--ink-3);font-size:13px;flex:none}
+.window-bar .reload:hover{background:var(--line);color:var(--ink)}
+.window-bar .url{flex:1;height:22px;border-radius:11px;background:var(--bg);border:1px solid var(--line);
+  display:flex;align-items:center;padding:0 9px;font:600 11px/1 var(--mono);color:var(--ink-2);
+  min-width:0;overflow:hidden;white-space:nowrap}
+.window-bar .size{font:500 10.5px/1 var(--mono);color:var(--ink-3);flex:none}
+.window-bar .vlabel{font:600 10px/1 var(--mono);padding:3px 6px;border-radius:5px;
+  background:var(--sunken);color:var(--ink-2);flex:none}
+.window-bar .vlabel.hist{background:var(--accent-soft);color:var(--accent)}
+#viewportBox{position:relative;overflow:auto;background:#fff;contain:paint}
+#scroller{position:relative}
+#frame{display:block;border:0;width:100%;background:#fff}
+
+/* View is the page as it really is — the annotation layer steps out of the way
+   completely. Annotate brings it back. */
+#overlay{position:absolute;inset:0;overflow:hidden;contain:layout paint}
+#overlay.view{pointer-events:none}
+#overlay.view .mark{display:none}
+
+.mark{position:absolute}
+.mark.area{border:2px solid var(--mk);border-radius:3px;
+  background:color-mix(in srgb,var(--mk) 8%,transparent);cursor:pointer}
+.mark .lbl{display:none}
+.mark.sel .lbl,#overlay:not(.view) .mark:hover .lbl{display:block}
+.mark:hover{z-index:5}
+.mark.area .lbl{position:absolute;left:0;top:100%;margin-top:4px;max-width:320px;
+  background:var(--mk);color:#fff;padding:3px 7px;border-radius:4px;font:500 11.5px/1.35 var(--font);
+  white-space:pre-wrap;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.mark.area.flip .lbl{top:auto;bottom:100%;margin:0 0 4px}
+.mark .num{position:absolute;left:-1px;top:-19px;background:var(--mk);color:#fff;
+  font:700 10px/1 var(--mono);padding:3px 5px;border-radius:4px 4px 0 0}
+.mark.pin{width:24px;height:24px;border-radius:50% 50% 50% 3px;background:var(--mk);color:#fff;
+  display:grid;place-items:center;font:700 11px/1 var(--font);transform:translate(-2px,-24px);
+  box-shadow:0 1px 5px rgba(0,0,0,.28);cursor:pointer}
+/* The pin is only 24px wide, so an absolute child would shrink-to-fit to almost
+   nothing — max-content lets the note size to its text instead. */
+.mark.pin .lbl{position:absolute;left:calc(100% + 5px);top:50%;transform:translateY(-50%);
+  width:max-content;max-width:300px;background:var(--mk);color:#fff;padding:3px 7px;border-radius:4px;
+  font:500 11.5px/1.35 var(--font);white-space:pre-wrap;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.mark.sel{outline:2px dashed var(--ink);outline-offset:3px}
+.mark.ghost{opacity:.4;filter:saturate(.4)}
+.mark.done{opacity:.32}
+#drag{position:absolute;border:2px dashed var(--accent);border-radius:3px;display:none;
+  background:color-mix(in srgb,var(--accent) 8%,transparent);pointer-events:none}
+
+/* ── on-canvas composer ── */
+#composer{position:absolute;z-index:30;width:280px;background:var(--panel);border:1px solid var(--line-2);
+  border-radius:10px;box-shadow:var(--shadow);display:none;overflow:hidden}
+#composer.on{display:block}
+#composer .chead{display:flex;align-items:center;gap:7px;padding:8px 9px 6px}
+#composer .cnum{font:700 10px/1 var(--mono);color:#fff;background:var(--mk,var(--accent));
+  padding:3px 5px;border-radius:4px}
+#composer .ckind{font-size:11.5px;color:var(--ink-3);flex:1}
+#composer .chead button{width:20px;height:20px;border-radius:4px;color:var(--ink-3);
+  display:grid;place-items:center;font-size:12px}
+#composer .chead button:hover{background:var(--sunken);color:var(--accent)}
+#composer .cstatus{font:600 9.5px/1 var(--font);letter-spacing:.04em;text-transform:uppercase;
+  padding:3px 5px;border-radius:4px;background:var(--sunken);color:var(--ink-3)}
+#composer .cstatus.addressed{background:var(--ok-soft);color:var(--ok)}
+#composer .cstatus.question{background:var(--accent-soft);color:var(--accent)}
+#composer .cstatus:empty{display:none}
+#composer textarea{width:calc(100% - 18px);margin:0 9px;border:1px solid var(--line-2);border-radius:7px;
+  padding:6px 7px;font-size:12.5px;line-height:1.45;resize:vertical;min-height:58px;background:var(--panel)}
+#composer textarea:focus{outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+#composer .cthread{margin:8px 9px 0;display:none;flex-direction:column;gap:7px;
+  max-height:190px;overflow:auto}
+#composer .cthread.on{display:flex}
+#composer .msg{border-left:2px solid var(--line-2);padding-left:8px}
+#composer .msg.claude{border-left-color:var(--accent)}
+#composer .msg .who{font:600 10px/1 var(--font);letter-spacing:.04em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:3px}
+#composer .msg.claude .who{color:var(--accent)}
+#composer .msg .body{font-size:12.5px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+#composer .creply{display:none;margin-top:8px;min-height:44px}
+#composer .creply.on{display:block}
+#composer .cfoot{display:flex;align-items:center;gap:5px;padding:8px 9px;margin-top:8px;
+  border-top:1px solid var(--line);background:var(--bg)}
+#composer .sevs{display:flex;gap:3px;flex:1}
+#composer .sevs button{font:600 10px/1 var(--font);text-transform:uppercase;letter-spacing:.02em;
+  padding:5px 6px;border-radius:5px;border:1px solid var(--line-2);color:var(--ink-3)}
+#composer .sevs button[aria-pressed=true][data-sev=must]{background:color-mix(in srgb,var(--must) 12%,transparent);border-color:var(--must);color:var(--must)}
+#composer .sevs button[aria-pressed=true][data-sev=should]{background:color-mix(in srgb,var(--should) 12%,transparent);border-color:var(--should);color:var(--should)}
+#composer .sevs button[aria-pressed=true][data-sev=nice]{background:color-mix(in srgb,var(--nice) 12%,transparent);border-color:var(--nice);color:var(--nice)}
+
+/* ── right panel: the index ── */
+#panel{background:var(--panel);border-left:1px solid var(--line);display:grid;
+  grid-template-rows:auto auto 1fr auto;min-height:0}
+#phead{display:flex;align-items:center;gap:8px;padding:10px 12px 8px}
+#phead b{font-size:13px}
+#phead .scope{margin-left:auto;font-size:11px;color:var(--ink-3)}
+#pfilter{display:flex;flex-wrap:wrap;gap:5px;padding:0 10px 8px;border-bottom:1px solid var(--line)}
+#pfilter select{height:26px;border:1px solid var(--line-2);border-radius:6px;background:var(--panel);
+  padding:0 3px;font-size:11.5px;color:var(--ink-2);flex:1 1 auto;min-width:0}
+#pbody{overflow:auto;padding:8px 10px 14px}
+#pfoot{border-top:1px solid var(--line);padding:9px 10px;display:flex;gap:7px;align-items:center}
+#pfoot .count{flex:1;font-size:11.5px;color:var(--ink-3);line-height:1.3}
+#pfoot .count b{color:var(--ink);font-weight:650}
+#pfoot .clear{font-size:11.5px;color:var(--ink-3);text-decoration:underline;white-space:nowrap;flex:none}
+#pfoot .clear:hover{color:var(--accent)}
+#pfoot .clear.armed{color:var(--accent);font-weight:600;text-decoration:none}
+#pfoot .clear:disabled{opacity:.35;cursor:default;text-decoration:none}
+#pfoot .clear:disabled:hover{color:var(--ink-3)}
+
+.item{border:1px solid var(--line);border-radius:8px;padding:7px 9px;margin-bottom:6px;
+  cursor:pointer;transition:border-color .12s}
+.item:hover{border-color:var(--line-2)}
+.item.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.item.resolved{opacity:.55}
+.item .ih{display:flex;align-items:center;gap:6px}
+.item .n{font:700 10px/1 var(--mono);color:#fff;background:var(--mk,var(--accent));padding:3px 5px;border-radius:4px}
+.item .kind{font-size:11px;color:var(--ink-3);flex:1}
+.item .sevdot{width:7px;height:7px;border-radius:50%;background:var(--mk)}
+.item .note{font-size:12.5px;line-height:1.4;margin-top:4px;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.item .note.blank{color:var(--ink-3);font-style:italic}
+.item .thread{font-size:11px;color:var(--ink-3);margin-top:4px;display:flex;align-items:center;gap:5px}
+.item .thread.asked{color:var(--accent);font-weight:600}
+.empty{color:var(--ink-3);font-size:12.5px;text-align:center;padding:30px 14px;line-height:1.6}
+.grouphd{font:650 10.5px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
+  margin:12px 2px 7px;display:flex;align-items:center;gap:6px}
+.grouphd:first-child{margin-top:2px}
+.grouphd::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* ── timeline scrubber ── */
+#timeline{border-top:1px solid var(--line);background:var(--panel);padding:9px 16px 12px;
+  display:flex;align-items:center;gap:12px;z-index:20}
+#timeline .step{width:24px;height:24px;border-radius:6px;color:var(--ink-2);display:grid;place-items:center;flex:none}
+#timeline .step:hover{background:var(--sunken);color:var(--ink)}
+#timeline .step[disabled]{opacity:.3;cursor:default}
+#timeline .step[disabled]:hover{background:none}
+#tlTrack{flex:1;position:relative;height:26px;min-width:120px;cursor:pointer}
+#tlTrack::before{content:"";position:absolute;left:0;right:0;top:11px;height:3px;border-radius:2px;background:var(--line)}
+#tlFill{position:absolute;left:0;top:11px;height:3px;border-radius:2px;background:var(--accent-line)}
+#tlTrack .tick{position:absolute;top:7px;width:11px;height:11px;border-radius:50%;background:var(--panel);
+  border:2px solid var(--line-2);transform:translateX(-50%)}
+#tlTrack .tick.past{border-color:var(--accent-line)}
+#tlTrack .tick:hover{border-color:var(--accent)}
+#tlTrack .tick .cap{position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  font:600 9.5px/1 var(--mono);color:var(--ink-3)}
+#tlHandle{position:absolute;top:4px;width:17px;height:17px;border-radius:50%;background:var(--accent);
+  border:3px solid var(--panel);box-shadow:0 1px 4px rgba(23,19,32,.3);transform:translateX(-50%);
+  cursor:grab;z-index:3}
+#tlHandle:active{cursor:grabbing}
+#tlMeta{flex:none;max-width:330px;min-width:0;font-size:11.5px;color:var(--ink-3);line-height:1.35}
+#tlMeta b{color:var(--ink);font-weight:650;font-family:var(--mono);font-size:11px}
+#tlMeta .lab{color:var(--ink-2)}
+#tlMeta .row{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── floating banners ── */
+.banner{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:28;display:none;
+  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow);
+  font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
+.banner.on{display:flex}
+.banner .btn{height:25px;font-size:11.5px}
+#histBanner{background:var(--ink);color:#fff}
+#histBanner .btn{background:rgba(255,255,255,.14);border-color:transparent;color:#fff}
+#histBanner .btn:hover{background:rgba(255,255,255,.26)}
+#workBanner{background:var(--panel);border:1px solid var(--line-2)}
+#workBanner .spin{width:13px;height:13px;border-radius:50%;border:2px solid var(--line-2);
+  border-top-color:var(--accent);animation:spin .7s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+#workBanner.ready{border-color:var(--ok);background:var(--ok-soft)}
+#workBanner .tick{color:var(--ok);font-weight:700}
+#workBanner .txt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+
+#zoombar{position:absolute;left:12px;bottom:12px;display:flex;gap:2px;align-items:center;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:8px;padding:3px;box-shadow:var(--shadow);z-index:20}
+#zoombar button{width:26px;height:24px;border-radius:5px;color:var(--ink-2);display:grid;place-items:center;font-size:14px}
+#zoombar button:hover{background:var(--sunken);color:var(--ink)}
+#zoombar .z{min-width:44px;text-align:center;font:600 11px/1 var(--mono);color:var(--ink-2)}
+
+/* ── modal / toast ── */
+#toast{position:fixed;bottom:18px;left:50%;transform:translate(-50%,20px);background:var(--ink);color:#fff;
+  padding:9px 14px;border-radius:8px;font-weight:550;opacity:0;pointer-events:none;transition:.2s;z-index:120}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top">
+    <div class="brand"><span class="dot"></span><b id="pageName">Review</b></div>
+    <div class="spacer"></div>
+
+    <div class="seg" id="modeSwitch">
+      <button data-mode="view" aria-pressed="false"></button>
+      <button data-mode="annotate" aria-pressed="true"></button>
+    </div>
+
+    <div class="seg icons" id="sizeSwitch"></div>
+
+    <div class="seg" id="langSwitch">
+      <button data-lang="en" aria-pressed="true">EN</button>
+      <button data-lang="zh" aria-pressed="false">中文</button>
+    </div>
+
+    <div class="sep"></div>
+    <button class="btn primary" id="btnSend"></button>
+  </div>
+
+  <div id="main">
+    <div id="canvasArea">
+      <div id="stageArea">
+        <div id="canvasWrap">
+          <div id="canvas">
+            <div id="browser">
+              <div class="window-bar">
+                <button class="reload" id="btnReload" title="Reload the page">⟲</button>
+                <div class="url" id="urlBar">page.html</div>
+                <span class="vlabel" id="winVersion">v1</span>
+                <span class="size" id="winSize">1440 × 900</span>
+              </div>
+              <div id="viewportBox">
+                <div id="scroller">
+                  <iframe id="frame" title="Mockup under review"></iframe>
+                  <div id="overlay"><div id="drag"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="banner" id="histBanner">
+          <span id="histText">Viewing an earlier version — read only</span>
+          <button class="btn sm" id="btnNow">Back to current</button>
+        </div>
+        <div class="banner" id="workBanner">
+          <span class="spin" id="workSpin"></span>
+          <span class="txt" id="workText">Sent — Claude is working…</span>
+          <button class="btn sm primary" id="btnRefresh" style="display:none">Review changes</button>
+          <button class="btn sm" id="btnDismissWork" style="display:none">Later</button>
+        </div>
+
+        <div id="composer">
+          <div class="chead">
+            <span class="cnum">1</span><span class="ckind">Comment</span>
+            <span class="cstatus"></span>
+            <button class="cdel" title="Delete comment">🗑</button>
+            <button class="cclose" title="Close">✕</button>
+          </div>
+          <textarea class="cnote" placeholder="What needs to change?"></textarea>
+          <div class="cthread"></div>
+          <textarea class="creply" placeholder="Reply…"></textarea>
+          <div class="cfoot">
+            <div class="sevs">
+              <button data-sev="must">Must</button>
+              <button data-sev="should">Should</button>
+              <button data-sev="nice">Nice</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="zoombar">
+          <button data-z="out">−</button><span class="z" id="zVal">100%</span><button data-z="in">+</button>
+          <button data-z="fit" title="Fit">⤢</button>
+        </div>
+      </div>
+
+      <div id="timeline">
+        <button class="step" id="tlPrev" title="Previous version">‹</button>
+        <div id="tlTrack"><div id="tlFill"></div><div id="tlHandle"></div></div>
+        <button class="step" id="tlNext" title="Next version">›</button>
+        <div id="tlMeta"></div>
+      </div>
+    </div>
+
+    <div id="panel">
+      <div id="phead"><b>Comments</b><span class="scope" id="pscope"></span></div>
+      <div id="pfilter">
+        <select id="fSeverity"><option value="">Any severity</option><option value="must">Must</option><option value="should">Should</option><option value="nice">Nice</option></select>
+        <select id="fStatus"><option value="open">Open</option><option value="question">Claude asked</option><option value="">All</option><option value="addressed">Addressed</option></select>
+      </div>
+      <div id="pbody"></div>
+      <div id="pfoot">
+        <div class="count" id="counts"></div>
+        <button class="clear" id="btnClear"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script id="bundle" type="application/json">{"mode":"artifact","name":"Today","fileName":"today.html","currentVersion":1,"html":"\u003c!doctype html>\n\u003chtml lang=\"en\">\n\u003chead>\n\u003cmeta charset=\"utf-8\">\n\u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\u003ctitle>Today\u003c/title>\n\u003cstyle>\n/* Cavalry design system — tokens from design/tokens.css (semantic tier) */\n:root{\n  --white:#fff;\n  --gray-50:#f6f4f8; --gray-200:#e6e2ec; --gray-300:#cfc9d8; --gray-400:#aaa2b3;\n  --gray-600:#665e72; --gray-900:#171320;\n  --red-50:#fff1f0; --red-200:#ffb3ad; --red-400:#e02b20; --red-500:#b8231a;\n  --violet-50:#f4effe; --violet-200:#c9b0f8; --violet-400:#7c3aed;\n  --green-50:#e9f9f2; --green-200:#7fe0bd; --green-400:#0b8157;\n  --amber-50:#fef5e6; --amber-200:#fbd38d; --amber-600:#8a5c06;\n\n  --color-bg:var(--white); --color-bg-subtle:var(--gray-50); --color-surface:var(--white);\n  --color-content:var(--gray-900); --color-content-subtle:var(--gray-600);\n  --color-content-disabled:var(--gray-400); --color-content-inverse:var(--white);\n  --color-border:var(--gray-200); --color-border-strong:var(--gray-300);\n  --color-accent:var(--red-400); --color-accent-hover:var(--red-500);\n  --color-accent-subtle:var(--red-50); --color-on-accent:var(--white);\n\n  --font-family-base:Inter,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;\n  --font-family-display:\"Space Grotesk\",var(--font-family-base);\n  --font-size-100:12px; --font-size-200:14px; --font-size-300:16px;\n  --font-size-400:20px; --font-size-500:28px;\n  --tracking-caps:.06em;\n\n  --space-1:4px; --space-2:8px; --space-3:16px; --space-4:24px; --space-5:32px;\n  --radius-1:4px; --radius-2:8px; --radius-3:12px; --radius-round:9999px;\n  --shadow-1:0 1px 2px rgba(23,19,32,.08);\n\n  --side-nav-width:144px; --header-height:56px;\n  --gutter-screen:var(--space-4);\n  --page-title-gap:var(--space-4); --page-section-gap:var(--space-5);\n  --control-height:40px; --box-padding-sm:var(--space-2); --box-padding:var(--space-3);\n}\n*{box-sizing:border-box}\nbody{margin:0;background:var(--color-bg);color:var(--color-content);\n  font:var(--font-size-200)/1.5 var(--font-family-base);-webkit-font-smoothing:antialiased}\nh1,h2,h3{margin:0;font-family:var(--font-family-display);line-height:1.25;letter-spacing:-.02em}\nbutton{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}\ntable{border-collapse:collapse;width:100%}\n\n/* ── app frame ── */\n.app-frame{display:grid;grid-template-columns:var(--side-nav-width) 1fr;min-height:100vh}\n.side-nav{background:var(--color-bg-subtle);border-right:1px solid var(--color-border);\n  padding:var(--space-3) var(--space-2);display:flex;flex-direction:column;gap:2px}\n.side-nav .workspace{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2);\n  margin-bottom:var(--space-4)}\n.side-nav .workspace .mark{width:20px;height:20px;border-radius:var(--radius-1);\n  background:var(--color-accent);flex:none}\n.side-nav .workspace b{font-family:var(--font-family-display);font-size:var(--font-size-200)}\n.side-nav a{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2);\n  border-radius:var(--radius-2);color:var(--color-content-subtle);text-decoration:none;font-weight:500}\n.side-nav a:hover{background:var(--white)}\n.side-nav a[aria-current]{background:var(--white);color:var(--color-content);box-shadow:var(--shadow-1)}\n.side-nav a .icon{width:16px;height:16px;border-radius:3px;background:currentColor;opacity:.35;flex:none}\n.side-nav a .count{margin-left:auto;font-size:var(--font-size-100);color:var(--color-accent);font-weight:600}\n\n.app-main{min-width:0;display:flex;flex-direction:column}\n.app-header{height:var(--header-height);border-bottom:1px solid var(--color-border);\n  display:flex;align-items:center;gap:var(--space-3);padding:0 var(--gutter-screen);flex:none}\n.app-header .breadcrumb{color:var(--color-content-subtle)}\n.app-header .breadcrumb b{color:var(--color-content);font-weight:600}\n.app-header .grow{flex:1}\n.icon-button{width:32px;height:32px;border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-2);background:var(--color-surface);display:grid;place-items:center;\n  color:var(--color-content-subtle)}\n.icon-button:hover{background:var(--color-bg-subtle);color:var(--color-content)}\n.user-avatar{width:28px;height:28px;border-radius:var(--radius-round);background:var(--violet-200);\n  display:grid;place-items:center;font-size:var(--font-size-100);font-weight:600;color:var(--violet-400)}\n\n/* ── page ── */\n.page{padding:var(--gutter-screen);flex:1}\n.page-header{display:flex;align-items:flex-start;gap:var(--space-3);margin-bottom:var(--page-title-gap)}\n.page-header h1{font-size:var(--font-size-500)}\n.page-header .grow{flex:1}\n\n.button{height:var(--control-height);padding:0 var(--space-3);border-radius:var(--radius-2);\n  border:1px solid var(--color-border-strong);background:var(--color-surface);font-weight:500;\n  display:inline-flex;align-items:center;gap:var(--space-2);white-space:nowrap}\n.button:hover{background:var(--color-bg-subtle)}\n.button--primary{background:var(--color-accent);border-color:var(--color-accent);\n  color:var(--color-on-accent)}\n.button--primary:hover{background:var(--color-accent-hover)}\n\n/* ── datagrid ── */\n.datagrid{border:1px solid var(--color-border);border-radius:var(--radius-3);overflow:hidden;\n  background:var(--color-surface)}\n.datagrid-toolbar{display:flex;align-items:center;gap:var(--space-2);\n  padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--color-border);\n  background:var(--color-bg-subtle)}\n.search-field{flex:1;max-width:300px;height:32px;border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-2);background:var(--color-surface);display:flex;align-items:center;\n  gap:var(--space-2);padding:0 var(--space-2);color:var(--color-content-disabled)}\n.filter-chip{height:32px;padding:0 var(--space-2);border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-2);background:var(--color-surface);display:inline-flex;align-items:center;\n  gap:var(--space-1);font-size:var(--font-size-200);color:var(--color-content-subtle)}\n.filter-chip b{color:var(--color-content);font-weight:500}\n.filter-chip .remove{color:var(--color-content-disabled);margin-left:2px}\n.filter-chip--active{border-color:var(--color-accent);background:var(--color-accent-subtle);\n  color:var(--color-accent)}\n.filter-chip--active b{color:var(--color-accent)}\n.clear-filters{font-size:var(--font-size-200);color:var(--color-content-subtle);text-decoration:underline}\n.datagrid-toolbar .grow{flex:1}\n\n.checkbox{width:15px;height:15px;border:1.5px solid var(--color-border-strong);\n  border-radius:3px;background:var(--color-surface);display:inline-block;vertical-align:middle}\nthead th{text-align:left;font-size:var(--font-size-100);text-transform:uppercase;\n  letter-spacing:var(--tracking-caps);color:var(--color-content-subtle);font-weight:600;\n  padding:var(--box-padding-sm) var(--space-3);border-bottom:1px solid var(--color-border);\n  white-space:nowrap}\nthead th .sort-indicator{color:var(--color-content-disabled);margin-left:var(--space-1)}\nthead th .column-menu{color:var(--color-content-disabled);margin-left:var(--space-1);opacity:.5}\ntbody td{padding:var(--box-padding-sm) var(--space-3);border-bottom:1px solid var(--color-border);\n  vertical-align:middle}\ntbody tr:last-child td{border-bottom:0}\ntbody tr:hover{background:var(--color-bg-subtle)}\n.col-select{width:38px}\n.task{font-weight:600}\n.person{display:flex;align-items:center;gap:var(--space-2)}\n.person .initials{width:26px;height:26px;border-radius:var(--radius-round);\n  background:var(--gray-200);display:grid;place-items:center;font-size:var(--font-size-100);\n  font-weight:600;color:var(--color-content-subtle);flex:none}\n.subtle{color:var(--color-content-subtle)}\n.numeric{font-variant-numeric:tabular-nums}\n.waiting--overdue{color:var(--color-accent);font-weight:600}\n.stage-pill{display:inline-flex;align-items:center;height:22px;padding:0 var(--space-2);\n  border-radius:var(--radius-round);font-size:var(--font-size-100);font-weight:500;border:1px solid}\n.stage-pill--screening{background:var(--violet-50);border-color:var(--violet-200);color:var(--violet-400)}\n.stage-pill--interview{background:var(--amber-50);border-color:var(--amber-200);color:var(--amber-600)}\n.stage-pill--offer{background:var(--green-50);border-color:var(--green-200);color:var(--green-400)}\n.stage-pill--blocked{background:var(--red-50);border-color:var(--red-200);color:var(--color-accent)}\n.row-action{color:var(--color-accent);font-weight:600;white-space:nowrap}\n.col-action{text-align:right}\n\n.datagrid-footer{display:flex;align-items:center;gap:var(--space-3);\n  padding:var(--space-2) var(--space-3);border-top:1px solid var(--color-border);\n  color:var(--color-content-subtle);font-size:var(--font-size-100)}\n.datagrid-footer .grow{flex:1}\n.page-size{display:inline-flex;align-items:center;gap:var(--space-1)}\n.page-size select{height:26px;border:1px solid var(--color-border-strong);border-radius:var(--radius-1);\n  background:var(--color-surface);font-size:var(--font-size-100);padding:0 2px;color:inherit}\n.pagination{display:flex;gap:var(--space-1)}\n.pagination button{min-width:28px;height:28px;border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-1);background:var(--color-surface);font-size:var(--font-size-100)}\n.pagination button[aria-current]{background:var(--color-content);border-color:var(--color-content);\n  color:var(--color-content-inverse)}\n.pagination button[disabled]{color:var(--color-content-disabled);cursor:default}\n\u003c/style>\n\u003c/head>\n\u003cbody>\n\u003cdiv class=\"app-frame\">\n\n  \u003cnav class=\"side-nav\">\n    \u003cdiv class=\"workspace\">\u003cspan class=\"mark\">\u003c/span>\u003cb>Cavalry\u003c/b>\u003c/div>\n    \u003ca href=\"#\" aria-current=\"page\">\u003cspan class=\"icon\">\u003c/span>Today\u003cspan class=\"count\">8\u003c/span>\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Roles\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Candidates\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Reports\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Settings\u003c/a>\n  \u003c/nav>\n\n  \u003cdiv class=\"app-main\">\n    \u003cheader class=\"app-header\">\n      \u003cdiv class=\"breadcrumb\">\u003cb>Kestrel Labs\u003c/b>\u003c/div>\n      \u003cdiv class=\"grow\">\u003c/div>\n      \u003cbutton class=\"icon-button\" title=\"Help\">?\u003c/button>\n      \u003cdiv class=\"user-avatar\">AB\u003c/div>\n    \u003c/header>\n\n    \u003cmain class=\"page\">\n      \u003cdiv class=\"page-header\">\n        \u003ch1>Today\u003c/h1>\n        \u003cdiv class=\"grow\">\u003c/div>\n      \u003c/div>\n\n      \u003csection class=\"datagrid\">\n        \u003cdiv class=\"datagrid-toolbar\">\n          \u003cdiv class=\"search-field\">\u003cspan>⌕\u003c/span>\u003cspan>Search\u003c/span>\u003c/div>\n          \u003cspan class=\"filter-chip filter-chip--active\">Owner \u003cb>Me\u003c/b> \u003cspan class=\"remove\">✕\u003c/span>\u003c/span>\n          \u003cspan class=\"filter-chip\">Role \u003cb>All\u003c/b> ▾\u003c/span>\n          \u003cspan class=\"filter-chip\">Type \u003cb>All\u003c/b> ▾\u003c/span>\n          \u003cbutton class=\"clear-filters\">Clear all\u003c/button>\n          \u003cdiv class=\"grow\">\u003c/div>\n          \u003cbutton class=\"icon-button\" title=\"Columns\">▦\u003c/button>\n        \u003c/div>\n\n        \u003ctable>\n          \u003cthead>\n            \u003ctr>\n              \u003cth class=\"col-select\">\u003cspan class=\"checkbox\">\u003c/span>\u003c/th>\n              \u003cth>Needs doing \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Candidate \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Role \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Stage \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Waiting \u003cspan class=\"sort-indicator\">↓\u003c/span>\u003c/th>\n              \u003cth class=\"col-action\">\u003c/th>\n            \u003c/tr>\n          \u003c/thead>\n          \u003ctbody>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Approve or override the screen\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">SO\u003c/span>Segun Okafor\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--blocked\">Unreadable CV\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric waiting--overdue\">4 days\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Review\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Approve or override the screen\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">RA\u003c/span>Rahul Anand\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--screening\">Screening\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric waiting--overdue\">3 days\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Review\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Scorecard not submitted\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">MK\u003c/span>Mei Ling Koh\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--interview\">Interview 1\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">2 days\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Remind Sarah\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Book the system design round\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">DN\u003c/span>Daniel Ng\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--interview\">Interview 2\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">1 day\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Book\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Send the offer letter\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">PT\u003c/span>Priya Thangavelu\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--offer\">Offer\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">4 hours\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Send\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Candidate replied on the portal\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">LC\u003c/span>Lucia Chen\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Product Designer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--interview\">Interview 1\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">3 hours\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Read\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Availability not confirmed\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">TB\u003c/span>Tomas Berg\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Product Designer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--screening\">Screening\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">2 hours\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Chase\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Approve or override the screen\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">AI\u003c/span>Amara Ibe\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Product Designer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--screening\">Screening\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">1 hour\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Review\u003c/button>\u003c/td>\n            \u003c/tr>\n          \u003c/tbody>\n        \u003c/table>\n\n        \u003cdiv class=\"datagrid-footer\">\n          \u003cspan class=\"numeric\">1–8 of 8\u003c/span>\n          \u003cspan class=\"page-size\">Show\n            \u003cselect>\u003coption>10\u003c/option>\u003coption selected>25\u003c/option>\u003coption>50\u003c/option>\u003coption>100\u003c/option>\u003c/select>\n          \u003c/span>\n          \u003cdiv class=\"grow\">\u003c/div>\n          \u003cdiv class=\"pagination\">\n            \u003cbutton disabled>‹\u003c/button>\n            \u003cbutton aria-current=\"page\">1\u003c/button>\n            \u003cbutton disabled>›\u003c/button>\n          \u003c/div>\n        \u003c/div>\n      \u003c/section>\n    \u003c/main>\n  \u003c/div>\n\u003c/div>\n\u003c/body>\n\u003c/html>\n","versions":[{"n":1,"label":"Initial version","date":"2026-07-27T12:22:02.473Z","addressed":[],"html":"\u003c!doctype html>\n\u003chtml lang=\"en\">\n\u003chead>\n\u003cmeta charset=\"utf-8\">\n\u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\u003ctitle>Today\u003c/title>\n\u003cstyle>\n/* Cavalry design system — tokens from design/tokens.css (semantic tier) */\n:root{\n  --white:#fff;\n  --gray-50:#f6f4f8; --gray-200:#e6e2ec; --gray-300:#cfc9d8; --gray-400:#aaa2b3;\n  --gray-600:#665e72; --gray-900:#171320;\n  --red-50:#fff1f0; --red-200:#ffb3ad; --red-400:#e02b20; --red-500:#b8231a;\n  --violet-50:#f4effe; --violet-200:#c9b0f8; --violet-400:#7c3aed;\n  --green-50:#e9f9f2; --green-200:#7fe0bd; --green-400:#0b8157;\n  --amber-50:#fef5e6; --amber-200:#fbd38d; --amber-600:#8a5c06;\n\n  --color-bg:var(--white); --color-bg-subtle:var(--gray-50); --color-surface:var(--white);\n  --color-content:var(--gray-900); --color-content-subtle:var(--gray-600);\n  --color-content-disabled:var(--gray-400); --color-content-inverse:var(--white);\n  --color-border:var(--gray-200); --color-border-strong:var(--gray-300);\n  --color-accent:var(--red-400); --color-accent-hover:var(--red-500);\n  --color-accent-subtle:var(--red-50); --color-on-accent:var(--white);\n\n  --font-family-base:Inter,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;\n  --font-family-display:\"Space Grotesk\",var(--font-family-base);\n  --font-size-100:12px; --font-size-200:14px; --font-size-300:16px;\n  --font-size-400:20px; --font-size-500:28px;\n  --tracking-caps:.06em;\n\n  --space-1:4px; --space-2:8px; --space-3:16px; --space-4:24px; --space-5:32px;\n  --radius-1:4px; --radius-2:8px; --radius-3:12px; --radius-round:9999px;\n  --shadow-1:0 1px 2px rgba(23,19,32,.08);\n\n  --side-nav-width:144px; --header-height:56px;\n  --gutter-screen:var(--space-4);\n  --page-title-gap:var(--space-4); --page-section-gap:var(--space-5);\n  --control-height:40px; --box-padding-sm:var(--space-2); --box-padding:var(--space-3);\n}\n*{box-sizing:border-box}\nbody{margin:0;background:var(--color-bg);color:var(--color-content);\n  font:var(--font-size-200)/1.5 var(--font-family-base);-webkit-font-smoothing:antialiased}\nh1,h2,h3{margin:0;font-family:var(--font-family-display);line-height:1.25;letter-spacing:-.02em}\nbutton{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}\ntable{border-collapse:collapse;width:100%}\n\n/* ── app frame ── */\n.app-frame{display:grid;grid-template-columns:var(--side-nav-width) 1fr;min-height:100vh}\n.side-nav{background:var(--color-bg-subtle);border-right:1px solid var(--color-border);\n  padding:var(--space-3) var(--space-2);display:flex;flex-direction:column;gap:2px}\n.side-nav .workspace{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2);\n  margin-bottom:var(--space-4)}\n.side-nav .workspace .mark{width:20px;height:20px;border-radius:var(--radius-1);\n  background:var(--color-accent);flex:none}\n.side-nav .workspace b{font-family:var(--font-family-display);font-size:var(--font-size-200)}\n.side-nav a{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2);\n  border-radius:var(--radius-2);color:var(--color-content-subtle);text-decoration:none;font-weight:500}\n.side-nav a:hover{background:var(--white)}\n.side-nav a[aria-current]{background:var(--white);color:var(--color-content);box-shadow:var(--shadow-1)}\n.side-nav a .icon{width:16px;height:16px;border-radius:3px;background:currentColor;opacity:.35;flex:none}\n.side-nav a .count{margin-left:auto;font-size:var(--font-size-100);color:var(--color-accent);font-weight:600}\n\n.app-main{min-width:0;display:flex;flex-direction:column}\n.app-header{height:var(--header-height);border-bottom:1px solid var(--color-border);\n  display:flex;align-items:center;gap:var(--space-3);padding:0 var(--gutter-screen);flex:none}\n.app-header .breadcrumb{color:var(--color-content-subtle)}\n.app-header .breadcrumb b{color:var(--color-content);font-weight:600}\n.app-header .grow{flex:1}\n.icon-button{width:32px;height:32px;border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-2);background:var(--color-surface);display:grid;place-items:center;\n  color:var(--color-content-subtle)}\n.icon-button:hover{background:var(--color-bg-subtle);color:var(--color-content)}\n.user-avatar{width:28px;height:28px;border-radius:var(--radius-round);background:var(--violet-200);\n  display:grid;place-items:center;font-size:var(--font-size-100);font-weight:600;color:var(--violet-400)}\n\n/* ── page ── */\n.page{padding:var(--gutter-screen);flex:1}\n.page-header{display:flex;align-items:flex-start;gap:var(--space-3);margin-bottom:var(--page-title-gap)}\n.page-header h1{font-size:var(--font-size-500)}\n.page-header .grow{flex:1}\n\n.button{height:var(--control-height);padding:0 var(--space-3);border-radius:var(--radius-2);\n  border:1px solid var(--color-border-strong);background:var(--color-surface);font-weight:500;\n  display:inline-flex;align-items:center;gap:var(--space-2);white-space:nowrap}\n.button:hover{background:var(--color-bg-subtle)}\n.button--primary{background:var(--color-accent);border-color:var(--color-accent);\n  color:var(--color-on-accent)}\n.button--primary:hover{background:var(--color-accent-hover)}\n\n/* ── datagrid ── */\n.datagrid{border:1px solid var(--color-border);border-radius:var(--radius-3);overflow:hidden;\n  background:var(--color-surface)}\n.datagrid-toolbar{display:flex;align-items:center;gap:var(--space-2);\n  padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--color-border);\n  background:var(--color-bg-subtle)}\n.search-field{flex:1;max-width:300px;height:32px;border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-2);background:var(--color-surface);display:flex;align-items:center;\n  gap:var(--space-2);padding:0 var(--space-2);color:var(--color-content-disabled)}\n.filter-chip{height:32px;padding:0 var(--space-2);border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-2);background:var(--color-surface);display:inline-flex;align-items:center;\n  gap:var(--space-1);font-size:var(--font-size-200);color:var(--color-content-subtle)}\n.filter-chip b{color:var(--color-content);font-weight:500}\n.filter-chip .remove{color:var(--color-content-disabled);margin-left:2px}\n.filter-chip--active{border-color:var(--color-accent);background:var(--color-accent-subtle);\n  color:var(--color-accent)}\n.filter-chip--active b{color:var(--color-accent)}\n.clear-filters{font-size:var(--font-size-200);color:var(--color-content-subtle);text-decoration:underline}\n.datagrid-toolbar .grow{flex:1}\n\n.checkbox{width:15px;height:15px;border:1.5px solid var(--color-border-strong);\n  border-radius:3px;background:var(--color-surface);display:inline-block;vertical-align:middle}\nthead th{text-align:left;font-size:var(--font-size-100);text-transform:uppercase;\n  letter-spacing:var(--tracking-caps);color:var(--color-content-subtle);font-weight:600;\n  padding:var(--box-padding-sm) var(--space-3);border-bottom:1px solid var(--color-border);\n  white-space:nowrap}\nthead th .sort-indicator{color:var(--color-content-disabled);margin-left:var(--space-1)}\nthead th .column-menu{color:var(--color-content-disabled);margin-left:var(--space-1);opacity:.5}\ntbody td{padding:var(--box-padding-sm) var(--space-3);border-bottom:1px solid var(--color-border);\n  vertical-align:middle}\ntbody tr:last-child td{border-bottom:0}\ntbody tr:hover{background:var(--color-bg-subtle)}\n.col-select{width:38px}\n.task{font-weight:600}\n.person{display:flex;align-items:center;gap:var(--space-2)}\n.person .initials{width:26px;height:26px;border-radius:var(--radius-round);\n  background:var(--gray-200);display:grid;place-items:center;font-size:var(--font-size-100);\n  font-weight:600;color:var(--color-content-subtle);flex:none}\n.subtle{color:var(--color-content-subtle)}\n.numeric{font-variant-numeric:tabular-nums}\n.waiting--overdue{color:var(--color-accent);font-weight:600}\n.stage-pill{display:inline-flex;align-items:center;height:22px;padding:0 var(--space-2);\n  border-radius:var(--radius-round);font-size:var(--font-size-100);font-weight:500;border:1px solid}\n.stage-pill--screening{background:var(--violet-50);border-color:var(--violet-200);color:var(--violet-400)}\n.stage-pill--interview{background:var(--amber-50);border-color:var(--amber-200);color:var(--amber-600)}\n.stage-pill--offer{background:var(--green-50);border-color:var(--green-200);color:var(--green-400)}\n.stage-pill--blocked{background:var(--red-50);border-color:var(--red-200);color:var(--color-accent)}\n.row-action{color:var(--color-accent);font-weight:600;white-space:nowrap}\n.col-action{text-align:right}\n\n.datagrid-footer{display:flex;align-items:center;gap:var(--space-3);\n  padding:var(--space-2) var(--space-3);border-top:1px solid var(--color-border);\n  color:var(--color-content-subtle);font-size:var(--font-size-100)}\n.datagrid-footer .grow{flex:1}\n.page-size{display:inline-flex;align-items:center;gap:var(--space-1)}\n.page-size select{height:26px;border:1px solid var(--color-border-strong);border-radius:var(--radius-1);\n  background:var(--color-surface);font-size:var(--font-size-100);padding:0 2px;color:inherit}\n.pagination{display:flex;gap:var(--space-1)}\n.pagination button{min-width:28px;height:28px;border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-1);background:var(--color-surface);font-size:var(--font-size-100)}\n.pagination button[aria-current]{background:var(--color-content);border-color:var(--color-content);\n  color:var(--color-content-inverse)}\n.pagination button[disabled]{color:var(--color-content-disabled);cursor:default}\n\u003c/style>\n\u003c/head>\n\u003cbody>\n\u003cdiv class=\"app-frame\">\n\n  \u003cnav class=\"side-nav\">\n    \u003cdiv class=\"workspace\">\u003cspan class=\"mark\">\u003c/span>\u003cb>Cavalry\u003c/b>\u003c/div>\n    \u003ca href=\"#\" aria-current=\"page\">\u003cspan class=\"icon\">\u003c/span>Today\u003cspan class=\"count\">8\u003c/span>\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Roles\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Candidates\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Reports\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Settings\u003c/a>\n  \u003c/nav>\n\n  \u003cdiv class=\"app-main\">\n    \u003cheader class=\"app-header\">\n      \u003cdiv class=\"breadcrumb\">\u003cb>Kestrel Labs\u003c/b>\u003c/div>\n      \u003cdiv class=\"grow\">\u003c/div>\n      \u003cbutton class=\"icon-button\" title=\"Help\">?\u003c/button>\n      \u003cdiv class=\"user-avatar\">AB\u003c/div>\n    \u003c/header>\n\n    \u003cmain class=\"page\">\n      \u003cdiv class=\"page-header\">\n        \u003ch1>Today\u003c/h1>\n        \u003cdiv class=\"grow\">\u003c/div>\n      \u003c/div>\n\n      \u003csection class=\"datagrid\">\n        \u003cdiv class=\"datagrid-toolbar\">\n          \u003cdiv class=\"search-field\">\u003cspan>⌕\u003c/span>\u003cspan>Search\u003c/span>\u003c/div>\n          \u003cspan class=\"filter-chip filter-chip--active\">Owner \u003cb>Me\u003c/b> \u003cspan class=\"remove\">✕\u003c/span>\u003c/span>\n          \u003cspan class=\"filter-chip\">Role \u003cb>All\u003c/b> ▾\u003c/span>\n          \u003cspan class=\"filter-chip\">Type \u003cb>All\u003c/b> ▾\u003c/span>\n          \u003cbutton class=\"clear-filters\">Clear all\u003c/button>\n          \u003cdiv class=\"grow\">\u003c/div>\n          \u003cbutton class=\"icon-button\" title=\"Columns\">▦\u003c/button>\n        \u003c/div>\n\n        \u003ctable>\n          \u003cthead>\n            \u003ctr>\n              \u003cth class=\"col-select\">\u003cspan class=\"checkbox\">\u003c/span>\u003c/th>\n              \u003cth>Needs doing \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Candidate \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Role \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Stage \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Waiting \u003cspan class=\"sort-indicator\">↓\u003c/span>\u003c/th>\n              \u003cth class=\"col-action\">\u003c/th>\n            \u003c/tr>\n          \u003c/thead>\n          \u003ctbody>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Approve or override the screen\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">SO\u003c/span>Segun Okafor\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--blocked\">Unreadable CV\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric waiting--overdue\">4 days\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Review\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Approve or override the screen\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">RA\u003c/span>Rahul Anand\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--screening\">Screening\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric waiting--overdue\">3 days\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Review\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Scorecard not submitted\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">MK\u003c/span>Mei Ling Koh\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--interview\">Interview 1\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">2 days\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Remind Sarah\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Book the system design round\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">DN\u003c/span>Daniel Ng\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--interview\">Interview 2\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">1 day\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Book\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Send the offer letter\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">PT\u003c/span>Priya Thangavelu\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--offer\">Offer\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">4 hours\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Send\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Candidate replied on the portal\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">LC\u003c/span>Lucia Chen\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Product Designer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--interview\">Interview 1\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">3 hours\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Read\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Availability not confirmed\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">TB\u003c/span>Tomas Berg\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Product Designer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--screening\">Screening\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">2 hours\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Chase\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Approve or override the screen\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">AI\u003c/span>Amara Ibe\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Product Designer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--screening\">Screening\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">1 hour\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Review\u003c/button>\u003c/td>\n            \u003c/tr>\n          \u003c/tbody>\n        \u003c/table>\n\n        \u003cdiv class=\"datagrid-footer\">\n          \u003cspan class=\"numeric\">1–8 of 8\u003c/span>\n          \u003cspan class=\"page-size\">Show\n            \u003cselect>\u003coption>10\u003c/option>\u003coption selected>25\u003c/option>\u003coption>50\u003c/option>\u003coption>100\u003c/option>\u003c/select>\n          \u003c/span>\n          \u003cdiv class=\"grow\">\u003c/div>\n          \u003cdiv class=\"pagination\">\n            \u003cbutton disabled>‹\u003c/button>\n            \u003cbutton aria-current=\"page\">1\u003c/button>\n            \u003cbutton disabled>›\u003c/button>\n          \u003c/div>\n        \u003c/div>\n      \u003c/section>\n    \u003c/main>\n  \u003c/div>\n\u003c/div>\n\u003c/body>\n\u003c/html>\n"}],"reviews":{"1":{"version":1,"updatedAt":"2026-07-27T12:22:17.313Z","annotations":[{"severity":"must","status":"open","note":"The overdue rows should be sorted to the top automatically.","size":"desktop","replies":[{"by":"claude","text":"Do you mean every overdue row, or only the ones assigned to you?","at":"2026-07-27T12:22:15.906Z"},{"by":"reviewer","text":"Every overdue row, regardless of owner.","at":"2026-07-27T12:22:16.610Z"}],"id":"cqlgfgu","kind":"comment","point":{"x":361.49421542553193,"y":243.95744680851067},"anchorText":"Approve or override the screen"},{"severity":"must","status":"open","note":"This whole block needs more breathing room.","size":"desktop","replies":[],"id":"c7wdvcl","kind":"area","rect":{"x":382.97872340425533,"y":319.1489361702128,"w":510.63829787234044,"h":114.89361702127661},"anchorText":""}]}}}</script>
+<script>
+"use strict";
+/* ══════════════════════════════════════════════════════════════════════
+   ui-review · review workspace
+
+   One HTML file, opened in its own browser window. Two modes: View clicks
+   through the page, Annotate comments on it. Two kinds of comment: click for a
+   point, drag for an area. The wrapper never inspects or edits the page's
+   markup — a comment is a place and some words.
+
+   Two runtimes from one codebase:
+     local    — served by review-server.mjs; feedback POSTs into the session.
+     artifact — bundle-artifact.mjs inlines everything; feedback is copied.
+   ══════════════════════════════════════════════════════════════════════ */
+
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const uid = () => 'c' + Math.random().toString(36).slice(2, 8);
+
+const SEV_COLOR = { must: 'var(--must)', should: 'var(--should)', nice: 'var(--nice)' };
+
+/* ── language ─────────────────────────────────────────────────────────
+   The workspace chrome speaks two languages; the page under review is
+   untouched, and comments stay in whatever words the reviewer typed. */
+const STR = {
+  en: {
+    viewLabel: 'View', annotateLabel: 'Annotate',
+    view: 'View — click through the page (space)', annotate: 'Annotate — click for a comment, drag for an area (space)',
+    del: 'Delete comment', clearAll: 'Clear all', clearSure: 'Sure?',
+    cleared: n => `Cleared ${n} comment${n > 1 ? 's' : ''}`,
+    comments: 'Comments', anySeverity: 'Any severity', must: 'Must', should: 'Should', nice: 'Nice',
+    open: 'Open', asked: 'Claude asked', all: 'All', addressed: 'Addressed',
+    send: 'Send to Claude', copyFor: 'Copy for Claude',
+    comment: 'Comment', areaComment: 'Area comment', notePlaceholder: 'What needs to change?',
+    replyPlaceholder: 'Reply…', answerPlaceholder: 'Answer Claude…',
+    statusAddressed: 'addressed', statusAsked: 'claude asked',
+    you: 'You', claude: 'Claude',
+    emptyTitle: 'No comments yet.', emptyBody: 'In Annotate mode, click a spot for a comment or drag over an area. The note opens right there on the page — this list is just the index.',
+    noNote: 'No note yet', claudeAsked: 'Claude asked something', addressedBy: 'Addressed by Claude',
+    reply: 'reply', replies: 'replies', otherSizes: n => `On other screen sizes (${n})`,
+    stillOpen: n => `Still open from earlier versions (${n})`,
+    noOpen: 'No open comments', openCount: n => `${n} open`, waiting: 'Claude is waiting on an answer',
+    carried: n => `${n} carried from earlier`,
+    instructions: 'Instructions for Claude', close: 'Close', copy: 'Copy',
+    hintLocal: 'Sending writes the review and wakes Claude.', hintArtifact: 'Copy this and paste it into the Claude conversation.',
+    copyClose: 'Copy & close', copied: 'Copied', sendFail: 'Could not reach the server',
+    working: n => `Sent ${n} comment${n > 1 ? 's' : ''} — Claude is working…`,
+    editing: 'Claude is editing the page…', ready: v => `<b>v${v} is ready</b>`, changed: '<b>The page changed</b> — reload to see it',
+    reviewChanges: 'Review changes', later: 'Later', backToCurrent: 'Back to current',
+    viewingOld: v => `Viewing v${v} — read only`, readOnly: v => `read-only · v${v}`,
+    reloadTitle: 'Reload the page', current: 'current', replied: 'Claude replied',
+    nowReviewing: v => `Now reviewing v${v}`, historyBlocked: 'Viewing an earlier version — return to current to comment',
+    raised: v => `Raised on v${v} — still unanswered`, onlyOne: 'Only one version so far',
+    ultrawide: 'Ultrawide', desktop: 'Desktop', tablet: 'Tablet', phone: 'Phone',
+    noServer: 'Could not reach the review server.',
+  },
+  zh: {
+    viewLabel: '查看', annotateLabel: '批注',
+    view: '查看 — 直接操作页面（空格键）', annotate: '批注 — 点击留言，拖拽框选区域（空格键）',
+    del: '删除批注', clearAll: '全部清除', clearSure: '确定？',
+    cleared: n => `已清除 ${n} 条批注`,
+    comments: '批注', anySeverity: '全部优先级', must: '必须', should: '建议', nice: '可选',
+    open: '待处理', asked: 'Claude 提问', all: '全部', addressed: '已处理',
+    send: '发送给 Claude', copyFor: '复制给 Claude',
+    comment: '批注', areaComment: '区域批注', notePlaceholder: '需要改什么？',
+    replyPlaceholder: '回复…', answerPlaceholder: '回答 Claude…',
+    statusAddressed: '已处理', statusAsked: 'Claude 提问',
+    you: '你', claude: 'Claude',
+    emptyTitle: '还没有批注。', emptyBody: '在批注模式下，点击某处留言，或拖拽框选一块区域。输入框会直接出现在页面上——右侧只是索引。',
+    noNote: '还没写内容', claudeAsked: 'Claude 有疑问', addressedBy: 'Claude 已处理',
+    reply: '条回复', replies: '条回复', otherSizes: n => `其他屏幕尺寸（${n}）`,
+    stillOpen: n => `早前版本仍未解决（${n}）`,
+    noOpen: '没有待处理批注', openCount: n => `${n} 条待处理`, waiting: 'Claude 在等你回复',
+    carried: n => `${n} 条来自早前版本`,
+    instructions: '给 Claude 的说明', close: '关闭', copy: '复制',
+    hintLocal: '发送后会写入评审并唤醒 Claude。', hintArtifact: '复制后粘贴到 Claude 对话中。',
+    copyClose: '复制并关闭', copied: '已复制', sendFail: '无法连接服务器',
+    working: n => `已发送 ${n} 条批注 — Claude 处理中…`,
+    editing: 'Claude 正在修改页面…', ready: v => `<b>v${v} 已就绪</b>`, changed: '<b>页面已更新</b> — 重新加载查看',
+    reviewChanges: '查看更新', later: '稍后', backToCurrent: '回到最新版本',
+    viewingOld: v => `正在查看 v${v} — 只读`, readOnly: v => `只读 · v${v}`,
+    reloadTitle: '重新加载页面', current: '当前', replied: 'Claude 回复了',
+    nowReviewing: v => `正在评审 v${v}`, historyBlocked: '正在查看历史版本 — 回到最新版本才能批注',
+    raised: v => `在 v${v} 提出 — 仍未解决`, onlyOne: '目前只有一个版本',
+    ultrawide: '超宽屏', desktop: '桌面', tablet: '平板', phone: '手机',
+    noServer: '无法连接评审服务器。',
+  },
+};
+let LANG = 'en';
+const T = k => STR[LANG][k] ?? STR.en[k];
+
+/* The four screens people actually design for. Comments belong to the size they
+   were made at — a note about the phone layout is meaningless on ultrawide. */
+const SIZES = [
+  { id: 'ultrawide', width: 2560, height: 1440,
+    icon: '<rect x="1.5" y="5" width="21" height="11" rx="1.5"/><path d="M8 20h8M12 16v4"/>' },
+  { id: 'desktop', width: 1440, height: 900,
+    icon: '<rect x="3" y="4.5" width="18" height="12" rx="1.5"/><path d="M8.5 20h7M12 16.5V20"/>' },
+  { id: 'tablet', width: 834, height: 1112,
+    icon: '<rect x="5.5" y="2.5" width="13" height="19" rx="2"/><path d="M11 18.7h2"/>' },
+  { id: 'phone', width: 390, height: 844,
+    icon: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M10.6 5.3h2.8"/>' },
+];
+
+const S = {
+  runtime: 'local',
+  name: 'Review', fileName: 'page.html',
+  html: '', versions: [], reviews: {},
+  version: 1, viewing: 1,
+  mode: 'annotate',
+  size: SIZES[1],
+  zoom: 1,
+  ann: [], carried: [],
+  sel: null,
+  awaiting: false, pendingUpdate: null, sentSig: null,
+  filter: { severity: '', status: 'open' },
+};
+const isHistory = () => S.viewing !== S.version;
+
+/* ─────────────────────────── boot ─────────────────────────── */
+
+async function boot () {
+  const inline = JSON.parse($('#bundle').textContent || 'null');
+  let data = inline;
+  if (!data) {
+    try { data = await (await fetch('/api/project')).json() }
+    catch {
+      document.body.innerHTML = '<div class="empty" style="padding:80px">Could not reach the review server.<br>Start it with <code>node review-server.mjs serve --file &lt;page.html&gt;</code>.</div>';
+      return;
+    }
+  }
+  S.runtime = data.mode || (inline ? 'artifact' : 'local');
+  S.name = data.name || 'Mockup';
+  S.fileName = data.fileName || 'page.html';
+  S.html = data.html || '';
+  S.versions = data.versions || [];
+  S.reviews = data.reviews || {};
+  S.version = S.viewing = data.currentVersion || 1;
+
+  loadAnnotations();
+  $('#pageName').textContent = S.name;
+  document.title = S.name + ' — Review';
+  $('#urlBar').textContent = S.fileName;
+  LANG = (localStorage.getItem('ui-review:lang') === 'zh') ? 'zh' : 'en';
+  buildSizes(); wireChrome(); wireComposer(); buildTimeline(); applyLang();
+  setMode('annotate'); loadFrame(); render();
+  if (S.runtime === 'local') liveReload();
+}
+
+function loadAnnotations () {
+  const local = S.runtime === 'artifact' ? lsGet() : null;
+  S.ann = (local ?? S.reviews[S.version]?.annotations ?? []).map(normalise);
+  S.carried = [];
+  for (const [v, rev] of Object.entries(S.reviews)) {
+    if (Number(v) >= S.version) continue;
+    for (const a of rev.annotations || []) {
+      if (a.status === 'open') S.carried.push({ ...normalise(a), fromVersion: Number(v) });
+    }
+  }
+}
+// status: open (waiting on Claude) · question (Claude asked, waiting on you) ·
+// addressed (Claude changed it). Only Claude moves a comment to addressed.
+const normalise = a => ({ severity: 'must', status: 'open', note: '', size: 'desktop', replies: [], ...a });
+const lsKey = () => `ui-review:${S.fileName}:v${S.version}`;
+const lsGet = () => { try { return JSON.parse(localStorage.getItem(lsKey())) } catch { return null } };
+
+let saveTimer = null;
+function save () {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    // A comment being composed is not feedback yet — it never leaves the tab
+    // until it has words, so closing the browser mid-thought leaves no trace.
+    const real = S.ann.filter(hasSubstance);
+    if (S.runtime === 'artifact') { try { localStorage.setItem(lsKey(), JSON.stringify(real)) } catch {} ; return }
+    try {
+      await fetch('/api/annotations', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version: S.version, annotations: real }),
+      });
+    } catch {}
+  }, 700);
+}
+
+/** Claude edits the file while it is open here. Never swap the page out from
+    under the reviewer — announce it, let them pick the moment. */
+function liveReload () {
+  const es = new EventSource('/api/events');
+  es.addEventListener('reload', async () => {
+    let data;
+    try { data = await (await fetch('/api/project')).json() } catch { return }
+    const bumped = (data.currentVersion || 1) !== S.version;
+    if (!bumped && data.html === S.html) {
+      // Only the conversation moved — fold it in without touching the page.
+      if (mergeThreads(data.reviews?.[S.version]?.annotations || [])) {
+        render();
+        if (S.sel) openComposer(S.sel, false);
+        toast(T('replied'));
+      }
+      return;
+    }
+    S.pendingUpdate = data;
+    if (bumped) {
+      const meta = (data.versions || []).find(v => v.n === data.currentVersion);
+      showWork('ready', T('ready')(data.currentVersion) + (meta?.label ? ' — ' + esc(meta.label) : ''));
+    } else if (S.awaiting) showWork('working', esc(T('editing')));
+    else showWork('ready', T('changed'));
+  });
+}
+function showWork (state, html) {
+  const b = $('#workBanner');
+  b.classList.add('on');
+  b.classList.toggle('ready', state === 'ready');
+  $('#workSpin').style.display = state === 'working' ? '' : 'none';
+  $('#workText').innerHTML = (state === 'ready' ? '<span class="tick">✓</span> ' : '') + html;
+  $('#btnRefresh').style.display = state === 'ready' ? '' : 'none';
+  $('#btnDismissWork').style.display = state === 'ready' ? '' : 'none';
+}
+const hideWork = () => $('#workBanner').classList.remove('on');
+
+/** Server-side thread state wins; whatever the reviewer is typing does not. */
+function mergeThreads (serverAnn) {
+  let changed = false;
+  const seen = new Set();
+  for (const sa of serverAnn) {
+    seen.add(sa.id);
+    const local = S.ann.find(a => a.id === sa.id);
+    if (!local) { S.ann.push(normalise(sa)); changed = true; continue }
+    const sr = (sa.replies || []).length, lr = (local.replies || []).length;
+    if (sr !== lr) { local.replies = sa.replies || []; changed = true }
+    if (sa.status !== local.status) { local.status = sa.status; changed = true }
+  }
+  return changed;
+}
+
+function adoptUpdate () {
+  const data = S.pendingUpdate;
+  S.pendingUpdate = null; S.awaiting = false; hideWork();
+  if (!data) { loadFrame(true); return }
+  const bumped = (data.currentVersion || 1) !== S.version;
+  S.html = data.html; S.versions = data.versions; S.reviews = data.reviews;
+  S.version = data.currentVersion; S.name = data.name || S.name;
+  if (bumped) { S.viewing = S.version; loadAnnotations(); S.sentSig = null }
+  closeComposer();
+  $('#pageName').textContent = S.name;
+  buildTimeline(); loadFrame(); render();
+  if (bumped) toast(T('nowReviewing')(S.version));
+}
+
+/* ───────────────────── chrome & controls ───────────────────── */
+
+function buildSizes () {
+  const wrap = $('#sizeSwitch');
+  wrap.innerHTML = '';
+  for (const s of SIZES) {
+    const b = document.createElement('button');
+    b.dataset.size = s.id;
+    b.title = `${T(s.id)} — ${s.width} × ${s.height}`;
+    b.setAttribute('aria-pressed', String(s.id === S.size.id));
+    b.innerHTML = `<svg viewBox="0 0 24 24">${s.icon}</svg>`;
+    b.onclick = () => setSize(s.id);
+    wrap.appendChild(b);
+  }
+}
+function setSize (id) {
+  const s = SIZES.find(x => x.id === id);
+  if (!s || s.id === S.size.id) return;
+  S.size = s;
+  $$('#sizeSwitch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.size === id)));
+  closeComposer();
+  applyWindowSize(); fitZoom(); drawMarks(); renderPanel();
+}
+/** Re-label every static surface. Comment text is the reviewer's, never ours. */
+function applyLang () {
+  document.documentElement.lang = LANG === 'zh' ? 'zh' : 'en';
+  $$('#langSwitch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === LANG)));
+  const mv = $('#modeSwitch [data-mode=view]'), ma = $('#modeSwitch [data-mode=annotate]');
+  mv.textContent = T('viewLabel'); mv.title = T('view');
+  ma.innerHTML = esc(T('annotateLabel')) + ' <span class="kbd">space</span>'; ma.title = T('annotate');
+  $('#btnReload').title = T('reloadTitle');
+  $('#btnNow').textContent = T('backToCurrent');
+  $('#btnRefresh').textContent = T('reviewChanges');
+  $('#btnDismissWork').textContent = T('later');
+  $('#phead').querySelector('b').textContent = T('comments');
+  $('#btnSend').innerHTML = (S.runtime === 'artifact' ? T('copyFor') : T('send')) + ' <span class="kbd">⌘⏎</span>';
+  const sev = $('#fSeverity'), st = $('#fStatus');
+  [['', 'anySeverity'], ['must', 'must'], ['should', 'should'], ['nice', 'nice']]
+    .forEach(([v, k], i) => { sev.options[i].textContent = T(k) });
+  [['open', 'open'], ['question', 'asked'], ['', 'all'], ['addressed', 'addressed']]
+    .forEach(([v, k], i) => { st.options[i].textContent = T(k) });
+  $$('.sevs button', composer).forEach(b => b.textContent = T(b.dataset.sev));
+  buildSizes();
+  render(); syncTimeline();
+  if (S.sel) openComposer(S.sel, false);
+}
+function setLang (l) {
+  if (l === LANG) return;
+  LANG = l;
+  try { localStorage.setItem('ui-review:lang', l) } catch {}
+  applyLang();
+}
+
+function wireChrome () {
+  $$('#modeSwitch button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  $$('#langSwitch button').forEach(b => b.onclick = () => setLang(b.dataset.lang));
+  $('#fSeverity').onchange = e => { S.filter.severity = e.target.value; renderPanel() };
+  $('#fStatus').onchange = e => { S.filter.status = e.target.value; renderPanel() };
+  $('#btnReload').onclick = () => S.pendingUpdate ? adoptUpdate() : loadFrame(true);
+  // Two clicks, because throwing away a whole review by accident would sting.
+  let armed = null;
+  const clear = $('#btnClear');
+  clear.onclick = () => {
+    if (!S.ann.some(hasSubstance)) return;
+    if (!armed) {
+      armed = setTimeout(() => { armed = null; clear.classList.remove('armed'); renderCounts() }, 3000);
+      clear.classList.add('armed');
+      clear.textContent = T('clearSure');
+      return;
+    }
+    clearTimeout(armed); armed = null; clear.classList.remove('armed');
+    const n = S.ann.filter(hasSubstance).length;
+    S.ann = []; S.sentSig = null;
+    closeComposer(); save(); render();
+    toast(T('cleared')(n));
+  };
+  $('#btnNow').onclick = () => gotoVersion(S.version);
+  $('#btnRefresh').onclick = adoptUpdate;
+  $('#btnDismissWork').onclick = hideWork;
+  $('#canvasWrap').addEventListener('scroll', reposition);
+  $('#viewportBox').addEventListener('scroll', reposition);
+}
+let repositionQueued = false;
+function reposition () {
+  if (repositionQueued) return;
+  repositionQueued = true;
+  requestAnimationFrame(() => { repositionQueued = false; placeComposer() });
+}
+
+/* ───────────────────── the page's window ─────────────────── */
+
+const frame = $('#frame'), overlay = $('#overlay'), browser = $('#browser'),
+      vpBox = $('#viewportBox'), scroller = $('#scroller');
+let fdoc = null;
+
+function frameSrc () {
+  if (isHistory()) {
+    if (S.runtime === 'artifact') {
+      return { srcdoc: S.versions.find(v => v.n === S.viewing)?.html
+        || '<p style="font:14px system-ui;padding:24px">Not captured in this bundle.</p>' };
+    }
+    return { src: `/api/version/${S.viewing}` };
+  }
+  return S.runtime === 'artifact' ? { srcdoc: S.html } : { src: `/page?t=${Date.now()}` };
+}
+function applyWindowSize () {
+  browser.style.width = S.size.width + 'px';
+  vpBox.style.height = S.size.height + 'px';
+  $('#winSize').textContent = `${S.size.width} × ${S.size.height}`;
+}
+function loadFrame (keepScroll) {
+  const sc = keepScroll ? vpBox.scrollTop : 0;
+  applyWindowSize();
+  const src = frameSrc();
+  if (src.srcdoc !== undefined) { frame.removeAttribute('src'); frame.srcdoc = src.srcdoc }
+  else { frame.removeAttribute('srcdoc'); frame.src = src.src }
+  $('#winVersion').textContent = 'v' + S.viewing;
+  $('#winVersion').classList.toggle('hist', isHistory());
+  frame.onload = () => {
+    fdoc = frame.contentDocument;
+    bindFrameKeys();
+    sizeFrame(); drawMarks();
+    vpBox.scrollTop = sc;
+    if (!keepScroll) fitZoom();
+  };
+}
+function sizeFrame () {
+  if (!fdoc) return;
+  // The document lays out at its full height inside the scroller, so comment
+  // coordinates are document coordinates; the window box does the scrolling.
+  const measure = () => Math.max(fdoc.documentElement.scrollHeight, fdoc.body?.scrollHeight || 0, 200);
+  const set = () => { const h = measure(); frame.style.height = h + 'px'; scroller.style.height = h + 'px' };
+  set();
+  let queued = false;
+  const ro = frame._ro || (frame._ro = new ResizeObserver(() => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      if (Math.abs(measure() - parseFloat(frame.style.height)) > 2) { set(); drawMarks() }
+    });
+  }));
+  try { ro.disconnect(); ro.observe(fdoc.body) } catch {}
+}
+
+function setZoom (z) {
+  S.zoom = clamp(z, 0.15, 2);
+  // At 1:1 drop the transform entirely — a scaled iframe is re-rasterised on
+  // every paint, and there is nothing to gain from scaling by one.
+  const one = Math.abs(S.zoom - 1) < 0.001;
+  browser.style.transform = one ? 'none' : `scale(${S.zoom})`;
+  browser.style.marginBottom = one ? '0px' : (browser.offsetHeight * (S.zoom - 1)) + 'px';
+  browser.style.marginRight = one ? '0px' : (browser.offsetWidth * (S.zoom - 1)) + 'px';
+  $('#zVal').textContent = Math.round(S.zoom * 100) + '%';
+  reposition();
+}
+function fitZoom () {
+  const wrap = $('#canvasWrap');
+  setZoom(Math.min(1, (wrap.clientWidth - 52) / S.size.width, (wrap.clientHeight - 52) / (S.size.height + 36)));
+}
+$$('#zoombar button').forEach(b => b.onclick = () => {
+  if (b.dataset.z === 'in') setZoom(S.zoom + 0.1);
+  else if (b.dataset.z === 'out') setZoom(S.zoom - 0.1);
+  else fitZoom();
+});
+addEventListener('resize', () => { if (S.zoom < 1) fitZoom() });
+
+/* ───────────────────────── two modes ──────────────────────── */
+
+function setMode (m) {
+  S.mode = m;
+  $$('#modeSwitch button').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset.mode === m));
+    // A focused button swallows the next space as "activate me", which is
+    // exactly the key we want for toggling — let it go.
+    if (document.activeElement === b) b.blur();
+  });
+  overlay.classList.toggle('view', m === 'view');
+  overlay.style.cursor = m === 'annotate' ? 'crosshair' : 'default';
+  if (m === 'view') closeComposer();
+}
+const toggleMode = () => setMode(S.mode === 'annotate' ? 'view' : 'annotate');
+
+function onKey (e) {
+  const t = e.target;
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable;
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); openSend(); return }
+  if (e.key === 'Escape') { closeComposer(); return }
+  if (typing) return;
+  if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); toggleMode(); return }
+  if (e.key === 'ArrowLeft') stepVersion(-1);
+  if (e.key === 'ArrowRight') stepVersion(1);
+}
+addEventListener('keydown', onKey);
+/** In View mode the reviewer is clicking inside the page, so keystrokes land
+    in the iframe's document and never reach us. Listen there too. */
+function bindFrameKeys () {
+  if (!fdoc || fdoc._keysBound) return;
+  fdoc._keysBound = true;
+  fdoc.addEventListener('keydown', onKey);
+}
+
+/* ─────────────── click = comment · drag = area comment ─────────────── */
+
+let overlayRect = null;
+const pt = e => {
+  const r = overlayRect || overlay.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / S.zoom, y: (e.clientY - r.top) / S.zoom };
+};
+/**
+ * The words directly under the mark, so the brief can say where without naming
+ * markup. Only a leaf's own label counts — walking up to a container yields
+ * "Cavalry Today Roles Candidates Reports Settings", which anchors nothing.
+ * Never shown in the UI; it exists so Claude can find the spot.
+ */
+function anchorTextAt (p) {
+  if (!fdoc) return '';
+  const el = fdoc.elementFromPoint(p.x, p.y);
+  if (!el || el.children.length) return '';
+  const t = (el.textContent || '').trim().replace(/\s+/g, ' ');
+  return t && t.length <= 60 ? t : '';
+}
+
+let drag = null;
+overlay.addEventListener('pointerdown', e => {
+  if (S.mode !== 'annotate' || e.target.closest('.mark')) return;
+  if (isHistory()) { toast(T('historyBlocked')); return }
+  if (composerOpen()) { closeComposer(); return }
+  overlayRect = overlay.getBoundingClientRect();
+  drag = { start: pt(e), moved: false };
+  try { overlay.setPointerCapture(e.pointerId) } catch {}
+});
+overlay.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const p = pt(e);
+  if (Math.abs(p.x - drag.start.x) > 4 || Math.abs(p.y - drag.start.y) > 4) drag.moved = true;
+  if (!drag.moved) return;
+  const d = $('#drag');
+  d.style.display = 'block';
+  d.style.left = Math.min(drag.start.x, p.x) + 'px';
+  d.style.top = Math.min(drag.start.y, p.y) + 'px';
+  d.style.width = Math.abs(p.x - drag.start.x) + 'px';
+  d.style.height = Math.abs(p.y - drag.start.y) + 'px';
+});
+overlay.addEventListener('pointerup', e => {
+  if (!drag) return;
+  const p = pt(e), d = drag; drag = null;
+  overlayRect = null;
+  $('#drag').style.display = 'none';
+  if (!d.moved) return addComment({ kind: 'comment', point: d.start, anchorText: anchorTextAt(d.start) });
+  const rect = {
+    x: Math.min(d.start.x, p.x), y: Math.min(d.start.y, p.y),
+    w: Math.abs(p.x - d.start.x), h: Math.abs(p.y - d.start.y),
+  };
+  if (rect.w < 8 || rect.h < 8) return;
+  addComment({ kind: 'area', rect, anchorText: anchorTextAt({ x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 }) });
+});
+
+function addComment (a) {
+  const c = normalise({ id: uid(), size: S.size.id, ...a });
+  c._fresh = true;
+  S.ann.push(c);
+  save(); render();
+  openComposer(c.id);
+}
+function removeComment (id) {
+  S.ann = S.ann.filter(a => a.id !== id);
+  if (S.sel === id) { S.sel = null; composer.classList.remove('on') }
+  save(); render();
+}
+const annById = id => S.ann.find(a => a.id === id) || S.carried.find(a => a.id === id);
+/**
+ * A comment is its words. Never typing any, or clearing the ones that were
+ * there, means there is no comment — dismissing it takes it away.
+ */
+const hasSubstance = a => !!(a.note || '').trim();
+const num = a => { const i = S.ann.indexOf(a); return i >= 0 ? i + 1 : '·' };
+
+/* ─────────────── on-canvas composer ─────────────── */
+
+const composer = $('#composer');
+const composerOpen = () => composer.classList.contains('on');
+const anchorRect = a => a.rect || (a.point ? { x: a.point.x, y: a.point.y, w: 1, h: 1 } : { x: 20, y: 20, w: 1, h: 1 });
+
+function placeComposer () {
+  const a = annById(S.sel);
+  if (!a || !composerOpen()) return;
+  const r = anchorRect(a);
+  const or = overlay.getBoundingClientRect(), ar = $('#stageArea').getBoundingClientRect();
+  composer.style.left = clamp(or.left - ar.left + r.x * S.zoom, 8, Math.max(8, ar.width - 294)) + 'px';
+  composer.style.top = clamp(or.top - ar.top + (r.y + r.h) * S.zoom + 8, 8, Math.max(8, ar.height - 250)) + 'px';
+}
+const who = by => T(by === 'claude' ? 'claude' : 'you');
+
+function openComposer (id, focus) {
+  const a = annById(id);
+  if (!a) return;
+  S.sel = id;
+  composer.classList.add('on');
+  composer.style.setProperty('--mk', SEV_COLOR[a.severity]);
+  composer.querySelector('.cnum').textContent = num(a);
+  composer.querySelector('.ckind').textContent = T(a.kind === 'area' ? 'areaComment' : 'comment');
+
+  const st = composer.querySelector('.cstatus');
+  st.className = 'cstatus' + (a.status === 'open' ? '' : ' ' + a.status);
+  st.textContent = a.status === 'addressed' ? T('statusAddressed') : a.status === 'question' ? T('statusAsked') : '';
+
+  const note = composer.querySelector('.cnote');
+  note.value = a.note || '';
+  note.disabled = isHistory();
+  note.placeholder = T('notePlaceholder');
+
+  // The thread turns a comment into a conversation: Claude answers or asks,
+  // you reply, and the whole exchange goes back with the next round.
+  const thread = composer.querySelector('.cthread');
+  const replies = a.replies || [];
+  thread.classList.toggle('on', replies.length > 0);
+  thread.innerHTML = replies.map(m =>
+    `<div class="msg ${m.by === 'claude' ? 'claude' : ''}">
+       <div class="who">${who(m.by)}</div>
+       <div class="body">${esc(m.text)}</div>
+     </div>`).join('');
+
+  const reply = composer.querySelector('.creply');
+  const canReply = !isHistory() && (replies.length > 0 || a.status === 'question');
+  reply.classList.toggle('on', canReply);
+  reply.value = '';
+  reply.placeholder = T(a.status === 'question' ? 'answerPlaceholder' : 'replyPlaceholder');
+
+  // Nothing written yet means dismissing already throws it away — a second
+  // button for the same outcome is just noise.
+  composer.querySelector('.cdel').style.display = hasSubstance(a) && !isHistory() ? '' : 'none';
+  composer.querySelector('.cdel').title = T('del');
+  $$('.sevs button', composer).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sev === a.severity)));
+  placeComposer();
+  if (focus !== false) setTimeout(() => (canReply && a.note ? reply : note).focus(), 0);
+  drawMarks(); renderPanel();
+}
+function closeComposer () {
+  if (!composerOpen()) return;
+  const a = annById(S.sel);
+  if (a) {
+    const note = composer.querySelector('.cnote').value.trim();
+    const reply = composer.querySelector('.creply').value.trim();
+    if (reply) postReply(a, reply);
+    if (note !== (a.note || '')) { a.note = note; save() }
+    // No words and no thread is not feedback — clearing a comment removes it,
+    // which is also how you take one back.
+    if (!hasSubstance(a)) S.ann = S.ann.filter(x => x.id !== a.id);
+    delete a._fresh;
+  }
+  composer.classList.remove('on');
+  S.sel = null;
+  render();
+}
+/** Answering Claude puts the ball back in its court. */
+function postReply (a, text) {
+  a.replies = (a.replies || []).concat({ by: 'reviewer', text, at: new Date().toISOString() });
+  if (a.status === 'question') a.status = 'open';
+  save();
+}
+function wireComposer () {
+  const note = composer.querySelector('.cnote');
+  note.addEventListener('input', () => {
+    const a = annById(S.sel);
+    if (!a) return;
+    a.note = note.value.trim();
+    if (a._fresh && a.note) delete a._fresh;
+    composer.querySelector('.cdel').style.display = hasSubstance(a) && !isHistory() ? '' : 'none';
+    save();
+    // Repaint just this mark's label — rebuilding every mark on each keystroke
+    // is the kind of work that makes typing feel heavy.
+    const lbl = $(`.mark[data-id="${a.id}"] .lbl`, overlay);
+    if (lbl) lbl.textContent = a.note;
+    clearTimeout(note._t);
+    note._t = setTimeout(() => { drawMarks(); renderPanel() }, 400);
+  });
+  const submit = e => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); closeComposer() }
+  };
+  note.addEventListener('keydown', submit);
+  composer.querySelector('.creply').addEventListener('keydown', submit);
+  $$('.sevs button', composer).forEach(b => b.onclick = () => {
+    const a = annById(S.sel);
+    if (!a || isHistory()) return;
+    a.severity = b.dataset.sev;
+    composer.style.setProperty('--mk', SEV_COLOR[a.severity]);
+    $$('.sevs button', composer).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    save(); drawMarks(); renderPanel();
+  });
+  composer.querySelector('.cclose').onclick = closeComposer;
+  composer.querySelector('.cdel').onclick = () => {
+    const id = S.sel;
+    composer.classList.remove('on');
+    S.sel = null;
+    removeComment(id);
+  };
+  composer.addEventListener('pointerdown', e => e.stopPropagation());
+  // Anywhere outside closes it. The overlay is excluded because it already
+  // decides for itself whether a click closes one or starts the next.
+  document.addEventListener('pointerdown', e => {
+    if (!composerOpen()) return;
+    if (e.target.closest('#composer, #overlay')) return;
+    closeComposer();
+  });
+}
+function threadNote (a) {
+  const n = (a.replies || []).length;
+  if (a.status === 'question') return `<div class="thread asked">${esc(T('claudeAsked'))}</div>`;
+  if (a.status === 'addressed') return `<div class="thread">${esc(T('addressedBy'))}</div>`;
+  return n ? `<div class="thread">${n} ${esc(T(n > 1 ? 'replies' : 'reply'))}</div>` : '';
+}
+
+/* ─────────────────────── drawing marks ────────────────────── */
+
+function visibleAnn () {
+  const list = isHistory()
+    ? (S.reviews[S.viewing]?.annotations || []).map(normalise)
+    : S.ann.concat(S.carried);
+  return list.filter(a => (a.size || 'desktop') === S.size.id);
+}
+function drawMarks () {
+  $$('.mark', overlay).forEach(n => n.remove());
+  for (const a of visibleAnn()) drawMark(a);
+}
+function drawMark (a) {
+  const col = SEV_COLOR[a.severity] || 'var(--accent)';
+  const ghost = !!a.fromVersion, done = a.status !== 'open', n = num(a);
+  const cls = (S.sel === a.id ? ' sel' : '') + (ghost ? ' ghost' : '') + (done ? ' done' : '');
+
+  if (a.kind === 'area' && a.rect) {
+    const frameH = parseFloat(frame.style.height) || 0;
+    const r = a.rect;
+    const d = document.createElement('div');
+    d.className = 'mark area' + cls + (frameH && r.y + r.h + 64 > frameH && r.y > 64 ? ' flip' : '');
+    d.dataset.id = a.id;
+    d.style.setProperty('--mk', col);
+    Object.assign(d.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
+    d.innerHTML = `<span class="num">${n}</span>` + (a.note ? `<span class="lbl">${esc(a.note)}</span>` : '');
+    d.onclick = ev => { ev.stopPropagation(); openComposer(a.id) };
+    overlay.appendChild(d);
+    return;
+  }
+  if (!a.point) return;
+  const d = document.createElement('div');
+  d.className = 'mark pin' + cls;
+  d.dataset.id = a.id;
+  d.style.setProperty('--mk', col);
+  d.style.left = a.point.x + 'px'; d.style.top = a.point.y + 'px';
+  d.innerHTML = esc(String(n)) + (a.note ? `<span class="lbl">${esc(a.note)}</span>` : '');
+  d.title = a.note || T('comment');
+  d.onclick = ev => { ev.stopPropagation(); openComposer(a.id) };
+  overlay.appendChild(d);
+}
+/**
+ * Notes cluster around the same part of a page and land on top of each other.
+ * Push each colliding note down until it has its own space — all rects are read
+ * up front and the shifts are tracked in JS, so the loop never forces a layout
+ * between a write and the next read.
+ */
+
+/* ───────────────────── panel: the index ───────────────────── */
+
+const sizeLabel = id => T(id);
+
+function render () { drawMarks(); renderPanel() }
+
+function renderPanel () {
+  const body = $('#pbody');
+  body.innerHTML = '';
+  $('#pscope').textContent = isHistory() ? T('readOnly')(S.viewing) : sizeLabel(S.size.id);
+  const f = S.filter;
+  // "Open" means unfinished — a comment Claude has asked a question about is
+  // still very much open, and hiding it would strand the conversation.
+  const match = a => hasSubstance(a) && (!f.severity || a.severity === f.severity) &&
+    (!f.status || (f.status === 'open' ? a.status !== 'addressed' : a.status === f.status));
+  const here = S.ann.filter(a => match(a) && (a.size || 'desktop') === S.size.id);
+  const elsewhere = S.ann.filter(a => match(a) && (a.size || 'desktop') !== S.size.id);
+  const carried = S.carried.filter(a => a.status === 'open');
+
+  if (!S.ann.some(hasSubstance) && !carried.length) {
+    body.innerHTML = `<div class="empty">${esc(T('emptyTitle'))}<br><br>${esc(T('emptyBody'))}</div>`;
+  }
+  for (const a of here) body.appendChild(itemNode(a));
+  if (elsewhere.length) {
+    body.appendChild(group(T('otherSizes')(elsewhere.length)));
+    for (const a of elsewhere) body.appendChild(itemNode(a, false, true));
+  }
+  if (carried.length) {
+    body.appendChild(group(T('stillOpen')(carried.length)));
+    for (const a of carried) body.appendChild(itemNode(a, true));
+  }
+  renderCounts();
+}
+function group (text) {
+  const h = document.createElement('div');
+  h.className = 'grouphd'; h.textContent = text;
+  return h;
+}
+function itemNode (a, ghost, otherSize) {
+  const el = document.createElement('div');
+  el.className = 'item' + (S.sel === a.id ? ' sel' : '') + (a.status !== 'open' ? ' resolved' : '');
+  el.dataset.id = a.id;
+  el.style.setProperty('--mk', SEV_COLOR[a.severity] || 'var(--accent)');
+  el.innerHTML = `
+    <div class="ih">
+      <span class="n">${ghost ? 'v' + a.fromVersion : num(a)}</span>
+      <span class="kind">${T(a.kind === 'area' ? 'areaComment' : 'comment')}${otherSize ? ' · ' + sizeLabel(a.size) : ''}</span>
+      <span class="sevdot" title="${a.severity}"></span>
+    </div>
+    <div class="note${a.note ? '' : ' blank'}">${esc(a.note || T('noNote'))}</div>
+    ${threadNote(a)}`;
+  el.onclick = () => {
+    if (ghost) { toast(T('raised')(a.fromVersion)); return }
+    if ((a.size || 'desktop') !== S.size.id) { setSize(a.size); setTimeout(() => reveal(a), 320); return }
+    reveal(a);
+  };
+  return el;
+}
+function reveal (a) {
+  const r = anchorRect(a);
+  vpBox.scrollTo({ top: Math.max(0, r.y - 120), behavior: 'smooth' });
+  setTimeout(() => openComposer(a.id, false), 220);
+}
+function renderCounts () {
+  const open = S.ann.filter(a => a.status !== 'addressed' && hasSubstance(a));
+  const by = s => open.filter(a => a.severity === s).length;
+  $('#counts').innerHTML = open.length
+    ? `<b>${open.length}</b> ${esc(T('open').toLowerCase())} · ${by('must')} ${esc(T('must').toLowerCase())}`
+      + ` · ${by('should')} ${esc(T('should').toLowerCase())} · ${by('nice')} ${esc(T('nice').toLowerCase())}`
+      + (S.ann.some(a => a.status === 'question') ? '<br>' + esc(T('waiting')) : '')
+    : esc(T('noOpen'));
+  const clear = $('#btnClear');
+  if (!clear.classList.contains('armed')) clear.textContent = T('clearAll');
+  clear.disabled = !S.ann.some(hasSubstance);
+  const nothing = !open.length && !S.carried.length;
+  $('#btnSend').disabled = nothing || reviewSignature() === S.sentSig;
+}
+
+/* ─────────────── version timeline ─────────────── */
+
+const versionList = () => {
+  const ns = S.versions.map(v => v.n).sort((a, b) => a - b);
+  return ns.length ? ns : [S.version];
+};
+const pctFor = (i, len) => len < 2 ? 100 : (i / (len - 1)) * 100;
+const labelFor = n => S.versions.find(v => v.n === n)?.label || `Version ${n}`;
+const dateFor = n => {
+  const d = S.versions.find(v => v.n === n)?.date;
+  if (!d) return '';
+  const dt = new Date(d);
+  return dt.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' ' +
+         dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+};
+function buildTimeline () {
+  const track = $('#tlTrack');
+  $$('.tick', track).forEach(n => n.remove());
+  const ns = versionList();
+  ns.forEach((n, i) => {
+    const t = document.createElement('div');
+    t.className = 'tick';
+    t.style.left = pctFor(i, ns.length) + '%';
+    t.innerHTML = `<span class="cap">v${n}</span>`;
+    t.title = labelFor(n);
+    t.onclick = e => { e.stopPropagation(); gotoVersion(n) };
+    track.appendChild(t);
+  });
+  syncTimeline();
+}
+function syncTimeline () {
+  const ns = versionList(), i = Math.max(0, ns.indexOf(S.viewing)), pct = pctFor(i, ns.length);
+  $('#tlHandle').style.left = pct + '%';
+  $('#tlFill').style.width = pct + '%';
+  $$('#tlTrack .tick').forEach((t, k) => t.classList.toggle('past', k <= i));
+  const openN = (S.reviews[S.viewing]?.annotations || []).filter(a => a.status === 'open').length;
+  $('#tlMeta').innerHTML =
+    `<div class="row"><b>v${S.viewing}</b> <span class="lab">${esc(labelFor(S.viewing))}</span></div>` +
+    `<div class="row">${esc(dateFor(S.viewing))}${openN ? ` · ${openN} open` : ''}${S.viewing === S.version ? ' · ' + esc(T('current')) : ''}</div>`;
+  $('#tlPrev').disabled = i === 0;
+  $('#tlNext').disabled = i === ns.length - 1;
+  $('#histBanner').classList.toggle('on', isHistory());
+  $('#histText').textContent = T('viewingOld')(S.viewing);
+}
+function gotoVersion (n) {
+  const ns = versionList();
+  if (!ns.includes(n) || n === S.viewing) { syncTimeline(); return }
+  S.viewing = n;
+  closeComposer();
+  setMode(n === S.version ? 'annotate' : 'view');
+  loadFrame(); syncTimeline(); renderPanel();
+}
+const stepVersion = d => {
+  const ns = versionList(), i = ns.indexOf(S.viewing);
+  if (ns[i + d] !== undefined) gotoVersion(ns[i + d]);
+};
+$('#tlPrev').onclick = () => stepVersion(-1);
+$('#tlNext').onclick = () => stepVersion(1);
+const trackPick = clientX => {
+  const r = $('#tlTrack').getBoundingClientRect(), ns = versionList();
+  return ns[Math.round(clamp((clientX - r.left) / r.width, 0, 1) * (ns.length - 1))];
+};
+$('#tlHandle').addEventListener('pointerdown', e => {
+  e.preventDefault();
+  const mv = ev => gotoVersion(trackPick(ev.clientX));
+  const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up) };
+  addEventListener('pointermove', mv); addEventListener('pointerup', up);
+});
+$('#tlTrack').addEventListener('pointerdown', e => {
+  if (e.target.closest('#tlHandle, .tick')) return;
+  gotoVersion(trackPick(e.clientX));
+});
+
+/* ───────────── the deliverable: instructions for Claude ───────────── */
+
+function buildFeedback () {
+  const items = S.ann.filter(a => a.status !== 'addressed' && hasSubstance(a));
+  const carried = S.carried.filter(a => a.status !== 'addressed');
+  const sev = s => items.filter(a => a.severity === s).length;
+  const order = { must: 0, should: 1, nice: 2 };
+
+  const L = [];
+  L.push(`# Mockup review — ${S.name} · v${S.version}`);
+  L.push(`${items.length} comment(s) · ${sev('must')} must · ${sev('should')} should · ${sev('nice')} nice` +
+    (carried.length ? ` · ${carried.length} carried over` : ''));
+  L.push('');
+  L.push(`Apply these to \`${S.fileName}\`, then publish the next version.`);
+  L.push('');
+
+  const bySize = {};
+  for (const a of items) (bySize[a.size || 'desktop'] ||= []).push(a);
+  for (const sid of SIZES.map(s => s.id)) {
+    const list = bySize[sid];
+    if (!list?.length) continue;
+    const size = SIZES.find(s => s.id === sid);
+    // The brief is written for Claude, so it stays in English whatever the
+    // workspace is showing. The reviewer's own words pass through untouched.
+    L.push(`## ${STR.en[sid]} — ${size.width} × ${size.height}`);
+    L.push('');
+    for (const a of list.sort((x, y) => order[x.severity] - order[y.severity])) {
+      L.push(`### #${num(a)} · ${a.severity}`);
+      const where = a.kind === 'area'
+        ? `Area ${Math.round(a.rect.w)}×${Math.round(a.rect.h)} at ${Math.round(a.rect.x)},${Math.round(a.rect.y)}`
+        : `At ${Math.round(a.point.x)},${Math.round(a.point.y)}`;
+      L.push(`**Where** ${where}${a.anchorText ? ` — on “${a.anchorText}”` : ''}`);
+      if (a.note) L.push(a.note);
+      for (const m of a.replies || []) {
+        L.push('');
+        L.push(`> **${m.by === 'claude' ? 'You asked' : 'They replied'}:** ${m.text}`);
+      }
+      L.push('');
+    }
+  }
+  if (carried.length) {
+    L.push('## Still open from earlier versions');
+    L.push('');
+    for (const a of carried) {
+      L.push(`- **[v${a.fromVersion} · ${a.severity}]** ${a.note}${a.anchorText ? ` — on “${a.anchorText}”` : ''}`);
+    }
+    L.push('');
+  }
+  L.push('---');
+  L.push('Mark what you changed as done, and ask about anything unclear instead of guessing:');
+  L.push('```bash');
+  L.push('node review-server.mjs publish --file <page.html> --label "<what changed>" --addressed ' +
+    items.concat(carried).map(a => a.id).join(','));
+  L.push('node review-server.mjs reply --file <page.html> --comment <id> --text "<your question>"');
+  L.push('```');
+
+  const payload = {
+    page: S.fileName, name: S.name, version: S.version,
+    comments: items.concat(carried).map(a => ({
+      id: a.id, kind: a.kind, severity: a.severity, status: a.status, note: a.note,
+      replies: a.replies || [],
+      anchorText: a.anchorText || null,
+      screenSize: a.size || 'desktop',
+      point: a.point || null, rect: a.rect || null,
+      fromVersion: a.fromVersion || S.version,
+    })),
+  };
+  return {
+    markdown: L.join('\n') + '\n\n```json\n' + JSON.stringify(payload, null, 2) + '\n```\n',
+    feedback: payload,
+    counts: { total: items.length + carried.length, must: sev('must'), should: sev('should'), nice: sev('nice') },
+  };
+}
+
+/** What was last handed over, so an unchanged review can't be sent twice. */
+const reviewSignature = () => JSON.stringify(S.ann
+  .filter(a => a.status !== 'addressed' && hasSubstance(a))
+  .map(a => [a.id, a.note, a.severity, (a.replies || []).length]));
+
+async function openSend () {
+  closeComposer();
+  const pending = buildFeedback();
+  if (!pending.counts.total) return;
+  if (S.runtime === 'artifact') {
+    await copy(pending.markdown);
+    S.sentSig = reviewSignature();
+    renderCounts();
+    return;
+  }
+  try {
+    await fetch('/api/feedback', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: S.version, annotations: S.ann.filter(hasSubstance), ...pending }),
+    });
+    S.awaiting = true;
+    S.sentSig = reviewSignature();
+    renderCounts();
+    showWork('working', esc(T('working')(pending.counts.total)));
+  } catch { toast(T('sendFail')) }
+}
+$('#btnSend').onclick = openSend;
+async function copy (t) {
+  try { await navigator.clipboard.writeText(t); toast(T('copied')) }
+  catch {
+    const ta = document.createElement('textarea');
+    ta.value = t; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove(); toast(T('copied'));
+  }
+}
+let tt = null;
+function toast (m) {
+  const t = $('#toast'); t.textContent = m; t.classList.add('on');
+  clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2200);
+}
+
+boot();
+</script>
+</body>
+</html>

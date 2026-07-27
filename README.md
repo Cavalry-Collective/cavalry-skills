@@ -21,6 +21,7 @@ cp -R cavalry-skills/plugins/cavalry/skills/<skill-name> ~/.claude/skills/
 | Skill | Invoke | What it does |
 | --- | --- | --- |
 | [user-story-map](#user-story-map) | `/cavalry:user-story-map` | Interactive drag-and-drop user story map — re-slice stories across release phases, rank everything, track status, tag themes, and send the result straight back to Claude |
+| [ui-review](#ui-review) | `/cavalry:ui-review` | Comment directly on any HTML UI in a review workspace, and send structured feedback straight back to Claude — a two-way loop, like reviewing with a designer |
 
 More skills are on the way — ⭐ watch the repo to catch new ones.
 
@@ -91,6 +92,54 @@ This same block is what **Send to Claude** hands back, what **Download JSON** wr
 
 ---
 
+## ui-review
+
+Design review without the screenshot-and-markup detour. Claude opens **any HTML UI** — a mockup it just built, an exported screen, a prototype — in a **review workspace** where you comment straight on the page, then applies your comments and publishes the next version while you watch.
+
+![Example: commenting on a hiring queue](docs/ui-review-example.png)
+
+*Example: a triage queue mid-review — an area comment over the toolbar, a pin on an overdue row, and a note being written on the canvas. Open [`examples/ui-review.html`](examples/ui-review.html) in a browser to try it.*
+
+### The loop
+
+```
+requirements ──► page.html ──► review workspace ──► feedback.md ──┐
+      ▲                        (you comment)                      │
+      └─────── Claude applies it, replies, publishes v(N+1) ◄─────┘
+```
+
+It's a conversation, not a hand-off. You comment; Claude applies what's clear, **asks about what isn't**, and marks each comment done only when it has actually changed it. Anything Claude skips comes back next round — there is no resolve button for you to paper over it with.
+
+### In the workspace
+
+- **Two modes, one key.** **View** clicks through the live page with every annotation hidden, so you judge it as it really is; **Annotate** brings them back. **Space** toggles.
+- **Click for a comment, drag for an area.** That's the whole vocabulary. The note opens on the canvas, right where the mark is — and a comment you leave empty is discarded, so nothing half-said reaches Claude.
+- **Quiet by default.** Marks show their note when you open one or hover it in Annotate, not all at once.
+- **Threads.** Claude's questions appear on the comment itself; you answer there, and the answer goes back with the next round.
+- **Four screen sizes** — ultrawide, desktop, tablet, phone. A comment belongs to the size it was made at, so phone feedback never lands on the desktop layout.
+- **Version timeline** along the bottom — drag the handle to scrub through published versions.
+- **Nothing about markup, anywhere.** Comments are located by where they are and the words they sit on. You never see a CSS selector.
+- **EN / 中文** for the workspace chrome; your comments keep the words you wrote them in.
+- **Send is one click** — no preview step — and greys out until something has actually changed. Delete a comment, or clear the lot, whenever you like.
+
+### Use
+
+```
+/cavalry:ui-review a settings page for our billing product — plans, invoices, payment methods
+```
+
+Or point it at a page that already exists:
+
+> Review this screen with me — open `dist/checkout.html`.
+
+For a new design, point it at a reference site (`match stripe.com`), hand it screenshots, or let it read a `design/` folder with `tokens.css` — it resolves one design source and holds it across every iteration.
+
+### Sharing a review
+
+For a stakeholder who isn't at your machine, Claude flattens the same workspace — page, versions and all — into a single self-contained HTML file and publishes it as a Claude Artifact. Commenting works identically; **Send** becomes **Copy for Claude**.
+
+---
+
 ## Repo layout / adding a skill
 
 ```
@@ -101,6 +150,10 @@ plugins/cavalry/                     ← the `cavalry` plugin
     user-story-map/                  ← one directory per skill
       SKILL.md
       assets/…
+    ui-review/
+      SKILL.md
+      assets/…                       ← workspace, local server, artifact bundler
+      references/…                   ← loaded on demand, not up-front
 ```
 
 Every directory added under `plugins/cavalry/skills/` ships with the plugin and is invocable as `/cavalry:<skill-name>` — no manifest changes needed.

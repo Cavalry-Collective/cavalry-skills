@@ -1,7 +1,7 @@
 {
   "name": "cavalry",
-  "description": "A growing collection of Cavalry Collective skills for Claude Code, invoked as /cavalry:<skill>. Currently: user-story-map (interactive drag-and-drop story mapping).",
-  "version": "1.0.0",
+  "description": "A growing collection of Cavalry Collective skills for Claude Code, invoked as /cavalry:<skill>. Currently: user-story-map (interactive drag-and-drop story mapping) and ui-review (comment directly on any HTML UI and loop the feedback back to Claude).",
+  "version": "1.1.0",
   "author": {
     "name": "Cavalry Collective",
     "email": "adam@cavalry.sg"
