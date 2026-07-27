@@ -1,9 +1,0 @@
-{
-  "name": "user-story-map",
-  "description": "Interactive drag-and-drop user story map: re-slice stories across release phases, rank phases/activities/stories, tag cross-cutting themes, EN/中文 UI toggle.",
-  "version": "1.0.0",
-  "author": {
-    "name": "Cavalry Collective",
-    "email": "adam@cavalry.sg"
-  }
-}

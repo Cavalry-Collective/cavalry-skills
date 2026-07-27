@@ -6,9 +6,9 @@
   },
   "plugins": [
     {
-      "name": "user-story-map",
-      "source": "./plugins/user-story-map",
-      "description": "Build an interactive, drag-and-drop user story map artifact — re-slice stories across release phases, rank phases/activities/stories, tag cross-cutting themes, EN/中文 UI."
+      "name": "cavalry",
+      "source": "./plugins/cavalry",
+      "description": "Cavalry Collective skills — user-story-map: interactive drag-and-drop story map artifact; re-slice stories across release phases, rank phases/activities/stories, tag cross-cutting themes, EN/中文 UI."
     }
   ]
 }

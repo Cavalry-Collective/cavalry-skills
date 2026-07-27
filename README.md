@@ -25,22 +25,22 @@ As a Claude Code plugin (recommended):
 
 ```
 /plugin marketplace add Cavalry-Collective/claude-skills
-/plugin install user-story-map@cavalry-collective
+/plugin install cavalry@cavalry-collective
 ```
 
 Or manually — copy the skill into your skills directory:
 
 ```bash
 git clone https://github.com/Cavalry-Collective/claude-skills.git
-cp -R claude-skills/plugins/user-story-map/skills/user-story-map ~/.claude/skills/
+cp -R claude-skills/plugins/cavalry/skills/user-story-map ~/.claude/skills/
 ```
 
 ### Use
 
-Once installed, invoke it as a slash command:
+Once installed, invoke it as a slash command (the `cavalry` plugin namespaces its skills):
 
 ```
-/user-story-map build a map for our mobile shopping app's checkout flow, three release phases
+/cavalry:user-story-map build a map for our mobile shopping app's checkout flow, three release phases
 ```
 
 Or just ask in natural language — the skill triggers whenever you ask for a story map, phased roadmap, or release slicing:

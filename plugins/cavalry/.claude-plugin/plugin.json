@@ -1,0 +1,9 @@
+{
+  "name": "cavalry",
+  "description": "Cavalry Collective skills for Claude Code. Includes user-story-map: interactive drag-and-drop story mapping across release phases.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Cavalry Collective",
+    "email": "adam@cavalry.sg"
+  }
+}
