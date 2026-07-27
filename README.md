@@ -15,9 +15,10 @@ Ask Claude for a story map and it builds a **self-contained, interactive user st
 - **Drag a card into any cell** to re-slice which phase & activity a story belongs to; drop above/below other cards to rank it — cards, columns and rows slide live while you drag, and a ⠿ grip appears on hover
 - **Drag a phase rail or activity header** onto another to reorder rows & columns
 - **Double-click any text** to edit inline; dashed `＋ story` / `＋ activity` / `＋ phase` buttons in the grid grow the map
+- **Track status per story** — open / in progress / in review / done; the card's accent stripe is coloured by status, and the ● button on each card cycles it
 - **Tag cross-cutting themes** (e.g. `AI`) via the ⌗ menu on each card — add a tag to a card, create new tags, or delete a tag from the whole map
 - **EN | 中文 toggle** (top right) for the UI language
-- **Copy to Clipboard / Import** — export the re-sliced map as JSON and paste it back to Claude to regenerate your downstream plan or tickets; edits persist in the browser's `localStorage`
+- **Copy to Clipboard** (▾ for Download JSON) / **Import** — export the re-sliced map as JSON and paste it back to Claude to regenerate your downstream plan or tickets; edits persist in the browser's `localStorage`
 
 ### Install
 
@@ -60,7 +61,7 @@ The map is driven by one JSON block:
   "tags": ["AI"],
   "activities": [{ "id": "a1", "name": "Browse & search", "task": "Find products worth buying" }],
   "phases":     [{ "id": "ph1", "name": "Phase 1", "goal": "Guest checkout MVP" }],
-  "stories":    [{ "id": "s1", "activity": "a1", "phase": "ph1", "text": "Search by keyword", "tags": [] }]
+  "stories":    [{ "id": "s1", "activity": "a1", "phase": "ph1", "text": "Search by keyword", "tags": [], "status": "open" }]
 }
 ```
 

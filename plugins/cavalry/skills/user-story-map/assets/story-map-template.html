@@ -11,9 +11,11 @@
       tags:       ["AI"],                          // cross-cutting themes; stories reference them by name
       activities: [{ id, name, task }],            // backbone columns (the journey, left→right)
       phases:     [{ id, name, goal }],            // release swimlanes (rows, top→bottom = order)
-      stories:    [{ id, activity, phase, text, tags: ["AI"] }] }
-  Order in each array is the display/rank order (users can re-drag it).
-  Colours are auto-assigned per phase; ids must be unique strings.
+      stories:    [{ id, activity, phase, text, tags: ["AI"], status }] }
+  status: "open" (default) | "progress" | "review" | "done" — the card's left
+  border accent is coloured by status. Order in each array is the display/rank
+  order (users can re-drag it). Cell tints are auto-assigned per phase; ids
+  must be unique strings.
 -->
 <style>
   :root{
@@ -40,17 +42,25 @@
   header .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);font-weight:600;margin:0 0 .5rem;display:inline-flex;align-items:center;gap:.5rem}
   .eyebrow::before{content:"";width:1.5rem;height:2px;background:var(--brand);border-radius:2px}
   h1{font-size:clamp(1.5rem,3.5vw,2.3rem);line-height:1.05;letter-spacing:-.03em;font-weight:800;margin:0 0 .5rem;text-wrap:balance}
-  .controls{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.5rem;align-items:center;flex:none;margin-top:.2rem}
-  .lang-toggle{display:inline-flex;flex:none;border:1px solid var(--line-2);border-radius:8px;overflow:hidden;background:var(--surface);box-shadow:var(--shadow)}
-  .lang-toggle button{border:0;background:none;font:inherit;font-size:.74rem;font-weight:600;color:var(--ink-3);padding:.32rem .65rem;cursor:pointer}
+  .controls{display:flex;flex-direction:column;align-items:flex-end;gap:.45rem;flex:none;margin-top:.2rem}
+  .crow{display:flex;gap:.4rem}
+  .lang-toggle{display:inline-flex;flex:none;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;background:var(--surface);box-shadow:var(--shadow)}
+  .lang-toggle button{border:0;background:none;font:inherit;font-size:.7rem;font-weight:600;color:var(--ink-3);padding:.24rem .5rem;cursor:pointer}
   .lang-toggle button+button{border-left:1px solid var(--line-2)}
   .lang-toggle button.on{background:var(--brand);color:#fff}
 
-  .btn{display:inline-flex;align-items:center;gap:.4rem;font:inherit;font-size:.82rem;font-weight:500;color:var(--ink-2);background:var(--surface);border:1px solid var(--line-2);border-radius:7px;padding:.4rem .7rem;cursor:pointer}
+  .btn{display:inline-flex;align-items:center;gap:.35rem;font:inherit;font-size:.74rem;font-weight:500;color:var(--ink-2);background:var(--surface);border:1px solid var(--line-2);border-radius:7px;padding:.28rem .55rem;cursor:pointer}
   .btn:hover{background:var(--surface-2);color:var(--ink)}
   .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
   .btn.primary:hover{background:color-mix(in srgb,var(--brand) 88%,#000);color:#fff}
   .btn svg{width:15px;height:15px}
+  .split{position:relative;display:inline-flex}
+  .split #export{border-top-right-radius:0;border-bottom-right-radius:0}
+  .split .caret{border-top-left-radius:0;border-bottom-left-radius:0;border-left:1px solid color-mix(in srgb,#fff 30%,var(--brand));padding:.28rem .4rem}
+  .menu{position:absolute;top:calc(100% + 4px);right:0;z-index:70;background:var(--surface);border:1px solid var(--line-2);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:.25rem;min-width:150px}
+  .menu[hidden]{display:none}
+  .menu button{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:.74rem;color:var(--ink-2);padding:.35rem .5rem;border-radius:6px;cursor:pointer;white-space:nowrap}
+  .menu button:hover{background:var(--surface-2);color:var(--ink)}
 
   .tag{display:inline-flex;align-items:center;gap:.25rem;font-family:var(--mono);font-size:.54rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--tc,var(--ink-3));background:color-mix(in srgb,var(--tc,var(--ink-3)) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--tc,var(--ink-3)) 30%,transparent);padding:.05rem .3rem;border-radius:4px}
   .tag .d{width:5px;height:5px;border-radius:50%;background:var(--tc,var(--ink-3))}
@@ -82,12 +92,16 @@
   .rail .pt{font-size:.76rem;font-weight:700;letter-spacing:-.01em;line-height:1.12;outline:none;border-radius:4px}
   .rail .pg{font-size:.62rem;line-height:1.25;color:var(--ink-3);outline:none;border-radius:4px;margin-top:2px}
   .rail .bar{height:3px;width:24px;border-radius:3px;background:var(--pc);margin:.15rem 0}
-  .rail .cnt{margin-top:auto;font-family:var(--mono);font-size:.66rem;color:var(--ink-3);display:flex;align-items:center;justify-content:space-between}
-  .x-phase{opacity:0;border:0;background:none;color:var(--ink-3);cursor:pointer;font-size:.85rem;padding:0 .2rem}
+  .x-phase{position:absolute;top:3px;right:3px;opacity:0;border:0;background:none;color:var(--ink-3);cursor:pointer;font-size:.85rem;line-height:1;padding:0 .2rem}
   .rail:hover .x-phase{opacity:.7}.x-phase:hover{color:var(--brand);opacity:1}
+  .armed{color:var(--brand) !important;opacity:1 !important;font-weight:700}
 
   .stories{padding:.35rem;display:flex;flex-direction:column;gap:.3rem;min-height:46px;background:color-mix(in srgb,var(--pc) calc(var(--band) - 4%),var(--surface))}
-  .card{position:relative;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--pc);border-radius:6px;padding:.32rem .42rem .36rem;box-shadow:var(--shadow);cursor:grab}
+  .card{position:relative;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--stc,var(--line-2));border-radius:6px;padding:.32rem .42rem .36rem;box-shadow:var(--shadow);cursor:grab}
+  .st-open{--stc:var(--line-2)}.st-progress{--stc:var(--p3)}.st-review{--stc:var(--p1)}.st-done{--stc:var(--p2)}
+  .card .ctrls .stbtn{color:var(--stc)}
+  .card.st-open .ctrls .stbtn{color:var(--ink-3)}
+  .card .tag.stpill{--tc:var(--stc)}
   .card.dragging{opacity:.4}
   .card p{margin:0;font-size:.7rem;line-height:1.28;color:var(--ink);font-weight:500;outline:none;word-break:break-word}
   .card .tags{display:flex;flex-wrap:wrap;gap:.2rem;margin-top:.28rem}
@@ -137,10 +151,16 @@
       <h1 id="title" contenteditable spellcheck="false"></h1>
     </div>
     <div class="controls">
-      <button class="btn" id="import">Import</button>
-      <button class="btn primary" id="export">Copy to Clipboard</button>
       <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language">
         <button data-lang="en">EN</button><button data-lang="zh">中文</button>
+      </div>
+      <div class="crow">
+        <button class="btn" id="import">Import</button>
+        <div class="split">
+          <button class="btn primary" id="export">Copy to Clipboard</button>
+          <button class="btn primary caret" id="export-more" aria-haspopup="true" aria-label="More export options">▾</button>
+          <div class="menu" id="export-menu" hidden><button id="download">Download JSON</button></div>
+        </div>
       </div>
     </div>
   </header>
@@ -179,11 +199,11 @@
     {"id":"ph4","name":"Phase 4","goal":"Govern, secure & extend"}
   ],
   "stories": [
-    {"id":"s1","activity":"a1","phase":"ph1","text":"Create a role — title, location, pay, priority"},
-    {"id":"s2","activity":"a1","phase":"ph1","text":"Default pipeline stages out of the box"},
-    {"id":"s3","activity":"a2","phase":"ph1","text":"Add a candidate — CV + core details"},
+    {"id":"s1","activity":"a1","phase":"ph1","text":"Create a role — title, location, pay, priority","status":"done"},
+    {"id":"s2","activity":"a1","phase":"ph1","text":"Default pipeline stages out of the box","status":"done"},
+    {"id":"s3","activity":"a2","phase":"ph1","text":"Add a candidate — CV + core details","status":"progress"},
     {"id":"s4","activity":"a2","phase":"ph1","text":"Browse the candidate list"},
-    {"id":"s5","activity":"a3","phase":"ph1","text":"Scout scores the CV vs the role, every claim cited","tags":["AI"]},
+    {"id":"s5","activity":"a3","phase":"ph1","text":"Scout scores the CV vs the role, every claim cited","tags":["AI"],"status":"review"},
     {"id":"s6","activity":"a3","phase":"ph1","text":"Human reviews the report and approves or rejects"},
     {"id":"s7","activity":"a4","phase":"ph1","text":"Move candidates across a kanban board"},
     {"id":"s8","activity":"a5","phase":"ph1","text":"Record an interview result — rating + notes"},
@@ -215,6 +235,7 @@
   "use strict";
   const raw = JSON.parse(document.getElementById("data").textContent);
   const KEY = "usm:" + (raw.title||"map").toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,40);
+  const STATUSES = ["open","progress","review","done"];
   let state = normalize(load() || clone(raw));
 
   // UI language (EN / 中文) — chrome only; map content stays as authored
@@ -223,9 +244,11 @@
       eyebrow:"User story map", corner:"Phase ↓ / Journey →",
       addPhase:"＋ phase", addPhaseTitle:"Add a release phase (row)",
       addActivity:"＋ activity", addActTitle:"Add a journey activity (column)",
-      import:"Import", copy:"Copy to Clipboard",
+      import:"Import", copy:"Copy to Clipboard", download:"Download JSON", moreExport:"More export options",
       grip:"Drag to move",
-      count:n=>`${n} ${n===1?"story":"stories"}`, addStory:"＋ story", newStory:"New story",
+      stLabel:{open:"Open",progress:"In progress",review:"In review",done:"Done"}, stCycle:"— click to change status",
+      confirmHint:"Click again to confirm",
+      addStory:"＋ story", newStory:"New story",
       newPhaseName:n=>"Phase "+n, newPhaseGoal:"New phase — describe the goal",
       newActName:"New activity", newActTask:"Describe this step",
       tagTitle:"Tags / themes", del:"Delete", removeAct:"Remove activity", removePhase:"Remove phase",
@@ -234,18 +257,17 @@
       ioImport:"Paste map JSON", ioCopy:"Map JSON (copy it)", cancel:"Cancel", loadBtn:"Load",
       tCopied:"JSON copied", tMoved:n=>"Moved to "+n, tReordered:"Reordered",
       tActReordered:"Activity reordered", tPhReordered:"Phase reordered", tLoaded:"Loaded",
-      cDelPhase:n=>`Delete this phase and its ${n} ${n===1?"story":"stories"}?`,
-      cDelAct:n=>`Delete this activity and its ${n} ${n===1?"story":"stories"}?`,
-      cDelTag:t=>`Delete tag "${t}" from the whole map?`,
       badJson:"That doesn't look like a valid story-map JSON (needs activities, phases, stories)."
     },
     zh: {
       eyebrow:"用户故事地图", corner:"阶段 ↓ / 旅程 →",
       addPhase:"＋ 阶段", addPhaseTitle:"添加发布阶段（行）",
       addActivity:"＋ 活动", addActTitle:"添加旅程活动（列）",
-      import:"导入", copy:"复制到剪贴板",
+      import:"导入", copy:"复制到剪贴板", download:"下载 JSON", moreExport:"更多导出选项",
       grip:"拖动以移动",
-      count:n=>`${n} 个故事`, addStory:"＋ 故事", newStory:"新故事",
+      stLabel:{open:"待办",progress:"进行中",review:"审查中",done:"已完成"}, stCycle:"——点击切换状态",
+      confirmHint:"再次点击以确认",
+      addStory:"＋ 故事", newStory:"新故事",
       newPhaseName:n=>"阶段 "+n, newPhaseGoal:"新阶段——描述目标",
       newActName:"新活动", newActTask:"描述这一步",
       tagTitle:"标签 / 主题", del:"删除", removeAct:"删除活动", removePhase:"删除阶段",
@@ -254,9 +276,6 @@
       ioImport:"粘贴地图 JSON", ioCopy:"地图 JSON（请复制）", cancel:"取消", loadBtn:"加载",
       tCopied:"已复制 JSON", tMoved:n=>"已移至 "+n, tReordered:"已重新排序",
       tActReordered:"活动已重新排序", tPhReordered:"阶段已重新排序", tLoaded:"已加载",
-      cDelPhase:n=>`删除此阶段及其 ${n} 个故事？`,
-      cDelAct:n=>`删除此活动及其 ${n} 个故事？`,
-      cDelTag:t=>`从整张地图中删除标签“${t}”？`,
       badJson:"这看起来不是有效的故事地图 JSON（需要 activities、phases、stories）。"
     }
   };
@@ -267,6 +286,7 @@
     document.documentElement.lang = lang==="zh" ? "zh-CN" : "en";
     $("eyebrow").textContent=T("eyebrow");
     $("import").textContent=T("import"); $("export").textContent=T("copy");
+    $("download").textContent=T("download"); $("export-more").setAttribute("aria-label",T("moreExport"));
     document.querySelectorAll("#lang-toggle button").forEach(b=>b.classList.toggle("on",b.dataset.lang===lang));
     $("io-cancel").textContent=T("cancel"); $("io-ok").textContent=T("loadBtn");
     $("tm-new").placeholder=T("tmNew"); $("tm-add").textContent=T("tmAdd");
@@ -280,6 +300,7 @@
       if(s.ai && !s.tags.length) s.tags = ["AI"];   // legacy ai:true maps
       delete s.ai;
       s.tags.forEach(t=>{ if(!o.tags.includes(t)) o.tags.push(t); });
+      if(!STATUSES.includes(s.status)) s.status = "open";
     });
     return o;
   }
@@ -338,9 +359,6 @@
     const map = $("map");
     const acts = state.activities, phases = state.phases;
     map.style.gridTemplateColumns = `100px repeat(${acts.length}, minmax(132px,1fr)) 84px`;
-    const perPhase = {}, perAct = {};
-    phases.forEach(p=>perPhase[p.id]=0); acts.forEach(a=>perAct[a.id]=0);
-    state.stories.forEach(s=>{ if(perPhase[s.phase]!=null)perPhase[s.phase]++; if(perAct[s.activity]!=null)perAct[s.activity]++; });
 
     let h = `<div class="cell corner"><span>${T("corner")}</span></div>`;
     acts.forEach((a,i)=>{
@@ -357,7 +375,7 @@
         <span class="pn" contenteditable spellcheck="false" data-edit="ph-name" data-id="${p.id}">${esc(p.name)}</span>
         <span class="bar"></span>
         <span class="pg" contenteditable spellcheck="false" data-edit="ph-goal" data-id="${p.id}">${esc(p.goal||"")}</span>
-        <span class="cnt"><span>${T("count",perPhase[p.id])}</span><button class="x-phase" data-del-phase="${p.id}" title="${T("removePhase")}">×</button></span></div>`;
+        <button class="x-phase" data-del-phase="${p.id}" title="${T("removePhase")}">×</button></div>`;
       acts.forEach(a=>{
         const cards = state.stories.filter(s=>s.phase===p.id && s.activity===a.id);
         h += `<div class="cell stories ${pc}" data-drop-phase="${p.id}" data-drop-act="${a.id}">`;
@@ -376,14 +394,16 @@
   function tagClass(t){ const i = state.tags.indexOf(t); return "t" + ((i<0?0:i)%6); }
   function tagPill(t){ return `<span class="tag ${tagClass(t)}"><span class="d"></span>${esc(t)}</span>`; }
   function cardHtml(s){
-    return `<div class="card" draggable="true" data-card="${s.id}">
+    const pills = s.tags.map(tagPill).join("") + (s.status!=="open"?`<span class="tag stpill"><span class="d"></span>${esc(T("stLabel")[s.status])}</span>`:"");
+    return `<div class="card st-${s.status}" draggable="true" data-card="${s.id}">
       <div class="ctrls">
         <span class="grip" title="${T("grip")}">⠿</span>
+        <button class="stbtn" data-status="${s.id}" title="${esc(T("stLabel")[s.status])} ${esc(T("stCycle"))}">●</button>
         <button data-tag="${s.id}" title="${T("tagTitle")}">⌗</button>
         <button data-del="${s.id}" title="${T("del")}">×</button>
       </div>
       <p contenteditable spellcheck="false" data-edit="card" data-id="${s.id}">${esc(s.text)}</p>
-      ${s.tags.length?`<span class="tags">${s.tags.map(tagPill).join("")}</span>`:""}
+      ${pills?`<span class="tags">${pills}</span>`:""}
     </div>`;
   }
   function esc(t){ return String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
@@ -518,9 +538,19 @@
     // buttons
     document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{ const [ph,ac]=b.dataset.add.split("|"); const id=uid("s"); state.stories.push({id:id,activity:ac,phase:ph,text:T("newStory"),tags:[]}); save(); render(); focusCard(id); });
     document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{ state.stories=state.stories.filter(s=>s.id!==b.dataset.del); save(); render(); });
+    document.querySelectorAll("[data-status]").forEach(b=>b.onclick=()=>{
+      const s=state.stories.find(x=>x.id===b.dataset.status);
+      if(s){ s.status=STATUSES[(STATUSES.indexOf(s.status)+1)%STATUSES.length]; save(); render(); }
+    });
     document.querySelectorAll("[data-tag]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openTagMenu(b,b.dataset.tag); });
-    document.querySelectorAll("[data-del-phase]").forEach(b=>b.onclick=()=>delPhase(b.dataset.delPhase));
-    document.querySelectorAll("[data-del-act]").forEach(b=>b.onclick=()=>delAct(b.dataset.delAct));
+    document.querySelectorAll("[data-del-phase]").forEach(b=>b.onclick=()=>{
+      const id=b.dataset.delPhase;
+      if(state.stories.some(s=>s.phase===id)) armConfirm(b,()=>delPhase(id)); else delPhase(id);
+    });
+    document.querySelectorAll("[data-del-act]").forEach(b=>b.onclick=()=>{
+      const id=b.dataset.delAct;
+      if(state.stories.some(s=>s.activity===id)) armConfirm(b,()=>delAct(id)); else delAct(id);
+    });
     $("add-phase").onclick=()=>{ state.phases.push({id:uid("ph"),name:T("newPhaseName",state.phases.length+1),goal:T("newPhaseGoal")}); save(); render(); };
     $("add-activity").onclick=()=>{ state.activities.push({id:uid("a"),name:T("newActName"),task:T("newActTask")}); save(); render(); };
   }
@@ -534,6 +564,14 @@
     save();
   }
   function setField(arr,id,k,v){ const o=arr.find(x=>x.id===id); if(o)o[k]=v; }
+  // sandboxed iframes swallow confirm(), so destructive buttons arm on first
+  // click (turn red, "click again to confirm") and act on the second
+  function armConfirm(btn,fn){
+    if(btn.dataset.armed){ delete btn.dataset.armed; fn(); return; }
+    btn.dataset.armed="1"; btn.classList.add("armed"); btn.title=T("confirmHint");
+    toast(T("confirmHint"));
+    setTimeout(()=>{ if(document.contains(btn)){ delete btn.dataset.armed; btn.classList.remove("armed"); } },2500);
+  }
   function focusCard(id){
     // focus the card that was just added, in place — never scroll the page
     const el=document.querySelector(`.card p[data-id="${id}"]`);
@@ -566,10 +604,11 @@
     });
     list.querySelectorAll("[data-tx]").forEach(b=>b.onclick=()=>{
       const t=b.dataset.tx;
-      if(!confirm(T("cDelTag",t))) return;
-      state.tags=state.tags.filter(x=>x!==t);
-      state.stories.forEach(st=>st.tags=st.tags.filter(x=>x!==t));
-      save(); render(); renderTagMenu();
+      armConfirm(b,()=>{
+        state.tags=state.tags.filter(x=>x!==t);
+        state.stories.forEach(st=>st.tags=st.tags.filter(x=>x!==t));
+        save(); render(); renderTagMenu();
+      });
     });
   }
   $("tm-form").onsubmit=e=>{
@@ -583,13 +622,9 @@
   document.addEventListener("pointerdown",e=>{ if(!tagmenu.hidden && !tagmenu.contains(e.target) && !e.target.closest("[data-tag]")) tagmenu.hidden=true; });
 
   function delPhase(id){
-    const n=state.stories.filter(s=>s.phase===id).length;
-    if(n && !confirm(T("cDelPhase",n))) return;
     state.phases=state.phases.filter(p=>p.id!==id); state.stories=state.stories.filter(s=>s.phase!==id); save(); render();
   }
   function delAct(id){
-    const n=state.stories.filter(s=>s.activity===id).length;
-    if(n && !confirm(T("cDelAct",n))) return;
     state.activities=state.activities.filter(a=>a.id!==id); state.stories=state.stories.filter(s=>s.activity!==id); save(); render();
   }
   // release anywhere commits the current live-preview arrangement
@@ -609,10 +644,13 @@
   // import / export
   const io=$("io");
   $("export").onclick=()=>{ const t=JSON.stringify(state,null,2); (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast(T("tCopied"))).catch(()=>{ openIO(T("ioCopy"),t,true); }); };
+  $("export-more").onclick=e=>{ e.stopPropagation(); $("export-menu").hidden=!$("export-menu").hidden; };
+  $("download").onclick=()=>{ $("export-menu").hidden=true; const b=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}); const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=KEY+".json"; a.click(); URL.revokeObjectURL(u); };
+  document.addEventListener("pointerdown",e=>{ if(!$("export-menu").hidden && !e.target.closest(".split")) $("export-menu").hidden=true; });
   $("import").onclick=()=>openIO(T("ioImport"),'',false);
   function openIO(title,text,readonly){ $("io-title").textContent=title; $("io-text").value=text; $("io-text").readOnly=!!readonly; $("io-ok").style.display=readonly?"none":""; io.showModal(); }
   $("io-cancel").onclick=()=>io.close();
-  $("io-ok").onclick=()=>{ try{ const o=JSON.parse($("io-text").value); if(!o.activities||!o.phases||!o.stories) throw 0; state=normalize(o); save(); render(); io.close(); toast(T("tLoaded")); }catch(e){ alert(T("badJson")); } };
+  $("io-ok").onclick=()=>{ try{ const o=JSON.parse($("io-text").value); if(!o.activities||!o.phases||!o.stories) throw 0; state=normalize(o); save(); render(); io.close(); toast(T("tLoaded")); }catch(e){ toast(T("badJson")); } };
 
   applyLang();
   render();
