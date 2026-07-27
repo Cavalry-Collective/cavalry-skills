@@ -1,0 +1,14 @@
+{
+  "name": "cavalry-collective",
+  "owner": {
+    "name": "Cavalry Collective",
+    "email": "adam@cavalry.sg"
+  },
+  "plugins": [
+    {
+      "name": "user-story-map",
+      "source": "./plugins/user-story-map",
+      "description": "Build an interactive, drag-and-drop user story map artifact — re-slice stories across release phases, rank phases/activities/stories, tag cross-cutting themes, EN/中文 UI."
+    }
+  ]
+}

@@ -1,0 +1,681 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ShopLite</title></head><body>
+<!--
+  Interactive user story map. Drag story cards between cells to re-slice work
+  across phases. Self-contained (no external resources) so it works as an Artifact.
+
+  TO USE: replace the STORY_MAP object in the <script id="data"> block near the
+  bottom with the real content, then publish. Everything else is the engine and
+  needs no editing. Schema:
+    { title,                                       // the product/initiative name only — no "Story Map" suffix
+      lang,                                        // optional: "en" (default) or "zh" — initial UI language; users can toggle
+      tags:       ["AI"],                          // cross-cutting themes; stories reference them by name
+      activities: [{ id, name, task }],            // backbone columns (the journey, left→right)
+      phases:     [{ id, name, goal }],            // release swimlanes (rows, top→bottom = order)
+      stories:    [{ id, activity, phase, text, tags: ["AI"] }] }
+  Order in each array is the display/rank order (users can re-drag it).
+  Colours are auto-assigned per phase; ids must be unique strings.
+-->
+<style>
+  :root{
+    --paper:#eef0f3; --surface:#fff; --surface-2:#f7f8fa; --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+    --line:#e2e4e9; --line-2:#d0d2d9; --brand:#d23b2e;
+    --p0:#d23b2e; --p1:#b0761a; --p2:#10876e; --p3:#4a5fce; --p4:#8a53c0; --p5:#0f7f9c; --band:8%;
+    --shadow:0 1px 2px rgba(16,17,22,.06);--radius:9px;
+    --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;
+    --line:#282a31;--line-2:#363942;--brand:#f0685c;
+    --p0:#ef6a5e;--p1:#d29a3f;--p2:#2fb89b;--p3:#7d90ee;--p4:#b98cec;--p5:#3fb6d6;--band:15%;--shadow:0 1px 2px rgba(0,0,0,.4);
+  }}
+  :root[data-theme="light"]{--paper:#eef0f3;--surface:#fff;--surface-2:#f7f8fa;--ink:#16171c;--ink-2:#43454d;--ink-3:#71737c;--line:#e2e4e9;--line-2:#d0d2d9;--brand:#d23b2e;--p0:#d23b2e;--p1:#b0761a;--p2:#10876e;--p3:#4a5fce;--p4:#8a53c0;--p5:#0f7f9c;--band:8%;--shadow:0 1px 2px rgba(16,17,22,.06);}
+  :root[data-theme="dark"]{--paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;--line:#282a31;--line-2:#363942;--brand:#f0685c;--p0:#ef6a5e;--p1:#d29a3f;--p2:#2fb89b;--p3:#7d90ee;--p4:#b98cec;--p5:#3fb6d6;--band:15%;--shadow:0 1px 2px rgba(0,0,0,.4);}
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1600px;margin:0 auto;padding:clamp(1.2rem,3vw,2.4rem) clamp(.8rem,2.5vw,2rem) 3rem}
+
+  header .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);font-weight:600;margin:0 0 .5rem;display:inline-flex;align-items:center;gap:.5rem}
+  .eyebrow::before{content:"";width:1.5rem;height:2px;background:var(--brand);border-radius:2px}
+  h1{font-size:clamp(1.5rem,3.5vw,2.3rem);line-height:1.05;letter-spacing:-.03em;font-weight:800;margin:0 0 .5rem;text-wrap:balance}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:1.4rem 0 .4rem}
+  .btn{display:inline-flex;align-items:center;gap:.4rem;font:inherit;font-size:.82rem;font-weight:500;color:var(--ink-2);background:var(--surface);border:1px solid var(--line-2);border-radius:7px;padding:.4rem .7rem;cursor:pointer}
+  .btn:hover{background:var(--surface-2);color:var(--ink)}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn svg{width:15px;height:15px}
+  .toolbar .spacer{flex:1}
+  .hint{font-size:.78rem;color:var(--ink-3);margin:.2rem 0 1rem;display:flex;flex-wrap:wrap;align-items:center;gap:.5rem}
+  .hint .k{display:inline-flex;align-items:center;gap:.4rem}
+
+  .tag{display:inline-flex;align-items:center;gap:.25rem;font-family:var(--mono);font-size:.54rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--tc,var(--ink-3));background:color-mix(in srgb,var(--tc,var(--ink-3)) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--tc,var(--ink-3)) 30%,transparent);padding:.05rem .3rem;border-radius:4px}
+  .tag .d{width:5px;height:5px;border-radius:50%;background:var(--tc,var(--ink-3))}
+  .t0{--tc:var(--p4)}.t1{--tc:var(--p5)}.t2{--tc:var(--p1)}.t3{--tc:var(--p2)}.t4{--tc:var(--p3)}.t5{--tc:var(--p0)}
+
+  .scroll{overflow:auto;max-height:80vh;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);scrollbar-width:thin}
+  .map{display:grid}
+  .cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+
+  .corner{position:sticky;top:0;left:0;z-index:30;background:var(--surface-2);border-bottom:1px solid var(--line-2);border-right:1px solid var(--line-2);padding:.6rem .7rem;display:flex;align-items:flex-end}
+  .corner span{font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+
+  .act{position:sticky;top:0;z-index:20;background:var(--surface-2);border-bottom:1px solid var(--line-2);padding:.45rem .5rem;min-width:0;cursor:grab}
+  .act .an{font-size:.76rem;font-weight:700;letter-spacing:-.01em;line-height:1.15;outline:none;border-radius:4px}
+  .act .at{margin:.18rem 0 0;font-size:.63rem;line-height:1.25;color:var(--ink-3);outline:none;border-radius:4px}
+  .act .actls{display:flex;align-items:center;gap:.3rem}
+  .act .seq{font-family:var(--mono);font-size:.6rem;color:var(--ink-3);font-weight:600;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:0 .3rem;margin-left:auto}
+  .x-act{margin-left:.25rem;opacity:0;border:0;background:none;color:var(--ink-3);cursor:pointer;font-size:.9rem;line-height:1;padding:0 .2rem}
+  .act:hover .x-act{opacity:.7}
+  .x-act:hover{color:var(--brand);opacity:1}
+  .act.dragging,.rail.dragging{opacity:.45}
+  .act.target{outline:2px dashed var(--brand);outline-offset:-2px}
+  .rail.target{outline:2px dashed var(--pc);outline-offset:-2px}
+
+  .rail{position:sticky;left:0;z-index:20;background:color-mix(in srgb,var(--pc) var(--band),var(--surface));border-right:1px solid var(--line-2);padding:.5rem .45rem;display:flex;flex-direction:column;gap:.2rem;min-width:0;cursor:grab}
+  .rail .pn{font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--pc);outline:none}
+  .rail .pt{font-size:.76rem;font-weight:700;letter-spacing:-.01em;line-height:1.12;outline:none;border-radius:4px}
+  .rail .pg{font-size:.62rem;line-height:1.25;color:var(--ink-3);outline:none;border-radius:4px;margin-top:2px}
+  .rail .bar{height:3px;width:24px;border-radius:3px;background:var(--pc);margin:.15rem 0}
+  .rail .cnt{margin-top:auto;font-family:var(--mono);font-size:.66rem;color:var(--ink-3);display:flex;align-items:center;justify-content:space-between}
+  .x-phase{opacity:0;border:0;background:none;color:var(--ink-3);cursor:pointer;font-size:.85rem;padding:0 .2rem}
+  .rail:hover .x-phase{opacity:.7}.x-phase:hover{color:var(--brand);opacity:1}
+
+  .stories{padding:.35rem;display:flex;flex-direction:column;gap:.3rem;min-height:46px;background:color-mix(in srgb,var(--pc) calc(var(--band) - 4%),var(--surface));transition:background .1s}
+  .stories.over{background:color-mix(in srgb,var(--pc) 22%,var(--surface));outline:2px dashed var(--pc);outline-offset:-3px}
+  .card{position:relative;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--pc);border-radius:6px;padding:.32rem .42rem .36rem;box-shadow:var(--shadow);cursor:grab}
+  .card.dragging{opacity:.4}
+  .card p{margin:0;font-size:.7rem;line-height:1.28;color:var(--ink);font-weight:500;outline:none;word-break:break-word}
+  .card .tags{display:flex;flex-wrap:wrap;gap:.2rem;margin-top:.28rem}
+  .card .ctrls{position:absolute;top:3px;right:3px;display:flex;gap:1px;opacity:0}
+  .card:hover .ctrls{opacity:1}
+  .card .ctrls button{border:0;background:var(--surface-2);color:var(--ink-3);border-radius:4px;width:18px;height:18px;font-size:.7rem;cursor:pointer;display:grid;place-items:center;line-height:1}
+  .card .ctrls button:hover{color:var(--ink);background:var(--line)}
+  .addcard{border:1px dashed var(--line-2);background:none;color:var(--ink-3);border-radius:5px;padding:.15rem;font:inherit;font-size:.64rem;cursor:pointer}
+  .addcard:hover{color:var(--ink);border-color:var(--ink-faint,var(--ink-3))}
+
+  .p0{--pc:var(--p0)}.p1{--pc:var(--p1)}.p2{--pc:var(--p2)}.p3{--pc:var(--p3)}.p4{--pc:var(--p4)}.p5{--pc:var(--p5)}
+
+  [contenteditable]:focus{background:color-mix(in srgb,var(--brand) 10%,var(--surface));outline:1px solid color-mix(in srgb,var(--brand) 40%,transparent)}
+  dialog{border:1px solid var(--line-2);border-radius:12px;background:var(--surface);color:var(--ink);max-width:min(560px,92vw);width:100%;padding:1.2rem}
+  dialog::backdrop{background:rgba(0,0,0,.45)}
+  dialog h3{margin:0 0 .6rem;font-size:1.05rem}
+  dialog textarea{width:100%;min-height:200px;font-family:var(--mono);font-size:.78rem;border:1px solid var(--line-2);border-radius:8px;padding:.6rem;background:var(--surface-2);color:var(--ink);resize:vertical}
+  dialog .row{display:flex;justify-content:flex-end;gap:.5rem;margin-top:.8rem}
+
+  .tagmenu{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--line-2);border-radius:9px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:.5rem;width:210px}
+  .tagmenu[hidden]{display:none}
+  .tm-row{display:flex;align-items:center;gap:.3rem;padding:.15rem .1rem}
+  .tm-row label{display:flex;align-items:center;gap:.4rem;flex:1;cursor:pointer;min-width:0}
+  .tm-row input[type="checkbox"]{accent-color:var(--brand)}
+  .x-tag{margin-left:auto;border:0;background:none;color:var(--ink-3);cursor:pointer;font-size:.85rem;line-height:1;padding:0 .2rem}
+  .x-tag:hover{color:var(--brand)}
+  .tm-empty{font-size:.7rem;color:var(--ink-3);padding:.1rem}
+  #tm-form{display:flex;gap:.3rem;margin-top:.4rem}
+  #tm-new{flex:1;min-width:0;font:inherit;font-size:.74rem;border:1px solid var(--line-2);border-radius:6px;padding:.25rem .4rem;background:var(--surface-2);color:var(--ink)}
+
+  .toast{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%) translateY(1rem);background:var(--ink);color:var(--paper);padding:.5rem .9rem;border-radius:8px;font-size:.82rem;opacity:0;pointer-events:none;transition:.18s}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media (prefers-reduced-motion:no-preference){.card{transition:box-shadow .12s,transform .12s}.card:hover{box-shadow:0 3px 8px rgba(16,17,22,.10)}}
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow" id="eyebrow">User story map</p>
+    <h1 id="title" contenteditable spellcheck="false"></h1>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn" id="add-phase" title="Add a release phase (row)">＋ Phase</button>
+    <button class="btn" id="add-activity" title="Add a journey activity (column)">＋ Activity</button>
+    <span class="spacer"></span>
+    <button class="btn" id="lang" title="切换到中文">中文</button>
+    <button class="btn" id="import">Import</button>
+    <button class="btn" id="export">Copy JSON</button>
+    <button class="btn" id="download">Download</button>
+    <button class="btn" id="reset" title="Discard edits, restore the original">Reset</button>
+  </div>
+  <p class="hint" id="hint"></p>
+
+  <div class="scroll"><div class="map" id="map" role="grid" aria-label="User story map"></div></div>
+</div>
+
+<dialog id="io"><h3 id="io-title">Import map JSON</h3>
+  <textarea id="io-text" spellcheck="false"></textarea>
+  <div class="row"><button class="btn" id="io-cancel">Cancel</button><button class="btn primary" id="io-ok">Load</button></div>
+</dialog>
+<div class="tagmenu" id="tagmenu" hidden>
+  <div id="tm-list"></div>
+  <form id="tm-form"><input id="tm-new" placeholder="New tag…" maxlength="24" spellcheck="false" autocomplete="off"><button class="btn primary" id="tm-add" type="submit">Add</button></form>
+</div>
+<div class="toast" id="toast"></div>
+
+<script id="data" type="application/json">
+{
+  "title": "ShopLite",
+  "tags": [
+    "AI"
+  ],
+  "activities": [
+    {
+      "id": "a1",
+      "name": "Browse & search",
+      "task": "Find products worth buying"
+    },
+    {
+      "id": "a2",
+      "name": "View product",
+      "task": "Decide on a product"
+    },
+    {
+      "id": "a3",
+      "name": "Manage cart",
+      "task": "Collect and adjust items"
+    },
+    {
+      "id": "a4",
+      "name": "Sign in",
+      "task": "Identify the shopper"
+    },
+    {
+      "id": "a5",
+      "name": "Shipping",
+      "task": "Choose where and how it arrives"
+    },
+    {
+      "id": "a6",
+      "name": "Pay",
+      "task": "Take payment securely"
+    },
+    {
+      "id": "a7",
+      "name": "Confirm & track",
+      "task": "Reassure after purchase"
+    }
+  ],
+  "phases": [
+    {
+      "id": "ph1",
+      "name": "Phase 1",
+      "goal": "Guest checkout MVP — browse to paid order"
+    },
+    {
+      "id": "ph2",
+      "name": "Phase 2",
+      "goal": "Accounts, saved details & fewer taps"
+    },
+    {
+      "id": "ph3",
+      "name": "Phase 3",
+      "goal": "Optimize conversion & delight"
+    }
+  ],
+  "stories": [
+    {
+      "id": "s1",
+      "activity": "a1",
+      "phase": "ph1",
+      "text": "Browse product grid by category"
+    },
+    {
+      "id": "s2",
+      "activity": "a1",
+      "phase": "ph1",
+      "text": "Search by keyword"
+    },
+    {
+      "id": "s3",
+      "activity": "a2",
+      "phase": "ph1",
+      "text": "Product page — photos, price, stock"
+    },
+    {
+      "id": "s4",
+      "activity": "a3",
+      "phase": "ph1",
+      "text": "Add to cart — size & quantity"
+    },
+    {
+      "id": "s5",
+      "activity": "a3",
+      "phase": "ph1",
+      "text": "Cart review — edit qty, remove items"
+    },
+    {
+      "id": "s6",
+      "activity": "a4",
+      "phase": "ph1",
+      "text": "Guest checkout — email only"
+    },
+    {
+      "id": "s7",
+      "activity": "a5",
+      "phase": "ph1",
+      "text": "Shipping address form, flat-rate delivery"
+    },
+    {
+      "id": "s8",
+      "activity": "a6",
+      "phase": "ph1",
+      "text": "Pay by card"
+    },
+    {
+      "id": "s9",
+      "activity": "a7",
+      "phase": "ph1",
+      "text": "Order confirmation screen + email"
+    },
+    {
+      "id": "s10",
+      "activity": "a1",
+      "phase": "ph2",
+      "text": "Filters & sort — price, rating, size"
+    },
+    {
+      "id": "s11",
+      "activity": "a2",
+      "phase": "ph2",
+      "text": "Reviews & ratings on the product page"
+    },
+    {
+      "id": "s12",
+      "activity": "a3",
+      "phase": "ph2",
+      "text": "Save for later / wishlist"
+    },
+    {
+      "id": "s13",
+      "activity": "a3",
+      "phase": "ph2",
+      "text": "Promo code at checkout"
+    },
+    {
+      "id": "s14",
+      "activity": "a4",
+      "phase": "ph2",
+      "text": "Account sign-in, saved addresses"
+    },
+    {
+      "id": "s15",
+      "activity": "a5",
+      "phase": "ph2",
+      "text": "Delivery options with dates & prices"
+    },
+    {
+      "id": "s16",
+      "activity": "a6",
+      "phase": "ph2",
+      "text": "Apple Pay / Google Pay & saved cards"
+    },
+    {
+      "id": "s17",
+      "activity": "a7",
+      "phase": "ph2",
+      "text": "Order history & push tracking updates"
+    },
+    {
+      "id": "s18",
+      "activity": "a1",
+      "phase": "ph3",
+      "text": "Personalized recommendations",
+      "tags": [
+        "AI"
+      ]
+    },
+    {
+      "id": "s19",
+      "activity": "a2",
+      "phase": "ph3",
+      "text": "Size & fit recommendation",
+      "tags": [
+        "AI"
+      ]
+    },
+    {
+      "id": "s20",
+      "activity": "a3",
+      "phase": "ph3",
+      "text": "Abandoned-cart reminder nudges",
+      "tags": [
+        "AI"
+      ]
+    },
+    {
+      "id": "s21",
+      "activity": "a5",
+      "phase": "ph3",
+      "text": "Address autocomplete"
+    },
+    {
+      "id": "s22",
+      "activity": "a6",
+      "phase": "ph3",
+      "text": "Fraud screening before capture",
+      "tags": [
+        "AI"
+      ]
+    },
+    {
+      "id": "s23",
+      "activity": "a7",
+      "phase": "ph3",
+      "text": "One-tap reorder"
+    }
+  ]
+}
+</script>
+
+<script>
+(function(){
+  "use strict";
+  const raw = JSON.parse(document.getElementById("data").textContent);
+  const KEY = "usm:" + (raw.title||"map").toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,40);
+  let state = normalize(load() || clone(raw));
+
+  // UI language (EN / 中文) — chrome only; map content stays as authored
+  const I18N = {
+    en: {
+      eyebrow:"User story map", corner:"Phase ↓ / Journey →",
+      addPhase:"＋ Phase", addPhaseTitle:"Add a release phase (row)",
+      addActivity:"＋ Activity", addActTitle:"Add a journey activity (column)",
+      import:"Import", copy:"Copy JSON", download:"Download",
+      reset:"Reset", resetTitle:"Discard edits, restore the original",
+      langBtn:"中文", langTitle:"切换到中文",
+      hint1:"↕ <b>Drag a card</b> into any cell to re-slice it; drop above/below other cards to rank it.",
+      hint2:"<b>Drag a phase / activity header</b> to reorder rows &amp; columns.",
+      hint3:"Double-click text to edit · hover a card for ⌗ tags / ×",
+      count:n=>`${n} ${n===1?"story":"stories"}`, addStory:"＋ story", newStory:"New story",
+      newPhaseName:n=>"Phase "+n, newPhaseGoal:"New phase — describe the goal",
+      newActName:"New activity", newActTask:"Describe this step",
+      tagTitle:"Tags / themes", del:"Delete", removeAct:"Remove activity", removePhase:"Remove phase",
+      delTagEverywhere:"Delete this tag everywhere",
+      tmEmpty:"No tags yet — add one below.", tmNew:"New tag…", tmAdd:"Add",
+      ioImport:"Paste map JSON", ioCopy:"Map JSON (copy it)", cancel:"Cancel", loadBtn:"Load",
+      tCopied:"JSON copied", tMoved:n=>"Moved to "+n, tReordered:"Reordered",
+      tActReordered:"Activity reordered", tPhReordered:"Phase reordered", tLoaded:"Loaded", tReset:"Reset",
+      cDelPhase:n=>`Delete this phase and its ${n} ${n===1?"story":"stories"}?`,
+      cDelAct:n=>`Delete this activity and its ${n} ${n===1?"story":"stories"}?`,
+      cDelTag:t=>`Delete tag "${t}" from the whole map?`,
+      cReset:"Discard all edits and restore the original map?",
+      badJson:"That doesn't look like a valid story-map JSON (needs activities, phases, stories)."
+    },
+    zh: {
+      eyebrow:"用户故事地图", corner:"阶段 ↓ / 旅程 →",
+      addPhase:"＋ 阶段", addPhaseTitle:"添加发布阶段（行）",
+      addActivity:"＋ 活动", addActTitle:"添加旅程活动（列）",
+      import:"导入", copy:"复制 JSON", download:"下载",
+      reset:"重置", resetTitle:"放弃修改，恢复原始地图",
+      langBtn:"EN", langTitle:"Switch to English",
+      hint1:"↕ <b>拖动卡片</b>到任意单元格即可重新划分；放到其他卡片上方 / 下方可调整排序。",
+      hint2:"<b>拖动阶段 / 活动表头</b>可重新排列行与列。",
+      hint3:"双击文字可编辑 · 悬停卡片可见 ⌗ 标签 / ×",
+      count:n=>`${n} 个故事`, addStory:"＋ 故事", newStory:"新故事",
+      newPhaseName:n=>"阶段 "+n, newPhaseGoal:"新阶段——描述目标",
+      newActName:"新活动", newActTask:"描述这一步",
+      tagTitle:"标签 / 主题", del:"删除", removeAct:"删除活动", removePhase:"删除阶段",
+      delTagEverywhere:"在整张地图中删除此标签",
+      tmEmpty:"还没有标签——在下方添加。", tmNew:"新标签…", tmAdd:"添加",
+      ioImport:"粘贴地图 JSON", ioCopy:"地图 JSON（请复制）", cancel:"取消", loadBtn:"加载",
+      tCopied:"已复制 JSON", tMoved:n=>"已移至 "+n, tReordered:"已重新排序",
+      tActReordered:"活动已重新排序", tPhReordered:"阶段已重新排序", tLoaded:"已加载", tReset:"已重置",
+      cDelPhase:n=>`删除此阶段及其 ${n} 个故事？`,
+      cDelAct:n=>`删除此活动及其 ${n} 个故事？`,
+      cDelTag:t=>`从整张地图中删除标签“${t}”？`,
+      cReset:"放弃所有修改并恢复原始地图？",
+      badJson:"这看起来不是有效的故事地图 JSON（需要 activities、phases、stories）。"
+    }
+  };
+  let lang = (function(){ try{ return localStorage.getItem("usm:lang"); }catch(e){ return null; } })() || raw.lang || "en";
+  if(!I18N[lang]) lang = "en";
+  const T = (k,...a)=>{ const v=I18N[lang][k]; return typeof v==="function"?v(...a):v; };
+  function applyLang(){
+    document.documentElement.lang = lang==="zh" ? "zh-CN" : "en";
+    $("eyebrow").textContent=T("eyebrow");
+    $("add-phase").textContent=T("addPhase"); $("add-phase").title=T("addPhaseTitle");
+    $("add-activity").textContent=T("addActivity"); $("add-activity").title=T("addActTitle");
+    $("import").textContent=T("import"); $("export").textContent=T("copy"); $("download").textContent=T("download");
+    $("reset").textContent=T("reset"); $("reset").title=T("resetTitle");
+    $("lang").textContent=T("langBtn"); $("lang").title=T("langTitle");
+    $("hint").innerHTML=`<span class="k">${T("hint1")}</span><span class="k">${T("hint2")}</span><span class="k">${T("hint3")}</span>`;
+    $("io-cancel").textContent=T("cancel"); $("io-ok").textContent=T("loadBtn");
+    $("tm-new").placeholder=T("tmNew"); $("tm-add").textContent=T("tmAdd");
+  }
+
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+  function normalize(o){
+    o.tags = Array.isArray(o.tags) ? o.tags.filter(t=>typeof t==="string") : [];
+    (o.stories||[]).forEach(s=>{
+      if(!Array.isArray(s.tags)) s.tags = [];
+      if(s.ai && !s.tags.length) s.tags = ["AI"];   // legacy ai:true maps
+      delete s.ai;
+      s.tags.forEach(t=>{ if(!o.tags.includes(t)) o.tags.push(t); });
+    });
+    return o;
+  }
+  function load(){ try{ const s=localStorage.getItem(KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+  function uid(p){ return p + Math.random().toString(36).slice(2,8); }
+  const $ = (id)=>document.getElementById(id);
+  let toastT;
+  function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1600); }
+
+  function render(){
+    const sc = document.querySelector(".scroll");
+    const sl = sc.scrollLeft, st = sc.scrollTop;
+    $("title").textContent = state.title||"";
+    const map = $("map");
+    const acts = state.activities, phases = state.phases;
+    map.style.gridTemplateColumns = `100px repeat(${acts.length}, minmax(132px,1fr))`;
+    const perPhase = {}, perAct = {};
+    phases.forEach(p=>perPhase[p.id]=0); acts.forEach(a=>perAct[a.id]=0);
+    state.stories.forEach(s=>{ if(perPhase[s.phase]!=null)perPhase[s.phase]++; if(perAct[s.activity]!=null)perAct[s.activity]++; });
+
+    let h = `<div class="cell corner"><span>${T("corner")}</span></div>`;
+    acts.forEach((a,i)=>{
+      h += `<div class="cell act" draggable="true" data-act="${a.id}">
+        <div class="actls"><span class="an" contenteditable spellcheck="false" data-edit="act-name" data-id="${a.id}">${esc(a.name)}</span>
+        <button class="x-act" data-del-act="${a.id}" title="${T("removeAct")}">×</button>
+        <span class="seq">${i+1}</span></div>
+        <p class="at" contenteditable spellcheck="false" data-edit="act-task" data-id="${a.id}">${esc(a.task||"")}</p></div>`;
+    });
+    phases.forEach((p,pi)=>{
+      const pc = "p"+(pi%6);
+      h += `<div class="cell rail ${pc}" draggable="true" data-phase="${p.id}">
+        <span class="pn" contenteditable spellcheck="false" data-edit="ph-name" data-id="${p.id}">${esc(p.name)}</span>
+        <span class="bar"></span>
+        <span class="pg" contenteditable spellcheck="false" data-edit="ph-goal" data-id="${p.id}">${esc(p.goal||"")}</span>
+        <span class="cnt"><span>${T("count",perPhase[p.id])}</span><button class="x-phase" data-del-phase="${p.id}" title="${T("removePhase")}">×</button></span></div>`;
+      acts.forEach(a=>{
+        const cards = state.stories.filter(s=>s.phase===p.id && s.activity===a.id);
+        h += `<div class="cell stories ${pc}" data-drop-phase="${p.id}" data-drop-act="${a.id}">`;
+        cards.forEach(s=>{ h += cardHtml(s); });
+        h += `<button class="addcard" data-add="${p.id}|${a.id}">${T("addStory")}</button></div>`;
+      });
+    });
+    map.innerHTML = h;
+    wire();
+    sc.scrollLeft = sl; sc.scrollTop = st;
+  }
+
+  function tagClass(t){ const i = state.tags.indexOf(t); return "t" + ((i<0?0:i)%6); }
+  function tagPill(t){ return `<span class="tag ${tagClass(t)}"><span class="d"></span>${esc(t)}</span>`; }
+  function cardHtml(s){
+    return `<div class="card" draggable="true" data-card="${s.id}">
+      <div class="ctrls">
+        <button data-tag="${s.id}" title="${T("tagTitle")}">⌗</button>
+        <button data-del="${s.id}" title="${T("del")}">×</button>
+      </div>
+      <p contenteditable spellcheck="false" data-edit="card" data-id="${s.id}">${esc(s.text)}</p>
+      ${s.tags.length?`<span class="tags">${s.tags.map(tagPill).join("")}</span>`:""}
+    </div>`;
+  }
+  function esc(t){ return String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+  let dragId=null, dragAct=null, dragPhase=null;
+  function editing(el){ const f=document.activeElement; return f && el.contains(f) && f.isContentEditable; }
+  function wire(){
+    // story cards — drag between cells, drop position sets the rank
+    document.querySelectorAll(".card").forEach(el=>{
+      el.addEventListener("dragstart",e=>{ dragId=el.dataset.card; el.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain",dragId); });
+      el.addEventListener("dragend",()=>{ el.classList.remove("dragging"); document.querySelectorAll(".stories.over").forEach(c=>c.classList.remove("over")); dragId=null; });
+    });
+    document.querySelectorAll(".stories").forEach(cell=>{
+      cell.addEventListener("dragover",e=>{ if(!dragId) return; e.preventDefault(); cell.classList.add("over"); });
+      cell.addEventListener("dragleave",()=>cell.classList.remove("over"));
+      cell.addEventListener("drop",e=>{
+        if(!dragId) return;
+        e.preventDefault(); cell.classList.remove("over");
+        const id = dragId;
+        const s = state.stories.find(x=>x.id===id); if(!s) return;
+        const np=cell.dataset.dropPhase, na=cell.dataset.dropAct;
+        const changed = s.phase!==np || s.activity!==na;
+        let beforeId=null;
+        for(const c of cell.querySelectorAll(".card")){
+          if(c.dataset.card===id) continue;
+          const r=c.getBoundingClientRect();
+          if(e.clientY < r.top + r.height/2){ beforeId=c.dataset.card; break; }
+        }
+        state.stories = state.stories.filter(x=>x.id!==id);
+        s.phase=np; s.activity=na;
+        if(beforeId){ state.stories.splice(state.stories.findIndex(x=>x.id===beforeId),0,s); }
+        else{ let last=-1; state.stories.forEach((x,i)=>{ if(x.phase===np&&x.activity===na) last=i; }); state.stories.splice(last+1,0,s); }
+        save(); render();
+        toast(changed ? T("tMoved",(state.phases.find(p=>p.id===np)||{}).name||"") : T("tReordered"));
+      });
+    });
+    // activities (columns) — drag a header onto another to reorder
+    document.querySelectorAll(".act").forEach(el=>{
+      el.addEventListener("dragstart",e=>{
+        if(editing(el)){ e.preventDefault(); return; }
+        dragAct=el.dataset.act; el.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain","act:"+dragAct);
+      });
+      el.addEventListener("dragend",()=>{ dragAct=null; document.querySelectorAll(".act.target,.act.dragging").forEach(c=>c.classList.remove("target","dragging")); });
+      el.addEventListener("dragover",e=>{ if(!dragAct||dragAct===el.dataset.act) return; e.preventDefault(); el.classList.add("target"); });
+      el.addEventListener("dragleave",()=>el.classList.remove("target"));
+      el.addEventListener("drop",e=>{
+        if(!dragAct||dragAct===el.dataset.act) return; e.preventDefault();
+        const a=state.activities.splice(state.activities.findIndex(x=>x.id===dragAct),1)[0];
+        const r=el.getBoundingClientRect();
+        let to=state.activities.findIndex(x=>x.id===el.dataset.act);
+        if(e.clientX > r.left + r.width/2) to++;
+        state.activities.splice(to,0,a); dragAct=null; save(); render(); toast(T("tActReordered"));
+      });
+    });
+    // phases (rows) — drag a rail onto another to reorder
+    document.querySelectorAll(".rail").forEach(el=>{
+      el.addEventListener("dragstart",e=>{
+        if(editing(el)){ e.preventDefault(); return; }
+        dragPhase=el.dataset.phase; el.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain","phase:"+dragPhase);
+      });
+      el.addEventListener("dragend",()=>{ dragPhase=null; document.querySelectorAll(".rail.target,.rail.dragging").forEach(c=>c.classList.remove("target","dragging")); });
+      el.addEventListener("dragover",e=>{ if(!dragPhase||dragPhase===el.dataset.phase) return; e.preventDefault(); el.classList.add("target"); });
+      el.addEventListener("dragleave",()=>el.classList.remove("target"));
+      el.addEventListener("drop",e=>{
+        if(!dragPhase||dragPhase===el.dataset.phase) return; e.preventDefault();
+        const p=state.phases.splice(state.phases.findIndex(x=>x.id===dragPhase),1)[0];
+        const r=el.getBoundingClientRect();
+        let to=state.phases.findIndex(x=>x.id===el.dataset.phase);
+        if(e.clientY > r.top + r.height/2) to++;
+        state.phases.splice(to,0,p); dragPhase=null; save(); render(); toast(T("tPhReordered"));
+      });
+    });
+    // inline edits
+    document.querySelectorAll("[data-edit]").forEach(el=>{
+      el.addEventListener("blur",()=>commitEdit(el));
+      el.addEventListener("keydown",e=>{ if(e.key==="Enter" && el.dataset.edit!=="card"){ e.preventDefault(); el.blur(); } if(e.key==="Escape"){ render(); } });
+    });
+    $("title").onblur=()=>{ state.title=$("title").textContent.trim(); save(); };
+    // buttons
+    document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{ const [ph,ac]=b.dataset.add.split("|"); const id=uid("s"); state.stories.push({id:id,activity:ac,phase:ph,text:T("newStory"),tags:[]}); save(); render(); focusCard(id); });
+    document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{ state.stories=state.stories.filter(s=>s.id!==b.dataset.del); save(); render(); });
+    document.querySelectorAll("[data-tag]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openTagMenu(b,b.dataset.tag); });
+    document.querySelectorAll("[data-del-phase]").forEach(b=>b.onclick=()=>delPhase(b.dataset.delPhase));
+    document.querySelectorAll("[data-del-act]").forEach(b=>b.onclick=()=>delAct(b.dataset.delAct));
+  }
+  function commitEdit(el){
+    const v=el.textContent.trim(), id=el.dataset.id, t=el.dataset.edit;
+    if(t==="card"){ const s=state.stories.find(x=>x.id===id); if(s){ if(!v){ state.stories=state.stories.filter(x=>x.id!==id); render(); } else s.text=v; } }
+    else if(t==="act-name"){ setField(state.activities,id,"name",v||"Activity"); }
+    else if(t==="act-task"){ setField(state.activities,id,"task",v); }
+    else if(t==="ph-name"){ setField(state.phases,id,"name",v||"Phase"); }
+    else if(t==="ph-goal"){ setField(state.phases,id,"goal",v); }
+    save();
+  }
+  function setField(arr,id,k,v){ const o=arr.find(x=>x.id===id); if(o)o[k]=v; }
+  function focusCard(id){
+    // focus the card that was just added, in place — never scroll the page
+    const el=document.querySelector(`.card p[data-id="${id}"]`);
+    if(el){ el.focus({preventScroll:true}); document.getSelection().selectAllChildren(el); }
+  }
+
+  // tag menu — tags are cross-cutting themes; add/remove per card, × deletes everywhere
+  const tagmenu=$("tagmenu"); let tagStory=null;
+  function openTagMenu(btn,sid){
+    tagStory=sid; renderTagMenu();
+    if(tagmenu.hidden) tagmenu.hidden=false;
+    const r=btn.getBoundingClientRect();
+    tagmenu.style.left=Math.max(8,Math.min(r.left,innerWidth-218))+"px";
+    tagmenu.style.top=Math.max(8,Math.min(r.bottom+6,innerHeight-tagmenu.offsetHeight-8))+"px";
+    $("tm-new").focus({preventScroll:true});
+  }
+  function renderTagMenu(){
+    const s=state.stories.find(x=>x.id===tagStory);
+    if(!s){ tagmenu.hidden=true; return; }
+    const list=$("tm-list");
+    list.innerHTML = state.tags.length
+      ? state.tags.map(t=>`<div class="tm-row">
+          <label><input type="checkbox" data-tg="${esc(t)}" ${s.tags.includes(t)?"checked":""}>${tagPill(t)}</label>
+          <button class="x-tag" data-tx="${esc(t)}" title="${T("delTagEverywhere")}">×</button></div>`).join("")
+      : `<div class="tm-empty">${T("tmEmpty")}</div>`;
+    list.querySelectorAll("[data-tg]").forEach(cb=>cb.onchange=()=>{
+      const t=cb.dataset.tg;
+      if(cb.checked){ if(!s.tags.includes(t)) s.tags.push(t); } else { s.tags=s.tags.filter(x=>x!==t); }
+      save(); render(); renderTagMenu();
+    });
+    list.querySelectorAll("[data-tx]").forEach(b=>b.onclick=()=>{
+      const t=b.dataset.tx;
+      if(!confirm(T("cDelTag",t))) return;
+      state.tags=state.tags.filter(x=>x!==t);
+      state.stories.forEach(st=>st.tags=st.tags.filter(x=>x!==t));
+      save(); render(); renderTagMenu();
+    });
+  }
+  $("tm-form").onsubmit=e=>{
+    e.preventDefault();
+    const v=$("tm-new").value.trim(); if(!v) return;
+    if(!state.tags.includes(v)) state.tags.push(v);
+    const s=state.stories.find(x=>x.id===tagStory);
+    if(s && !s.tags.includes(v)) s.tags.push(v);
+    $("tm-new").value=""; save(); render(); renderTagMenu();
+  };
+  document.addEventListener("pointerdown",e=>{ if(!tagmenu.hidden && !tagmenu.contains(e.target) && !e.target.closest("[data-tag]")) tagmenu.hidden=true; });
+
+  function delPhase(id){
+    const n=state.stories.filter(s=>s.phase===id).length;
+    if(n && !confirm(T("cDelPhase",n))) return;
+    state.phases=state.phases.filter(p=>p.id!==id); state.stories=state.stories.filter(s=>s.phase!==id); save(); render();
+  }
+  function delAct(id){
+    const n=state.stories.filter(s=>s.activity===id).length;
+    if(n && !confirm(T("cDelAct",n))) return;
+    state.activities=state.activities.filter(a=>a.id!==id); state.stories=state.stories.filter(s=>s.activity!==id); save(); render();
+  }
+  $("add-phase").onclick=()=>{ state.phases.push({id:uid("ph"),name:T("newPhaseName",state.phases.length+1),goal:T("newPhaseGoal")}); save(); render(); };
+  $("add-activity").onclick=()=>{ state.activities.push({id:uid("a"),name:T("newActName"),task:T("newActTask")}); save(); render(); };
+  $("reset").onclick=()=>{ if(confirm(T("cReset"))){ state=normalize(clone(raw)); try{localStorage.removeItem(KEY);}catch(e){} render(); toast(T("tReset")); } };
+  $("lang").onclick=()=>{ lang = lang==="en"?"zh":"en"; try{localStorage.setItem("usm:lang",lang);}catch(e){} applyLang(); render(); if(!tagmenu.hidden) renderTagMenu(); };
+
+  // import / export
+  const io=$("io");
+  $("export").onclick=()=>{ const t=JSON.stringify(state,null,2); (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast(T("tCopied"))).catch(()=>{ openIO(T("ioCopy"),t,true); }); };
+  $("download").onclick=()=>{ const b=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}); const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=(KEY)+".json"; a.click(); URL.revokeObjectURL(u); };
+  $("import").onclick=()=>openIO(T("ioImport"),'',false);
+  function openIO(title,text,readonly){ $("io-title").textContent=title; $("io-text").value=text; $("io-text").readOnly=!!readonly; $("io-ok").style.display=readonly?"none":""; io.showModal(); }
+  $("io-cancel").onclick=()=>io.close();
+  $("io-ok").onclick=()=>{ try{ const o=JSON.parse($("io-text").value); if(!o.activities||!o.phases||!o.stories) throw 0; state=normalize(o); save(); render(); io.close(); toast(T("tLoaded")); }catch(e){ alert(T("badJson")); } };
+
+  applyLang();
+  render();
+})();
+</script>
+</body></html>
