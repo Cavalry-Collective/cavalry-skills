@@ -66,19 +66,21 @@
   .tag .d{width:5px;height:5px;border-radius:50%;background:var(--tc,var(--ink-3))}
   .t0{--tc:var(--p4)}.t1{--tc:var(--p5)}.t2{--tc:var(--p1)}.t3{--tc:var(--p2)}.t4{--tc:var(--p3)}.t5{--tc:var(--p0)}
 
-  .legend{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem;margin-top:.15rem;font-size:.68rem;color:var(--ink-3)}
+  .trow{display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap}
+  .trow h1{margin:0}
+  .legend{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem;font-size:.68rem;color:var(--ink-3)}
   .legend .lt{font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase}
   .legend .li{display:inline-flex;align-items:center;gap:.35rem}
   .legend .sw,.st-opt .sw{width:10px;height:10px;border-radius:3px;background:var(--stc);flex:none}
 
   .scroll{overflow:auto;max-height:80vh;margin-top:1rem;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);scrollbar-width:thin}
-  .map{display:grid;padding:10px 0 0 10px}
+  .map{display:grid}
   .cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
 
-  .corner{position:sticky;top:10px;left:10px;z-index:30;background:var(--surface-2);border-bottom:1px solid var(--line-2);border-right:1px solid var(--line-2);padding:.6rem .7rem;display:flex;align-items:flex-end}
+  .corner{position:sticky;top:0;left:0;z-index:30;background:var(--surface-2);border-bottom:1px solid var(--line-2);border-right:1px solid var(--line-2);padding:.6rem .7rem;display:flex;align-items:flex-end}
   .corner span{font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
 
-  .act{position:sticky;top:10px;z-index:20;background:var(--surface-2);border-bottom:1px solid var(--line-2);padding:.5rem .5rem .45rem;min-width:0;cursor:grab}
+  .act{position:sticky;top:0;z-index:20;background:var(--surface-2);border-bottom:1px solid var(--line-2);padding:1.1rem .5rem .45rem;min-width:0;cursor:grab}
   .act .an{font-size:.76rem;font-weight:700;letter-spacing:-.01em;line-height:1.15;outline:none;border-radius:4px}
   .act .at{margin:.18rem 0 0;font-size:.63rem;line-height:1.25;color:var(--ink-3);outline:none;border-radius:4px}
   .act .actls{display:flex;align-items:center;gap:.3rem}
@@ -86,12 +88,14 @@
   .act:hover .x-act{opacity:.7}
   .x-act:hover{color:var(--brand);opacity:1}
   .act.dragging,.rail.dragging{opacity:.45}
-  .act::after{content:"⠿ ⠿";position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:.5rem;letter-spacing:.12em;line-height:15px;color:var(--ink-3);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:0 .55rem;box-shadow:0 2px 6px rgba(16,17,22,.12);cursor:grab;opacity:0;transition:opacity .15s,color .12s}
-  .act:hover::after{opacity:1}
-  .rail::after{content:"⠿";position:absolute;left:-8px;top:50%;transform:translateY(-50%);writing-mode:vertical-rl;font-size:.5rem;line-height:15px;color:var(--ink-3);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:.55rem 0;box-shadow:0 2px 6px rgba(16,17,22,.12);cursor:grab;opacity:0;transition:opacity .15s,color .12s}
-  .rail:hover::after{opacity:1}
+  .hdl{position:absolute;display:grid;place-items:center;color:var(--ink-3);background:var(--surface);border:1px solid var(--line);border-radius:7px;box-shadow:0 2px 6px rgba(16,17,22,.15);cursor:grab;opacity:0;transition:opacity .15s,color .12s,background .12s;font-size:.55rem;letter-spacing:.1em;line-height:1;user-select:none;-webkit-user-select:none;z-index:2}
+  .act:hover .hdl,.rail:hover .hdl{opacity:1}
+  .hdl:hover{color:var(--ink);background:var(--surface-2)}
+  .hdl:active{cursor:grabbing}
+  .hdl-h{top:3px;left:50%;transform:translateX(-50%);width:48px;height:13px}
+  .hdl-v{left:3px;top:50%;transform:translateY(-50%);width:13px;height:48px;writing-mode:vertical-rl}
 
-  .rail{position:sticky;left:10px;z-index:20;background:color-mix(in srgb,var(--pc) var(--band),var(--surface));border-right:1px solid var(--line-2);padding:.5rem .45rem;display:flex;flex-direction:column;gap:.2rem;min-width:0;cursor:grab}
+  .rail{position:sticky;left:0;z-index:20;background:color-mix(in srgb,var(--pc) var(--band),var(--surface));border-right:1px solid var(--line-2);padding:.5rem .45rem .5rem 1.15rem;display:flex;flex-direction:column;gap:.2rem;min-width:0;cursor:grab}
   .rail .pn{font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--pc);outline:none}
   .rail .pt{font-size:.76rem;font-weight:700;letter-spacing:-.01em;line-height:1.12;outline:none;border-radius:4px}
   .rail .pg{font-size:.62rem;line-height:1.25;color:var(--ink-3);outline:none;border-radius:4px;margin-top:2px}
@@ -102,6 +106,9 @@
 
   .stories{padding:.35rem;display:flex;flex-direction:column;gap:.3rem;min-height:46px;background:color-mix(in srgb,var(--pc) calc(var(--band) - 4%),var(--surface))}
   .card{position:relative;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--stc,var(--line-2));border-radius:6px;padding:.32rem .42rem .36rem;box-shadow:var(--shadow);cursor:grab}
+  .card.sel{outline:2px solid var(--brand);outline-offset:-1px}
+  .card.sel .ctrls{opacity:1}
+  .card .ctrls .selbtn.on{color:var(--brand)}
   .st-open{--stc:var(--line-2)}.st-progress{--stc:var(--p3)}.st-review{--stc:var(--p1)}.st-done{--stc:var(--p2)}
   .card .ctrls .stbtn{color:var(--stc)}
   .card.st-open .ctrls .stbtn{color:var(--ink-3)}
@@ -115,8 +122,8 @@
   .card .grip{cursor:grab;color:var(--ink-3);font-size:.58rem;display:grid;place-items:center;width:18px;height:18px;background:var(--surface-2);border-radius:4px}
   .addcard{border:1px dashed var(--line-2);background:none;color:var(--ink-3);border-radius:5px;padding:.15rem;font:inherit;font-size:.64rem;cursor:pointer}
   .addcard:hover{color:var(--ink);border-color:var(--ink-faint,var(--ink-3))}
-  .addact{position:sticky;top:10px;z-index:20;background:var(--surface-2);border-bottom:1px solid var(--line-2);padding:.35rem;display:flex}
-  .addphase{position:sticky;left:10px;z-index:20;background:var(--surface-2);border-right:1px solid var(--line-2);padding:.35rem;display:flex}
+  .addact{position:sticky;top:0;z-index:20;background:var(--surface-2);border-bottom:1px solid var(--line-2);padding:.35rem;display:flex}
+  .addphase{position:sticky;left:0;z-index:20;background:var(--surface-2);border-right:1px solid var(--line-2);padding:.35rem;display:flex}
   .addhdr{flex:1;border:1px dashed var(--line-2);background:none;color:var(--ink-3);border-radius:5px;padding:.15rem .4rem;font:inherit;font-size:.64rem;cursor:pointer;white-space:nowrap}
   .addhdr:hover{color:var(--ink);border-color:var(--ink-3)}
   .filler{background:var(--surface)}
@@ -147,7 +154,10 @@
   #tm-form{display:flex;gap:.3rem;margin-top:.4rem}
   #tm-new{flex:1;min-width:0;font:inherit;font-size:.74rem;border:1px solid var(--line-2);border-radius:6px;padding:.25rem .4rem;background:var(--surface-2);color:var(--ink)}
 
-  .toast{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%) translateY(1rem);background:var(--ink);color:var(--paper);padding:.5rem .9rem;border-radius:8px;font-size:.82rem;opacity:0;pointer-events:none;transition:.18s}
+  .bulkbar{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);z-index:65;display:flex;align-items:center;gap:.45rem;background:var(--surface);border:1px solid var(--line-2);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.2);padding:.4rem .6rem}
+  .bulkbar[hidden]{display:none}
+  .bulkbar .cnt{font-size:.74rem;font-weight:600;color:var(--ink);margin-right:.2rem;white-space:nowrap}
+  .toast{position:fixed;bottom:4.4rem;left:50%;transform:translateX(-50%) translateY(1rem);background:var(--ink);color:var(--paper);padding:.5rem .9rem;border-radius:8px;font-size:.82rem;opacity:0;pointer-events:none;transition:.18s;z-index:80}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   @media (prefers-reduced-motion:no-preference){.card{transition:box-shadow .12s,transform .12s}.card:hover{box-shadow:0 3px 8px rgba(16,17,22,.10)}}
 </style>
@@ -156,8 +166,10 @@
   <header>
     <div>
       <p class="eyebrow" id="eyebrow">User story map</p>
-      <h1 id="title" contenteditable spellcheck="false"></h1>
-      <div class="legend" id="legend"></div>
+      <div class="trow">
+        <h1 id="title" contenteditable spellcheck="false"></h1>
+        <div class="legend" id="legend"></div>
+      </div>
     </div>
     <div class="controls">
       <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language">
@@ -186,6 +198,13 @@
   <form id="tm-form"><input id="tm-new" placeholder="New tag…" maxlength="24" spellcheck="false" autocomplete="off"><button class="btn primary" id="tm-add" type="submit">Add</button></form>
 </div>
 <div class="tagmenu" id="stmenu" hidden><div id="st-list"></div></div>
+<div class="bulkbar" id="bulkbar" hidden>
+  <span class="cnt" id="bb-count"></span>
+  <button class="btn" id="bb-status">Status</button>
+  <button class="btn" id="bb-tag">Tag</button>
+  <button class="btn" id="bb-del">Delete</button>
+  <button class="btn" id="bb-clear" title="Clear selection">✕</button>
+</div>
 <div class="toast" id="toast"></div>
 
 <script id="data" type="application/json">
@@ -255,7 +274,8 @@
       addPhase:"＋ phase", addPhaseTitle:"Add a release phase (row)",
       addActivity:"＋ activity", addActTitle:"Add a journey activity (column)",
       import:"Import", copy:"Copy to Clipboard", download:"Download JSON", moreExport:"More export options",
-      grip:"Drag to move",
+      grip:"Drag to move", selTitle:"Select (⌘/Ctrl-click also works)",
+      bbCount:n=>`${n} selected`, bbStatus:"Status", bbTag:"Tag", bbDelete:"Delete", bbClear:"Clear selection",
       stLabel:{open:"Open",progress:"In progress",review:"In review",done:"Done"},
       legend:"Status · card accent",
       confirmHint:"Click again to confirm",
@@ -275,7 +295,8 @@
       addPhase:"＋ 阶段", addPhaseTitle:"添加发布阶段（行）",
       addActivity:"＋ 活动", addActTitle:"添加旅程活动（列）",
       import:"导入", copy:"复制到剪贴板", download:"下载 JSON", moreExport:"更多导出选项",
-      grip:"拖动以移动",
+      grip:"拖动以移动", selTitle:"选择（也可 ⌘/Ctrl+点击）",
+      bbCount:n=>`已选 ${n} 项`, bbStatus:"状态", bbTag:"标签", bbDelete:"删除", bbClear:"清除选择",
       stLabel:{open:"待办",progress:"进行中",review:"审查中",done:"已完成"},
       legend:"状态 · 卡片左边框",
       confirmHint:"再次点击以确认",
@@ -304,6 +325,9 @@
     $("tm-new").placeholder=T("tmNew"); $("tm-add").textContent=T("tmAdd");
     $("legend").innerHTML = `<span class="lt">${esc(T("legend"))}</span>` +
       STATUSES.map(s=>`<span class="li st-${s}"><span class="sw"></span>${esc(T("stLabel")[s])}</span>`).join("");
+    $("bb-status").textContent=T("bbStatus"); $("bb-tag").textContent=T("bbTag");
+    $("bb-del").textContent=T("bbDelete"); $("bb-clear").title=T("bbClear");
+    if(sel.size) $("bb-count").textContent=T("bbCount",sel.size);
   }
 
   function clone(o){ return JSON.parse(JSON.stringify(o)); }
@@ -377,6 +401,7 @@
     let h = `<div class="cell corner"><span>${T("corner")}</span></div>`;
     acts.forEach(a=>{
       h += `<div class="cell act" draggable="true" data-act="${a.id}">
+        <span class="hdl hdl-h" title="${T("grip")}">⠿ ⠿</span>
         <div class="actls"><span class="an" contenteditable spellcheck="false" data-edit="act-name" data-id="${a.id}">${esc(a.name)}</span>
         <button class="x-act" data-del-act="${a.id}" title="${T("removeAct")}">×</button></div>
         <p class="at" contenteditable spellcheck="false" data-edit="act-task" data-id="${a.id}">${esc(a.task||"")}</p></div>`;
@@ -385,6 +410,7 @@
     phases.forEach((p,pi)=>{
       const pc = "p"+(pi%6);
       h += `<div class="cell rail ${pc}" draggable="true" data-phase="${p.id}">
+        <span class="hdl hdl-v" title="${T("grip")}">⠿</span>
         <span class="pn" contenteditable spellcheck="false" data-edit="ph-name" data-id="${p.id}">${esc(p.name)}</span>
         <span class="bar"></span>
         <span class="pg" contenteditable spellcheck="false" data-edit="ph-goal" data-id="${p.id}">${esc(p.goal||"")}</span>
@@ -402,15 +428,25 @@
     wire();
     sc.scrollLeft = sl; sc.scrollTop = st;
     playFlip(prevRects);
+    updateBulk();
   }
+
+  function updateBulk(){
+    [...sel].forEach(id=>{ if(!state.stories.some(s=>s.id===id)) sel.delete(id); });
+    $("bulkbar").hidden = sel.size===0;
+    if(sel.size) $("bb-count").textContent = T("bbCount",sel.size);
+  }
+  function toggleSel(id){ sel.has(id)?sel.delete(id):sel.add(id); render(); }
 
   function tagClass(t){ const i = state.tags.indexOf(t); return "t" + ((i<0?0:i)%6); }
   function tagPill(t){ return `<span class="tag ${tagClass(t)}"><span class="d"></span>${esc(t)}</span>`; }
   function cardHtml(s){
     const pills = s.tags.map(tagPill).join("");
-    return `<div class="card st-${s.status}" draggable="true" data-card="${s.id}">
+    const on = sel.has(s.id);
+    return `<div class="card st-${s.status}${on?" sel":""}" draggable="true" data-card="${s.id}">
       <div class="ctrls">
         <span class="grip" title="${T("grip")}">⠿</span>
+        <button class="selbtn${on?" on":""}" data-sel="${s.id}" title="${esc(T("selTitle"))}">${on?"■":"▢"}</button>
         <button class="stbtn" data-status="${s.id}" title="${esc(T("stLabel")[s.status])}">●</button>
         <button data-tag="${s.id}" title="${T("tagTitle")}">⌗</button>
         <button data-del="${s.id}" title="${T("del")}">×</button>
@@ -425,6 +461,7 @@
   // cards, columns and rows slide out of the way; releasing commits DOM order
   // to state, Escape (or an invalid release) snaps everything back.
   let dragId=null, dragAct=null, dragPhase=null, dragFrom=null, dragDirty=false;
+  const sel = new Set();   // multi-selected story ids (session-only, not exported)
   function editing(el){ const f=document.activeElement; return f && el.contains(f) && f.isContentEditable; }
   function clearDragState(){ dragId=dragAct=dragPhase=dragFrom=null; dragDirty=false; document.querySelectorAll(".dragging").forEach(c=>c.classList.remove("dragging")); }
 
@@ -508,6 +545,8 @@
   function wire(){
     // story cards
     document.querySelectorAll(".card").forEach(el=>{
+      el.addEventListener("mousedown",e=>{ if(e.metaKey||e.ctrlKey) e.preventDefault(); });
+      el.addEventListener("click",e=>{ if(e.metaKey||e.ctrlKey){ e.preventDefault(); toggleSel(el.dataset.card); } });
       el.addEventListener("dragstart",e=>{
         dragId=el.dataset.card; dragDirty=false;
         const s=state.stories.find(x=>x.id===dragId);
@@ -551,6 +590,7 @@
     // buttons
     document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{ const [ph,ac]=b.dataset.add.split("|"); const id=uid("s"); state.stories.push({id:id,activity:ac,phase:ph,text:T("newStory"),tags:[]}); save(); render(); focusCard(id); });
     document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{ state.stories=state.stories.filter(s=>s.id!==b.dataset.del); save(); render(); });
+    document.querySelectorAll("[data-sel]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); toggleSel(b.dataset.sel); });
     document.querySelectorAll("[data-status]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openStMenu(b,b.dataset.status); });
     document.querySelectorAll("[data-tag]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openTagMenu(b,b.dataset.tag); });
     document.querySelectorAll("[data-del-phase]").forEach(b=>b.onclick=()=>{
@@ -577,7 +617,7 @@
   // sandboxed iframes swallow confirm(), so destructive buttons arm on first
   // click (turn red, "click again to confirm") and act on the second
   function armConfirm(btn,fn){
-    if(btn.dataset.armed){ delete btn.dataset.armed; fn(); return; }
+    if(btn.dataset.armed){ delete btn.dataset.armed; btn.classList.remove("armed"); fn(); return; }
     btn.dataset.armed="1"; btn.classList.add("armed"); btn.title=T("confirmHint");
     toast(T("confirmHint"));
     setTimeout(()=>{ if(document.contains(btn)){ delete btn.dataset.armed; btn.classList.remove("armed"); } },2500);
@@ -588,25 +628,29 @@
     if(el){ el.focus({preventScroll:true}); document.getSelection().selectAllChildren(el); }
   }
 
-  // status menu — dropdown picker for a card's status
+  // status menu — dropdown picker; sid null = apply to the multi-selection
   const stmenu=$("stmenu"); let stStory=null;
+  function stTargets(){ return stStory ? state.stories.filter(x=>x.id===stStory) : state.stories.filter(x=>sel.has(x.id)); }
   function openStMenu(btn,sid){
     stStory=sid; renderStMenu();
     if(stmenu.hidden) stmenu.hidden=false;
     const r=btn.getBoundingClientRect();
     stmenu.style.left=Math.max(8,Math.min(r.left,innerWidth-158))+"px";
-    stmenu.style.top=Math.max(8,Math.min(r.bottom+6,innerHeight-stmenu.offsetHeight-8))+"px";
+    const below=r.bottom+6;
+    stmenu.style.top=Math.max(8,(below+stmenu.offsetHeight>innerHeight-8) ? r.top-stmenu.offsetHeight-6 : below)+"px";
   }
   function renderStMenu(){
-    const s=state.stories.find(x=>x.id===stStory);
-    if(!s){ stmenu.hidden=true; return; }
-    $("st-list").innerHTML=STATUSES.map(st=>`<button class="st-opt st-${st}${s.status===st?" on":""}" data-st="${st}"><span class="sw"></span>${esc(T("stLabel")[st])}${s.status===st?'<span class="ck">✓</span>':""}</button>`).join("");
-    $("st-list").querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{ s.status=b.dataset.st; stmenu.hidden=true; save(); render(); });
+    const ts=stTargets();
+    if(!ts.length){ stmenu.hidden=true; return; }
+    const common = ts.every(x=>x.status===ts[0].status) ? ts[0].status : null;
+    $("st-list").innerHTML=STATUSES.map(st=>`<button class="st-opt st-${st}${common===st?" on":""}" data-st="${st}"><span class="sw"></span>${esc(T("stLabel")[st])}${common===st?'<span class="ck">✓</span>':""}</button>`).join("");
+    $("st-list").querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{ ts.forEach(x=>x.status=b.dataset.st); stmenu.hidden=true; save(); render(); });
   }
   document.addEventListener("pointerdown",e=>{ if(!stmenu.hidden && !stmenu.contains(e.target) && !e.target.closest("[data-status]")) stmenu.hidden=true; });
 
-  // tag menu — tags are cross-cutting themes; add/remove per card, × deletes everywhere
+  // tag menu — tags are cross-cutting themes; sid null = apply to the multi-selection
   const tagmenu=$("tagmenu"); let tagStory=null;
+  function tagTargets(){ return tagStory ? state.stories.filter(x=>x.id===tagStory) : state.stories.filter(x=>sel.has(x.id)); }
   function openTagMenu(btn,sid){
     tagStory=sid; renderTagMenu();
     if(tagmenu.hidden) tagmenu.hidden=false;
@@ -616,17 +660,19 @@
     $("tm-new").focus({preventScroll:true});
   }
   function renderTagMenu(){
-    const s=state.stories.find(x=>x.id===tagStory);
-    if(!s){ tagmenu.hidden=true; return; }
+    const ts=tagTargets();
+    if(!ts.length){ tagmenu.hidden=true; return; }
+    const allHave=t=>ts.every(s=>s.tags.includes(t));
     const list=$("tm-list");
     list.innerHTML = state.tags.length
       ? state.tags.map(t=>`<div class="tm-row">
-          <label><input type="checkbox" data-tg="${esc(t)}" ${s.tags.includes(t)?"checked":""}>${tagPill(t)}</label>
+          <label><input type="checkbox" data-tg="${esc(t)}" ${allHave(t)?"checked":""}>${tagPill(t)}</label>
           <button class="x-tag" data-tx="${esc(t)}" title="${T("delTagEverywhere")}">×</button></div>`).join("")
       : `<div class="tm-empty">${T("tmEmpty")}</div>`;
     list.querySelectorAll("[data-tg]").forEach(cb=>cb.onchange=()=>{
       const t=cb.dataset.tg;
-      if(cb.checked){ if(!s.tags.includes(t)) s.tags.push(t); } else { s.tags=s.tags.filter(x=>x!==t); }
+      if(cb.checked){ ts.forEach(s=>{ if(!s.tags.includes(t)) s.tags.push(t); }); }
+      else { ts.forEach(s=>{ s.tags=s.tags.filter(x=>x!==t); }); }
       save(); render(); renderTagMenu();
     });
     list.querySelectorAll("[data-tx]").forEach(b=>b.onclick=()=>{
@@ -642,8 +688,7 @@
     e.preventDefault();
     const v=$("tm-new").value.trim(); if(!v) return;
     if(!state.tags.includes(v)) state.tags.push(v);
-    const s=state.stories.find(x=>x.id===tagStory);
-    if(s && !s.tags.includes(v)) s.tags.push(v);
+    tagTargets().forEach(s=>{ if(!s.tags.includes(v)) s.tags.push(v); });
     $("tm-new").value=""; save(); render(); renderTagMenu();
   };
   document.addEventListener("pointerdown",e=>{ if(!tagmenu.hidden && !tagmenu.contains(e.target) && !e.target.closest("[data-tag]")) tagmenu.hidden=true; });
@@ -660,6 +705,15 @@
     if(dragId){ e.preventDefault(); dragDirty?commitStories():clearDragState(); }
     else if(dragAct){ e.preventDefault(); dragDirty?commitActs():clearDragState(); }
     else if(dragPhase){ e.preventDefault(); dragDirty?commitPhases():clearDragState(); }
+  });
+
+  // bulk actions on the multi-selection
+  $("bb-clear").onclick=()=>{ sel.clear(); render(); };
+  $("bb-del").onclick=()=>armConfirm($("bb-del"),()=>{ state.stories=state.stories.filter(s=>!sel.has(s.id)); sel.clear(); save(); render(); });
+  $("bb-status").onclick=e=>{ e.stopPropagation(); openStMenu($("bb-status"),null); };
+  $("bb-tag").onclick=e=>{ e.stopPropagation(); openTagMenu($("bb-tag"),null); };
+  document.addEventListener("keydown",e=>{
+    if(e.key==="Escape" && sel.size && !(document.activeElement&&document.activeElement.isContentEditable)){ sel.clear(); render(); }
   });
 
   document.querySelectorAll("#lang-toggle button").forEach(b=>b.onclick=()=>{
