@@ -37,7 +37,13 @@ cp -R claude-skills/plugins/user-story-map/skills/user-story-map ~/.claude/skill
 
 ### Use
 
-Just ask Claude Code, e.g.:
+Once installed, invoke it as a slash command:
+
+```
+/user-story-map build a map for our mobile shopping app's checkout flow, three release phases
+```
+
+Or just ask in natural language — the skill triggers whenever you ask for a story map, phased roadmap, or release slicing:
 
 > Build a user story map for our mobile shopping app's checkout flow, three release phases.
 
