@@ -53,8 +53,13 @@
   .btn:hover{background:var(--surface-2);color:var(--ink)}
   .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
   .btn.primary:hover{background:color-mix(in srgb,var(--brand) 88%,#000);color:#fff}
-  .btn.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.on{background:color-mix(in srgb,var(--brand) 12%,var(--surface));border-color:var(--brand);color:var(--brand)}
+  .btn.on:hover{background:color-mix(in srgb,var(--brand) 18%,var(--surface));color:var(--brand)}
+  .btn:disabled{opacity:.45;cursor:default;pointer-events:none}
   .selmode .card,.selmode .card [contenteditable]{cursor:pointer}
+  .selmode .card .ctrls{display:none}
+  .selmode .card::after{content:"";position:absolute;top:4px;right:4px;width:12px;height:12px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--surface)}
+  .selmode .card.sel::after{content:"✓";width:14px;height:14px;border:0;background:var(--brand);color:#fff;font-size:.6rem;line-height:14px;text-align:center}
   .btn svg{width:15px;height:15px}
   .split{position:relative;display:inline-flex}
   .split #export{border-top-right-radius:0;border-bottom-right-radius:0}
@@ -109,8 +114,6 @@
   .stories{padding:.35rem;display:flex;flex-direction:column;gap:.3rem;min-height:46px;background:color-mix(in srgb,var(--pc) calc(var(--band) - 4%),var(--surface))}
   .card{position:relative;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--stc,var(--line-2));border-radius:6px;padding:.32rem .42rem .36rem;box-shadow:var(--shadow);cursor:grab}
   .card.sel{outline:2px solid var(--brand);outline-offset:-1px}
-  .card.sel .ctrls{opacity:1}
-  .card .ctrls .selbtn.on{color:var(--brand)}
   .st-open{--stc:var(--line-2)}.st-progress{--stc:var(--p3)}.st-review{--stc:var(--p1)}.st-done{--stc:var(--p2)}
   .card .ctrls .stbtn{color:var(--stc)}
   .card.st-open .ctrls .stbtn{color:var(--ink-3)}
@@ -277,8 +280,8 @@
       addPhase:"＋ phase", addPhaseTitle:"Add a release phase (row)",
       addActivity:"＋ activity", addActTitle:"Add a journey activity (column)",
       import:"Import", copy:"Copy to Clipboard", download:"Download JSON", moreExport:"More export options",
-      grip:"Drag to move", selTitle:"Select (⌘/Ctrl-click also works)",
-      selModeBtn:"Select", selModeTitle:"Multi-select mode — click cards to select them",
+      grip:"Drag to move",
+      selModeBtn:"Bulk select", selModeTitle:"Bulk select — click any card to select it",
       bbCount:n=>`${n} selected`, bbStatus:"Status", bbTag:"Tag", bbDelete:"Delete", bbClear:"Clear selection",
       stLabel:{open:"Open",progress:"In progress",review:"In review",done:"Done"},
       legend:"Status · card accent",
@@ -299,8 +302,8 @@
       addPhase:"＋ 阶段", addPhaseTitle:"添加发布阶段（行）",
       addActivity:"＋ 活动", addActTitle:"添加旅程活动（列）",
       import:"导入", copy:"复制到剪贴板", download:"下载 JSON", moreExport:"更多导出选项",
-      grip:"拖动以移动", selTitle:"选择（也可 ⌘/Ctrl+点击）",
-      selModeBtn:"多选", selModeTitle:"多选模式——点击卡片进行选择",
+      grip:"拖动以移动",
+      selModeBtn:"批量选择", selModeTitle:"批量选择——点击任意卡片进行选择",
       bbCount:n=>`已选 ${n} 项`, bbStatus:"状态", bbTag:"标签", bbDelete:"删除", bbClear:"清除选择",
       stLabel:{open:"待办",progress:"进行中",review:"审查中",done:"已完成"},
       legend:"状态 · 卡片左边框",
@@ -439,8 +442,9 @@
 
   function updateBulk(){
     [...sel].forEach(id=>{ if(!state.stories.some(s=>s.id===id)) sel.delete(id); });
-    $("bulkbar").hidden = sel.size===0;
-    if(sel.size) $("bb-count").textContent = T("bbCount",sel.size);
+    $("bulkbar").hidden = !(selMode || sel.size);
+    $("bb-count").textContent = T("bbCount",sel.size);
+    ["bb-status","bb-tag","bb-del"].forEach(id=>$(id).disabled = sel.size===0);
     $("selmode").classList.toggle("on",selMode);
     document.body.classList.toggle("selmode",selMode);
   }
@@ -454,7 +458,6 @@
     return `<div class="card st-${s.status}${on?" sel":""}" draggable="true" data-card="${s.id}">
       <div class="ctrls">
         <span class="grip" title="${T("grip")}">⠿</span>
-        <button class="selbtn${on?" on":""}" data-sel="${s.id}" title="${esc(T("selTitle"))}">${on?"■":"▢"}</button>
         <button class="stbtn" data-status="${s.id}" title="${esc(T("stLabel")[s.status])}">●</button>
         <button data-tag="${s.id}" title="${T("tagTitle")}">⌗</button>
         <button data-del="${s.id}" title="${T("del")}">×</button>
@@ -603,7 +606,6 @@
     // buttons
     document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{ const [ph,ac]=b.dataset.add.split("|"); const id=uid("s"); state.stories.push({id:id,activity:ac,phase:ph,text:T("newStory"),tags:[]}); save(); render(); focusCard(id); });
     document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{ state.stories=state.stories.filter(s=>s.id!==b.dataset.del); save(); render(); });
-    document.querySelectorAll("[data-sel]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); toggleSel(b.dataset.sel); });
     document.querySelectorAll("[data-status]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openStMenu(b,b.dataset.status); });
     document.querySelectorAll("[data-tag]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openTagMenu(b,b.dataset.tag); });
     document.querySelectorAll("[data-del-phase]").forEach(b=>b.onclick=()=>{
@@ -723,7 +725,7 @@
 
   // bulk actions on the multi-selection
   $("selmode").onclick=()=>{ selMode=!selMode; if(!selMode) sel.clear(); render(); };
-  $("bb-clear").onclick=()=>{ sel.clear(); render(); };
+  $("bb-clear").onclick=()=>{ sel.clear(); selMode=false; render(); };
   $("bb-del").onclick=()=>armConfirm($("bb-del"),()=>{ state.stories=state.stories.filter(s=>!sel.has(s.id)); sel.clear(); save(); render(); });
   $("bb-status").onclick=e=>{ e.stopPropagation(); openStMenu($("bb-status"),null); };
   $("bb-tag").onclick=e=>{ e.stopPropagation(); openTagMenu($("bb-tag"),null); };
