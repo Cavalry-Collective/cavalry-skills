@@ -66,12 +66,12 @@
   .tag .d{width:5px;height:5px;border-radius:50%;background:var(--tc,var(--ink-3))}
   .t0{--tc:var(--p4)}.t1{--tc:var(--p5)}.t2{--tc:var(--p1)}.t3{--tc:var(--p2)}.t4{--tc:var(--p3)}.t5{--tc:var(--p0)}
 
-  .legend{display:flex;flex-wrap:wrap;align-items:center;gap:.9rem;margin-top:.9rem;font-size:.68rem;color:var(--ink-3)}
+  .legend{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem;margin-top:.15rem;font-size:.68rem;color:var(--ink-3)}
   .legend .lt{font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase}
   .legend .li{display:inline-flex;align-items:center;gap:.35rem}
-  .legend .sw{width:10px;height:10px;border-radius:3px;background:var(--stc)}
+  .legend .sw,.st-opt .sw{width:10px;height:10px;border-radius:3px;background:var(--stc);flex:none}
 
-  .scroll{overflow:auto;max-height:80vh;margin-top:.5rem;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);scrollbar-width:thin}
+  .scroll{overflow:auto;max-height:80vh;margin-top:1rem;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);scrollbar-width:thin}
   .map{display:grid;padding:10px 0 0 10px}
   .cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
 
@@ -86,10 +86,10 @@
   .act:hover .x-act{opacity:.7}
   .x-act:hover{color:var(--brand);opacity:1}
   .act.dragging,.rail.dragging{opacity:.45}
-  .act::after{content:"⠿ ⠿";position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:.5rem;letter-spacing:.12em;line-height:10px;color:var(--ink-3);background:var(--surface-2);border:1px solid var(--line-2);border-bottom:0;border-radius:6px 6px 0 0;padding:0 .5rem;cursor:grab;transition:color .12s,background .12s}
-  .act:hover::after{color:var(--ink);background:var(--line)}
-  .rail::after{content:"⠿";position:absolute;left:-10px;top:50%;transform:translateY(-50%);writing-mode:vertical-rl;font-size:.5rem;line-height:10px;color:var(--ink-3);background:var(--surface-2);border:1px solid var(--line-2);border-right:0;border-radius:6px 0 0 6px;padding:.5rem 0;cursor:grab;transition:color .12s,background .12s}
-  .rail:hover::after{color:var(--ink);background:var(--line)}
+  .act::after{content:"⠿ ⠿";position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:.5rem;letter-spacing:.12em;line-height:15px;color:var(--ink-3);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:0 .55rem;box-shadow:0 2px 6px rgba(16,17,22,.12);cursor:grab;opacity:0;transition:opacity .15s,color .12s}
+  .act:hover::after{opacity:1}
+  .rail::after{content:"⠿";position:absolute;left:-8px;top:50%;transform:translateY(-50%);writing-mode:vertical-rl;font-size:.5rem;line-height:15px;color:var(--ink-3);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:.55rem 0;box-shadow:0 2px 6px rgba(16,17,22,.12);cursor:grab;opacity:0;transition:opacity .15s,color .12s}
+  .rail:hover::after{opacity:1}
 
   .rail{position:sticky;left:10px;z-index:20;background:color-mix(in srgb,var(--pc) var(--band),var(--surface));border-right:1px solid var(--line-2);padding:.5rem .45rem;display:flex;flex-direction:column;gap:.2rem;min-width:0;cursor:grab}
   .rail .pn{font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--pc);outline:none}
@@ -133,6 +133,11 @@
 
   .tagmenu{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--line-2);border-radius:9px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:.5rem;width:210px}
   .tagmenu[hidden]{display:none}
+  #stmenu{width:150px;padding:.3rem}
+  .st-opt{display:flex;align-items:center;gap:.45rem;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:.74rem;color:var(--ink-2);padding:.32rem .45rem;border-radius:6px;cursor:pointer}
+  .st-opt:hover{background:var(--surface-2);color:var(--ink)}
+  .st-opt.on{font-weight:600;color:var(--ink)}
+  .st-opt .ck{margin-left:auto;color:var(--brand)}
   .tm-row{display:flex;align-items:center;gap:.3rem;padding:.15rem .1rem}
   .tm-row label{display:flex;align-items:center;gap:.4rem;flex:1;cursor:pointer;min-width:0}
   .tm-row input[type="checkbox"]{accent-color:var(--brand)}
@@ -152,6 +157,7 @@
     <div>
       <p class="eyebrow" id="eyebrow">User story map</p>
       <h1 id="title" contenteditable spellcheck="false"></h1>
+      <div class="legend" id="legend"></div>
     </div>
     <div class="controls">
       <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language">
@@ -168,7 +174,6 @@
     </div>
   </header>
 
-  <div class="legend" id="legend"></div>
   <div class="scroll"><div class="map" id="map" role="grid" aria-label="User story map"></div></div>
 </div>
 
@@ -180,6 +185,7 @@
   <div id="tm-list"></div>
   <form id="tm-form"><input id="tm-new" placeholder="New tag…" maxlength="24" spellcheck="false" autocomplete="off"><button class="btn primary" id="tm-add" type="submit">Add</button></form>
 </div>
+<div class="tagmenu" id="stmenu" hidden><div id="st-list"></div></div>
 <div class="toast" id="toast"></div>
 
 <script id="data" type="application/json">
@@ -250,7 +256,7 @@
       addActivity:"＋ activity", addActTitle:"Add a journey activity (column)",
       import:"Import", copy:"Copy to Clipboard", download:"Download JSON", moreExport:"More export options",
       grip:"Drag to move",
-      stLabel:{open:"Open",progress:"In progress",review:"In review",done:"Done"}, stCycle:"— click to change status",
+      stLabel:{open:"Open",progress:"In progress",review:"In review",done:"Done"},
       legend:"Status · card accent",
       confirmHint:"Click again to confirm",
       addStory:"＋ story", newStory:"New story",
@@ -270,7 +276,7 @@
       addActivity:"＋ 活动", addActTitle:"添加旅程活动（列）",
       import:"导入", copy:"复制到剪贴板", download:"下载 JSON", moreExport:"更多导出选项",
       grip:"拖动以移动",
-      stLabel:{open:"待办",progress:"进行中",review:"审查中",done:"已完成"}, stCycle:"——点击切换状态",
+      stLabel:{open:"待办",progress:"进行中",review:"审查中",done:"已完成"},
       legend:"状态 · 卡片左边框",
       confirmHint:"再次点击以确认",
       addStory:"＋ 故事", newStory:"新故事",
@@ -405,7 +411,7 @@
     return `<div class="card st-${s.status}" draggable="true" data-card="${s.id}">
       <div class="ctrls">
         <span class="grip" title="${T("grip")}">⠿</span>
-        <button class="stbtn" data-status="${s.id}" title="${esc(T("stLabel")[s.status])} ${esc(T("stCycle"))}">●</button>
+        <button class="stbtn" data-status="${s.id}" title="${esc(T("stLabel")[s.status])}">●</button>
         <button data-tag="${s.id}" title="${T("tagTitle")}">⌗</button>
         <button data-del="${s.id}" title="${T("del")}">×</button>
       </div>
@@ -545,10 +551,7 @@
     // buttons
     document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{ const [ph,ac]=b.dataset.add.split("|"); const id=uid("s"); state.stories.push({id:id,activity:ac,phase:ph,text:T("newStory"),tags:[]}); save(); render(); focusCard(id); });
     document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{ state.stories=state.stories.filter(s=>s.id!==b.dataset.del); save(); render(); });
-    document.querySelectorAll("[data-status]").forEach(b=>b.onclick=()=>{
-      const s=state.stories.find(x=>x.id===b.dataset.status);
-      if(s){ s.status=STATUSES[(STATUSES.indexOf(s.status)+1)%STATUSES.length]; save(); render(); }
-    });
+    document.querySelectorAll("[data-status]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openStMenu(b,b.dataset.status); });
     document.querySelectorAll("[data-tag]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openTagMenu(b,b.dataset.tag); });
     document.querySelectorAll("[data-del-phase]").forEach(b=>b.onclick=()=>{
       const id=b.dataset.delPhase;
@@ -584,6 +587,23 @@
     const el=document.querySelector(`.card p[data-id="${id}"]`);
     if(el){ el.focus({preventScroll:true}); document.getSelection().selectAllChildren(el); }
   }
+
+  // status menu — dropdown picker for a card's status
+  const stmenu=$("stmenu"); let stStory=null;
+  function openStMenu(btn,sid){
+    stStory=sid; renderStMenu();
+    if(stmenu.hidden) stmenu.hidden=false;
+    const r=btn.getBoundingClientRect();
+    stmenu.style.left=Math.max(8,Math.min(r.left,innerWidth-158))+"px";
+    stmenu.style.top=Math.max(8,Math.min(r.bottom+6,innerHeight-stmenu.offsetHeight-8))+"px";
+  }
+  function renderStMenu(){
+    const s=state.stories.find(x=>x.id===stStory);
+    if(!s){ stmenu.hidden=true; return; }
+    $("st-list").innerHTML=STATUSES.map(st=>`<button class="st-opt st-${st}${s.status===st?" on":""}" data-st="${st}"><span class="sw"></span>${esc(T("stLabel")[st])}${s.status===st?'<span class="ck">✓</span>':""}</button>`).join("");
+    $("st-list").querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{ s.status=b.dataset.st; stmenu.hidden=true; save(); render(); });
+  }
+  document.addEventListener("pointerdown",e=>{ if(!stmenu.hidden && !stmenu.contains(e.target) && !e.target.closest("[data-status]")) stmenu.hidden=true; });
 
   // tag menu — tags are cross-cutting themes; add/remove per card, × deletes everywhere
   const tagmenu=$("tagmenu"); let tagStory=null;
