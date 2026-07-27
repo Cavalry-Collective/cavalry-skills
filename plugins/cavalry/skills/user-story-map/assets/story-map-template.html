@@ -66,28 +66,32 @@
   .tag .d{width:5px;height:5px;border-radius:50%;background:var(--tc,var(--ink-3))}
   .t0{--tc:var(--p4)}.t1{--tc:var(--p5)}.t2{--tc:var(--p1)}.t3{--tc:var(--p2)}.t4{--tc:var(--p3)}.t5{--tc:var(--p0)}
 
-  .scroll{overflow:auto;max-height:80vh;margin-top:1rem;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);scrollbar-width:thin}
-  .map{display:grid}
+  .legend{display:flex;flex-wrap:wrap;align-items:center;gap:.9rem;margin-top:.9rem;font-size:.68rem;color:var(--ink-3)}
+  .legend .lt{font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase}
+  .legend .li{display:inline-flex;align-items:center;gap:.35rem}
+  .legend .sw{width:10px;height:10px;border-radius:3px;background:var(--stc)}
+
+  .scroll{overflow:auto;max-height:80vh;margin-top:.5rem;border:1px solid var(--line-2);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);scrollbar-width:thin}
+  .map{display:grid;padding:10px 0 0 10px}
   .cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
 
-  .corner{position:sticky;top:0;left:0;z-index:30;background:var(--surface-2);border-bottom:1px solid var(--line-2);border-right:1px solid var(--line-2);padding:.6rem .7rem;display:flex;align-items:flex-end}
+  .corner{position:sticky;top:10px;left:10px;z-index:30;background:var(--surface-2);border-bottom:1px solid var(--line-2);border-right:1px solid var(--line-2);padding:.6rem .7rem;display:flex;align-items:flex-end}
   .corner span{font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
 
-  .act{position:sticky;top:0;z-index:20;background:var(--surface-2);border-bottom:1px solid var(--line-2);padding:.7rem .5rem .45rem;min-width:0;cursor:grab}
+  .act{position:sticky;top:10px;z-index:20;background:var(--surface-2);border-bottom:1px solid var(--line-2);padding:.5rem .5rem .45rem;min-width:0;cursor:grab}
   .act .an{font-size:.76rem;font-weight:700;letter-spacing:-.01em;line-height:1.15;outline:none;border-radius:4px}
   .act .at{margin:.18rem 0 0;font-size:.63rem;line-height:1.25;color:var(--ink-3);outline:none;border-radius:4px}
   .act .actls{display:flex;align-items:center;gap:.3rem}
-  .act .seq{font-family:var(--mono);font-size:.6rem;color:var(--ink-3);font-weight:600;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:0 .3rem;margin-left:auto}
-  .x-act{margin-left:.25rem;opacity:0;border:0;background:none;color:var(--ink-3);cursor:pointer;font-size:.9rem;line-height:1;padding:0 .2rem}
+  .x-act{margin-left:auto;opacity:0;border:0;background:none;color:var(--ink-3);cursor:pointer;font-size:.9rem;line-height:1;padding:0 .2rem}
   .act:hover .x-act{opacity:.7}
   .x-act:hover{color:var(--brand);opacity:1}
   .act.dragging,.rail.dragging{opacity:.45}
-  .act::after{content:"⠿ ⠿";position:absolute;top:1px;left:50%;transform:translateX(-50%);font-size:.58rem;letter-spacing:.1em;color:var(--ink-3);opacity:0;transition:opacity .12s;pointer-events:none}
-  .act:hover::after{opacity:.85}
-  .rail::after{content:"⠿";position:absolute;left:3px;top:50%;transform:translateY(-50%);font-size:.58rem;color:var(--ink-3);opacity:0;transition:opacity .12s;pointer-events:none;writing-mode:vertical-rl}
-  .rail:hover::after{opacity:.85}
+  .act::after{content:"⠿ ⠿";position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:.5rem;letter-spacing:.12em;line-height:10px;color:var(--ink-3);background:var(--surface-2);border:1px solid var(--line-2);border-bottom:0;border-radius:6px 6px 0 0;padding:0 .5rem;cursor:grab;transition:color .12s,background .12s}
+  .act:hover::after{color:var(--ink);background:var(--line)}
+  .rail::after{content:"⠿";position:absolute;left:-10px;top:50%;transform:translateY(-50%);writing-mode:vertical-rl;font-size:.5rem;line-height:10px;color:var(--ink-3);background:var(--surface-2);border:1px solid var(--line-2);border-right:0;border-radius:6px 0 0 6px;padding:.5rem 0;cursor:grab;transition:color .12s,background .12s}
+  .rail:hover::after{color:var(--ink);background:var(--line)}
 
-  .rail{position:sticky;left:0;z-index:20;background:color-mix(in srgb,var(--pc) var(--band),var(--surface));border-right:1px solid var(--line-2);padding:.5rem .45rem .5rem .85rem;display:flex;flex-direction:column;gap:.2rem;min-width:0;cursor:grab}
+  .rail{position:sticky;left:10px;z-index:20;background:color-mix(in srgb,var(--pc) var(--band),var(--surface));border-right:1px solid var(--line-2);padding:.5rem .45rem;display:flex;flex-direction:column;gap:.2rem;min-width:0;cursor:grab}
   .rail .pn{font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--pc);outline:none}
   .rail .pt{font-size:.76rem;font-weight:700;letter-spacing:-.01em;line-height:1.12;outline:none;border-radius:4px}
   .rail .pg{font-size:.62rem;line-height:1.25;color:var(--ink-3);outline:none;border-radius:4px;margin-top:2px}
@@ -101,7 +105,6 @@
   .st-open{--stc:var(--line-2)}.st-progress{--stc:var(--p3)}.st-review{--stc:var(--p1)}.st-done{--stc:var(--p2)}
   .card .ctrls .stbtn{color:var(--stc)}
   .card.st-open .ctrls .stbtn{color:var(--ink-3)}
-  .card .tag.stpill{--tc:var(--stc)}
   .card.dragging{opacity:.4}
   .card p{margin:0;font-size:.7rem;line-height:1.28;color:var(--ink);font-weight:500;outline:none;word-break:break-word}
   .card .tags{display:flex;flex-wrap:wrap;gap:.2rem;margin-top:.28rem}
@@ -112,8 +115,8 @@
   .card .grip{cursor:grab;color:var(--ink-3);font-size:.58rem;display:grid;place-items:center;width:18px;height:18px;background:var(--surface-2);border-radius:4px}
   .addcard{border:1px dashed var(--line-2);background:none;color:var(--ink-3);border-radius:5px;padding:.15rem;font:inherit;font-size:.64rem;cursor:pointer}
   .addcard:hover{color:var(--ink);border-color:var(--ink-faint,var(--ink-3))}
-  .addact{position:sticky;top:0;z-index:20;background:var(--surface-2);border-bottom:1px solid var(--line-2);padding:.35rem;display:flex}
-  .addphase{position:sticky;left:0;z-index:20;background:var(--surface-2);border-right:1px solid var(--line-2);padding:.35rem;display:flex}
+  .addact{position:sticky;top:10px;z-index:20;background:var(--surface-2);border-bottom:1px solid var(--line-2);padding:.35rem;display:flex}
+  .addphase{position:sticky;left:10px;z-index:20;background:var(--surface-2);border-right:1px solid var(--line-2);padding:.35rem;display:flex}
   .addhdr{flex:1;border:1px dashed var(--line-2);background:none;color:var(--ink-3);border-radius:5px;padding:.15rem .4rem;font:inherit;font-size:.64rem;cursor:pointer;white-space:nowrap}
   .addhdr:hover{color:var(--ink);border-color:var(--ink-3)}
   .filler{background:var(--surface)}
@@ -165,6 +168,7 @@
     </div>
   </header>
 
+  <div class="legend" id="legend"></div>
   <div class="scroll"><div class="map" id="map" role="grid" aria-label="User story map"></div></div>
 </div>
 
@@ -247,6 +251,7 @@
       import:"Import", copy:"Copy to Clipboard", download:"Download JSON", moreExport:"More export options",
       grip:"Drag to move",
       stLabel:{open:"Open",progress:"In progress",review:"In review",done:"Done"}, stCycle:"— click to change status",
+      legend:"Status · card accent",
       confirmHint:"Click again to confirm",
       addStory:"＋ story", newStory:"New story",
       newPhaseName:n=>"Phase "+n, newPhaseGoal:"New phase — describe the goal",
@@ -266,6 +271,7 @@
       import:"导入", copy:"复制到剪贴板", download:"下载 JSON", moreExport:"更多导出选项",
       grip:"拖动以移动",
       stLabel:{open:"待办",progress:"进行中",review:"审查中",done:"已完成"}, stCycle:"——点击切换状态",
+      legend:"状态 · 卡片左边框",
       confirmHint:"再次点击以确认",
       addStory:"＋ 故事", newStory:"新故事",
       newPhaseName:n=>"阶段 "+n, newPhaseGoal:"新阶段——描述目标",
@@ -290,6 +296,8 @@
     document.querySelectorAll("#lang-toggle button").forEach(b=>b.classList.toggle("on",b.dataset.lang===lang));
     $("io-cancel").textContent=T("cancel"); $("io-ok").textContent=T("loadBtn");
     $("tm-new").placeholder=T("tmNew"); $("tm-add").textContent=T("tmAdd");
+    $("legend").innerHTML = `<span class="lt">${esc(T("legend"))}</span>` +
+      STATUSES.map(s=>`<span class="li st-${s}"><span class="sw"></span>${esc(T("stLabel")[s])}</span>`).join("");
   }
 
   function clone(o){ return JSON.parse(JSON.stringify(o)); }
@@ -361,11 +369,10 @@
     map.style.gridTemplateColumns = `100px repeat(${acts.length}, minmax(132px,1fr)) 84px`;
 
     let h = `<div class="cell corner"><span>${T("corner")}</span></div>`;
-    acts.forEach((a,i)=>{
+    acts.forEach(a=>{
       h += `<div class="cell act" draggable="true" data-act="${a.id}">
         <div class="actls"><span class="an" contenteditable spellcheck="false" data-edit="act-name" data-id="${a.id}">${esc(a.name)}</span>
-        <button class="x-act" data-del-act="${a.id}" title="${T("removeAct")}">×</button>
-        <span class="seq">${i+1}</span></div>
+        <button class="x-act" data-del-act="${a.id}" title="${T("removeAct")}">×</button></div>
         <p class="at" contenteditable spellcheck="false" data-edit="act-task" data-id="${a.id}">${esc(a.task||"")}</p></div>`;
     });
     h += `<div class="cell addact"><button class="addhdr" id="add-activity" title="${T("addActTitle")}">${T("addActivity")}</button></div>`;
@@ -394,7 +401,7 @@
   function tagClass(t){ const i = state.tags.indexOf(t); return "t" + ((i<0?0:i)%6); }
   function tagPill(t){ return `<span class="tag ${tagClass(t)}"><span class="d"></span>${esc(t)}</span>`; }
   function cardHtml(s){
-    const pills = s.tags.map(tagPill).join("") + (s.status!=="open"?`<span class="tag stpill"><span class="d"></span>${esc(T("stLabel")[s.status])}</span>`:"");
+    const pills = s.tags.map(tagPill).join("");
     return `<div class="card st-${s.status}" draggable="true" data-card="${s.id}">
       <div class="ctrls">
         <span class="grip" title="${T("grip")}">⠿</span>

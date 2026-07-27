@@ -8,7 +8,7 @@
     {
       "name": "cavalry",
       "source": "./plugins/cavalry",
-      "description": "Cavalry Collective skills — user-story-map: interactive drag-and-drop story map artifact; re-slice stories across release phases, rank phases/activities/stories, tag cross-cutting themes, EN/中文 UI."
+      "description": "A growing collection of Cavalry Collective skills for Claude Code. Currently: user-story-map — interactive drag-and-drop story map artifact with live re-slicing, status tracking, theme tags and EN/中文 UI."
     }
   ]
 }
