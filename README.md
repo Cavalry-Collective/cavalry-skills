@@ -20,7 +20,7 @@ cp -R cavalry-skills/plugins/cavalry/skills/<skill-name> ~/.claude/skills/
 
 | Skill | Invoke | What it does |
 | --- | --- | --- |
-| [user-story-map](#user-story-map) | `/cavalry:user-story-map` | Interactive drag-and-drop user story map — re-slice stories across release phases, rank everything, track status, tag themes |
+| [user-story-map](#user-story-map) | `/cavalry:user-story-map` | Interactive drag-and-drop user story map — re-slice stories across release phases, rank everything, track status, tag themes, and send the result straight back to Claude |
 
 More skills are on the way — ⭐ watch the repo to catch new ones.
 
@@ -28,11 +28,11 @@ More skills are on the way — ⭐ watch the repo to catch new ones.
 
 ## user-story-map
 
-Ask Claude for a story map and it builds a **self-contained, interactive user story map** you can operate in the browser — no external dependencies, published as a Claude Artifact (or saved as a plain HTML file).
+Ask Claude for a story map and it builds a **self-contained, interactive user story map** you can operate in the browser — no external dependencies. Claude serves it on `localhost` and keeps it **linked to the session**, so re-slicing the map feeds straight back into the conversation with no copy/paste. (It can also be published as a Claude Artifact when you want to share it.)
 
 ![Example: mobile shopping checkout flow story map](docs/story-map-example.png)
 
-*Example: a mobile shopping app's checkout flow — the columns are the shopper's journey, the rows are release phases, and the cards are stories you can drag between them. Open [`examples/shopping-checkout.html`](examples/shopping-checkout.html) in a browser to try this exact map.*
+*Example: a mobile shopping app's checkout flow — the columns are the shopper's journey, the rows are release phases, and the cards are stories you can drag between them. Shown linked to a Claude session, hence the green dot and **Send to Claude**. Open [`examples/shopping-checkout.html`](examples/shopping-checkout.html) in a browser to try this exact map — standalone off disk it shows **Copy to Clipboard** instead, since there's no session to send to.*
 
 ### What you can do on the map
 
@@ -43,7 +43,8 @@ Ask Claude for a story map and it builds a **self-contained, interactive user st
 - **Tag cross-cutting themes** (e.g. `AI`) via the ⌗ menu on each card — add a tag to a card, create new tags, or delete a tag from the whole map
 - **Double-click any text** to edit inline; dashed `＋ story` / `＋ activity` / `＋ phase` buttons in the grid grow the map
 - **EN | 中文 toggle** (top right) for the UI language
-- **Copy to Clipboard** (▾ for Download JSON) / **Import** — export the re-sliced map as JSON and paste it back to Claude to regenerate your downstream plan or tickets; edits persist in the browser's `localStorage`
+- **Send to Claude** — one click puts the re-sliced map straight back into the Claude session; Claude wakes up on its own and regenerates your downstream plan or tickets. Nothing to copy, nothing to type. Claude can push the other way too, and the map offers you a **Refresh** rather than overwriting what you're in the middle of
+- **Copy to Clipboard / Download JSON** (under the ▾) and **Import** — for when the map isn't linked to a session, e.g. opened as an Artifact or straight off disk; edits persist in the browser's `localStorage` either way
 
 ### Use
 
@@ -57,7 +58,17 @@ Or just ask in natural language — the skill triggers whenever you ask for a st
 
 > Build a user story map for our mobile shopping app's checkout flow, three release phases.
 
-Claude infers the three axes from your spec / plan / conversation — **activities** (the user journey, left→right), **phases** (release order, top→bottom), and **stories** (the cards) — fills the template, and publishes it. When you're done re-slicing, hit **Copy to Clipboard** and paste the result back so Claude can regenerate the plan from your arrangement.
+Claude infers the three axes from your spec / plan / conversation — **activities** (the user journey, left→right), **phases** (release order, top→bottom), and **stories** (the cards) — fills the template, and hands you a `http://127.0.0.1:…` link.
+
+### The live link
+
+While the map is open it stays connected to the session that made it — a green **● Linked to Claude** dot in the toolbar tells you so.
+
+- **Re-slice, then hit Send to Claude.** Claude wakes up by itself and reads the new arrangement. You can send as many times as you like; the link isn't one-shot.
+- **Claude can push back** — if it proposes a change, a bar appears offering **Refresh**. It's never applied behind your back, so a push can't yank the grid out from under you mid-drag.
+- **Close the window when you're done.** The link closes itself about 90 seconds later (the delay is a grace period so a page reload doesn't kill it) and Claude tells you it's shut. Nothing is left listening.
+
+If the link ever drops, the dot goes grey and **Send** falls back to handing you the JSON — your map is safe in `localStorage` regardless.
 
 ### Data format
 
@@ -75,6 +86,8 @@ The map is driven by one JSON block:
 ```
 
 Array order is display order; story order within a cell is its rank. Cell tints are auto-assigned per phase; the card accent is coloured by `status` (`open` / `progress` / `review` / `done`). `lang` (`"en"`/`"zh"`) sets the initial UI language.
+
+This same block is what **Send to Claude** hands back, what **Download JSON** writes, and what **Import** accepts — so a map is portable between a live session, a file, and an Artifact.
 
 ---
 

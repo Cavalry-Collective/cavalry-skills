@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ShopLite</title></head><body>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ShopLite</title>
 <!--
   Interactive user story map. Drag story cards between cells to re-slice work
   across phases. Self-contained (no external resources) so it works as an Artifact.
@@ -164,6 +164,15 @@
   .bulkbar{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);z-index:65;display:flex;align-items:center;gap:.45rem;background:var(--surface);border:1px solid var(--line-2);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.2);padding:.4rem .6rem}
   .bulkbar[hidden]{display:none}
   .bulkbar .cnt{font-size:.74rem;font-weight:600;color:var(--ink);margin-right:.2rem;white-space:nowrap}
+  /* live link to the Claude session (only when served by assets/bridge.py) */
+  .linkdot{display:inline-flex;align-items:center;gap:.35rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.04em;color:var(--ink-3);white-space:nowrap;margin-right:.1rem}
+  .linkdot[hidden]{display:none}
+  .linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
+  .linkdot.on{color:var(--p2)}
+  .linkdot.on::before{background:var(--p2);box-shadow:0 0 0 3px color-mix(in srgb,var(--p2) 22%,transparent)}
+  .pushbar{position:fixed;top:1rem;left:50%;transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:.5rem;background:var(--surface);border:1px solid var(--line-2);border-left:3px solid var(--p2);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.2);padding:.45rem .6rem}
+  .pushbar[hidden]{display:none}
+  .pushbar .msg{font-size:.76rem;color:var(--ink);white-space:nowrap}
   .toast{position:fixed;bottom:4.4rem;left:50%;transform:translateX(-50%) translateY(1rem);background:var(--ink);color:var(--paper);padding:.5rem .9rem;border-radius:8px;font-size:.82rem;opacity:0;pointer-events:none;transition:.18s;z-index:80}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   @media (prefers-reduced-motion:no-preference){.card{transition:box-shadow .12s,transform .12s}.card:hover{box-shadow:0 3px 8px rgba(16,17,22,.10)}}
@@ -183,12 +192,14 @@
         <button data-lang="en">EN</button><button data-lang="zh">中文</button>
       </div>
       <div class="crow">
+        <span class="linkdot" id="linkdot" hidden></span>
         <button class="btn" id="selmode">Select</button>
         <button class="btn" id="import">Import</button>
         <div class="split">
           <button class="btn primary" id="export">Copy to Clipboard</button>
           <button class="btn primary caret" id="export-more" aria-haspopup="true" aria-label="More export options">▾</button>
           <div class="menu" id="export-menu" hidden>
+            <button id="copy" hidden>Copy to Clipboard</button>
             <button id="download">Download JSON</button>
             <button id="jira" disabled>Export to JIRA <span class="soon">Coming soon</span></button>
           </div>
@@ -215,6 +226,11 @@
   <button class="btn" id="bb-tag">Tag</button>
   <button class="btn" id="bb-del">Delete</button>
   <button class="btn" id="bb-clear" title="Clear selection">✕</button>
+</div>
+<div class="pushbar" id="pushbar" hidden>
+  <span class="msg" id="pb-msg"></span>
+  <button class="btn primary" id="pb-apply">Refresh</button>
+  <button class="btn" id="pb-dismiss">Dismiss</button>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -444,6 +460,10 @@
   "use strict";
   const raw = JSON.parse(document.getElementById("data").textContent);
   const KEY = "usm:" + (raw.title||"map").toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,40);
+  // Present only when the page is served by assets/bridge.py from a Claude
+  // session: {token, save, events}. Null as an Artifact / opened from disk.
+  const BRIDGE = window.__USM_BRIDGE__ || null;
+  let linkUp = !!BRIDGE;
   const STATUSES = ["open","progress","review","done"];
   let state = normalize(load() || clone(raw));
 
@@ -455,6 +475,10 @@
       addActivity:"＋ activity", addActTitle:"Add a journey activity (column)",
       import:"Import", copy:"Copy to Clipboard", download:"Download JSON", moreExport:"More export options",
       jira:"Export to JIRA", soon:"Coming soon",
+      send:"Send to Claude", sendTitle:"Send this arrangement back to the Claude session",
+      linkOn:"Linked to Claude", linkOff:"Link lost", linkOffTitle:"The Claude session is no longer serving this map — use Copy to Clipboard instead",
+      tSent:"Sent to Claude", tSendFail:"Couldn't reach Claude — copy the JSON instead",
+      pushMsg:"Claude updated this map", refresh:"Refresh", dismiss:"Dismiss",
       grip:"Drag to move",
       selModeBtn:"Bulk select", selModeTitle:"Bulk select — click any card to select it",
       bbCount:n=>`${n} selected`, bbStatus:"Status", bbTag:"Tag", bbDelete:"Delete", bbClear:"Clear selection",
@@ -478,6 +502,10 @@
       addActivity:"＋ 活动", addActTitle:"添加旅程活动（列）",
       import:"导入", copy:"复制到剪贴板", download:"下载 JSON", moreExport:"更多导出选项",
       jira:"导出到 JIRA", soon:"即将推出",
+      send:"发送给 Claude", sendTitle:"将当前排布发送回 Claude 会话",
+      linkOn:"已连接 Claude", linkOff:"连接已断开", linkOffTitle:"Claude 会话不再提供此地图——请改用复制到剪贴板",
+      tSent:"已发送给 Claude", tSendFail:"无法连接 Claude——请改为复制 JSON",
+      pushMsg:"Claude 更新了此地图", refresh:"刷新", dismiss:"忽略",
       grip:"拖动以移动",
       selModeBtn:"批量选择", selModeTitle:"批量选择——点击任意卡片进行选择",
       bbCount:n=>`已选 ${n} 项`, bbStatus:"状态", bbTag:"标签", bbDelete:"删除", bbClear:"清除选择",
@@ -502,7 +530,12 @@
   function applyLang(){
     document.documentElement.lang = lang==="zh" ? "zh-CN" : "en";
     $("eyebrow").textContent=T("eyebrow");
-    $("import").textContent=T("import"); $("export").textContent=T("copy");
+    $("import").textContent=T("import");
+    $("export").textContent = BRIDGE ? T("send") : T("copy");
+    $("export").title = BRIDGE ? T("sendTitle") : "";
+    $("copy").textContent=T("copy");
+    $("pb-msg").textContent=T("pushMsg"); $("pb-apply").textContent=T("refresh"); $("pb-dismiss").textContent=T("dismiss");
+    if(BRIDGE) setLink(linkUp);
     $("download").textContent=T("download"); $("export-more").setAttribute("aria-label",T("moreExport"));
     $("jira").innerHTML=esc(T("jira"))+`<span class="soon">${esc(T("soon"))}</span>`;
     document.querySelectorAll("#lang-toggle button").forEach(b=>b.classList.toggle("on",b.dataset.lang===lang));
@@ -918,7 +951,9 @@
 
   // import / export
   const io=$("io");
-  $("export").onclick=()=>{ const t=JSON.stringify(state,null,2); (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast(T("tCopied"))).catch(()=>{ openIO(T("ioCopy"),t,true); }); };
+  function copyJSON(){ const t=JSON.stringify(state,null,2); (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast(T("tCopied"))).catch(()=>{ openIO(T("ioCopy"),t,true); }); }
+  $("copy").onclick=()=>{ $("export-menu").hidden=true; copyJSON(); };
+  $("export").onclick=()=>{ BRIDGE ? sendToClaude() : copyJSON(); };
   $("export-more").onclick=e=>{ e.stopPropagation(); $("export-menu").hidden=!$("export-menu").hidden; };
   $("download").onclick=()=>{ $("export-menu").hidden=true; const b=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}); const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=KEY+".json"; a.click(); URL.revokeObjectURL(u); };
   document.addEventListener("pointerdown",e=>{ if(!$("export-menu").hidden && !e.target.closest(".split")) $("export-menu").hidden=true; });
@@ -927,8 +962,44 @@
   $("io-cancel").onclick=()=>io.close();
   $("io-ok").onclick=()=>{ try{ const o=JSON.parse($("io-text").value); if(!o.activities||!o.phases||!o.stories) throw 0; state=normalize(o); save(); render(); io.close(); toast(T("tLoaded")); }catch(e){ toast(T("badJson")); } };
 
+  // ---- live link back to the Claude session (present only under bridge.py) ----
+  // Send: POST the state; the server writes the JSON and bumps a counter the
+  // session is waiting on. Receive: SSE tells us Claude rewrote the file — we
+  // offer it rather than applying it, so an in-progress re-slice isn't clobbered.
+  let pending=null, sending=false;
+  function setLink(up){
+    const el=$("linkdot");
+    if(!BRIDGE){ el.hidden=true; return; }
+    el.hidden=false; el.classList.toggle("on",up);
+    el.textContent = up ? T("linkOn") : T("linkOff");
+    el.title = up ? "" : T("linkOffTitle");
+  }
+  function sendToClaude(){
+    if(sending) return;
+    sending=true; $("export").disabled=true;
+    fetch(BRIDGE.save,{method:"POST",headers:{"Content-Type":"application/json","X-USM-Token":BRIDGE.token},body:JSON.stringify(state,null,2)})
+      .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
+      .then(()=>{ linkUp=true; setLink(true); toast(T("tSent")); })
+      .catch(()=>{ linkUp=false; setLink(false); toast(T("tSendFail")); openIO(T("ioCopy"),JSON.stringify(state,null,2),true); })
+      .then(()=>{ sending=false; $("export").disabled=false; });
+  }
+  $("pb-apply").onclick=()=>{ if(pending){ state=normalize(pending); pending=null; sel.clear(); save(); render(); toast(T("tLoaded")); } $("pushbar").hidden=true; };
+  $("pb-dismiss").onclick=()=>{ pending=null; $("pushbar").hidden=true; };
+  if(BRIDGE && typeof EventSource!=="undefined"){
+    const es=new EventSource(BRIDGE.events+"?t="+encodeURIComponent(BRIDGE.token));
+    es.onopen=()=>{ linkUp=true; setLink(true); };
+    es.onerror=()=>{ linkUp=false; setLink(false); };   // EventSource retries on its own
+    es.addEventListener("push",e=>{
+      let o=null; try{ o=JSON.parse(e.data); }catch(err){ return; }
+      if(!o||!o.activities||!o.phases||!o.stories) return;
+      pending=o; $("pushbar").hidden=false;
+    });
+  }
+  $("copy").hidden = !BRIDGE;   // primary button is Send when linked, Copy when not
+
   applyLang();
   render();
 })();
 </script>
+
 </body></html>
