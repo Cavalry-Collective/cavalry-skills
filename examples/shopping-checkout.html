@@ -36,9 +36,14 @@
   body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);line-height:1.5;-webkit-font-smoothing:antialiased}
   .wrap{max-width:1600px;margin:0 auto;padding:clamp(1.2rem,3vw,2.4rem) clamp(.8rem,2.5vw,2rem) 3rem}
 
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
   header .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);font-weight:600;margin:0 0 .5rem;display:inline-flex;align-items:center;gap:.5rem}
   .eyebrow::before{content:"";width:1.5rem;height:2px;background:var(--brand);border-radius:2px}
   h1{font-size:clamp(1.5rem,3.5vw,2.3rem);line-height:1.05;letter-spacing:-.03em;font-weight:800;margin:0 0 .5rem;text-wrap:balance}
+  .lang-toggle{display:inline-flex;flex:none;margin-top:.2rem;border:1px solid var(--line-2);border-radius:8px;overflow:hidden;background:var(--surface);box-shadow:var(--shadow)}
+  .lang-toggle button{border:0;background:none;font:inherit;font-size:.74rem;font-weight:600;color:var(--ink-3);padding:.32rem .65rem;cursor:pointer}
+  .lang-toggle button+button{border-left:1px solid var(--line-2)}
+  .lang-toggle button.on{background:var(--brand);color:#fff}
 
   .toolbar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:1.4rem 0 .4rem}
   .btn{display:inline-flex;align-items:center;gap:.4rem;font:inherit;font-size:.82rem;font-weight:500;color:var(--ink-2);background:var(--surface);border:1px solid var(--line-2);border-radius:7px;padding:.4rem .7rem;cursor:pointer}
@@ -46,8 +51,6 @@
   .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
   .btn svg{width:15px;height:15px}
   .toolbar .spacer{flex:1}
-  .hint{font-size:.78rem;color:var(--ink-3);margin:.2rem 0 1rem;display:flex;flex-wrap:wrap;align-items:center;gap:.5rem}
-  .hint .k{display:inline-flex;align-items:center;gap:.4rem}
 
   .tag{display:inline-flex;align-items:center;gap:.25rem;font-family:var(--mono);font-size:.54rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--tc,var(--ink-3));background:color-mix(in srgb,var(--tc,var(--ink-3)) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--tc,var(--ink-3)) 30%,transparent);padding:.05rem .3rem;border-radius:4px}
   .tag .d{width:5px;height:5px;border-radius:50%;background:var(--tc,var(--ink-3))}
@@ -71,6 +74,10 @@
   .act.dragging,.rail.dragging{opacity:.45}
   .act.target{outline:2px dashed var(--brand);outline-offset:-2px}
   .rail.target{outline:2px dashed var(--pc);outline-offset:-2px}
+  .act::after{content:"⠿";position:absolute;right:6px;bottom:3px;font-size:.58rem;color:var(--ink-3);opacity:0;transition:opacity .12s;pointer-events:none}
+  .act:hover::after{opacity:.85}
+  .rail::after{content:"⠿";position:absolute;right:6px;top:4px;font-size:.58rem;color:var(--ink-3);opacity:0;transition:opacity .12s;pointer-events:none}
+  .rail:hover::after{opacity:.85}
 
   .rail{position:sticky;left:0;z-index:20;background:color-mix(in srgb,var(--pc) var(--band),var(--surface));border-right:1px solid var(--line-2);padding:.5rem .45rem;display:flex;flex-direction:column;gap:.2rem;min-width:0;cursor:grab}
   .rail .pn{font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--pc);outline:none}
@@ -91,8 +98,14 @@
   .card:hover .ctrls{opacity:1}
   .card .ctrls button{border:0;background:var(--surface-2);color:var(--ink-3);border-radius:4px;width:18px;height:18px;font-size:.7rem;cursor:pointer;display:grid;place-items:center;line-height:1}
   .card .ctrls button:hover{color:var(--ink);background:var(--line)}
+  .card .grip{cursor:grab;color:var(--ink-3);font-size:.58rem;display:grid;place-items:center;width:18px;height:18px;background:var(--surface-2);border-radius:4px}
   .addcard{border:1px dashed var(--line-2);background:none;color:var(--ink-3);border-radius:5px;padding:.15rem;font:inherit;font-size:.64rem;cursor:pointer}
   .addcard:hover{color:var(--ink);border-color:var(--ink-faint,var(--ink-3))}
+  .addact{position:sticky;top:0;z-index:20;background:var(--surface-2);border-bottom:1px solid var(--line-2);padding:.35rem;display:flex}
+  .addphase{position:sticky;left:0;z-index:20;background:var(--surface-2);border-right:1px solid var(--line-2);padding:.35rem;display:flex}
+  .addhdr{flex:1;border:1px dashed var(--line-2);background:none;color:var(--ink-3);border-radius:5px;padding:.15rem .4rem;font:inherit;font-size:.64rem;cursor:pointer;white-space:nowrap}
+  .addhdr:hover{color:var(--ink);border-color:var(--ink-3)}
+  .filler{background:var(--surface)}
 
   .p0{--pc:var(--p0)}.p1{--pc:var(--p1)}.p2{--pc:var(--p2)}.p3{--pc:var(--p3)}.p4{--pc:var(--p4)}.p5{--pc:var(--p5)}
 
@@ -121,21 +134,22 @@
 
 <div class="wrap">
   <header>
-    <p class="eyebrow" id="eyebrow">User story map</p>
-    <h1 id="title" contenteditable spellcheck="false"></h1>
+    <div>
+      <p class="eyebrow" id="eyebrow">User story map</p>
+      <h1 id="title" contenteditable spellcheck="false"></h1>
+    </div>
+    <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language">
+      <button data-lang="en">EN</button><button data-lang="zh">中文</button>
+    </div>
   </header>
 
   <div class="toolbar">
-    <button class="btn" id="add-phase" title="Add a release phase (row)">＋ Phase</button>
-    <button class="btn" id="add-activity" title="Add a journey activity (column)">＋ Activity</button>
     <span class="spacer"></span>
-    <button class="btn" id="lang" title="切换到中文">中文</button>
     <button class="btn" id="import">Import</button>
-    <button class="btn" id="export">Copy JSON</button>
-    <button class="btn" id="download">Download</button>
+    <button class="btn" id="download">Export</button>
+    <button class="btn primary" id="export">Copy to Clipboard</button>
     <button class="btn" id="reset" title="Discard edits, restore the original">Reset</button>
   </div>
-  <p class="hint" id="hint"></p>
 
   <div class="scroll"><div class="map" id="map" role="grid" aria-label="User story map"></div></div>
 </div>
@@ -376,14 +390,11 @@
   const I18N = {
     en: {
       eyebrow:"User story map", corner:"Phase ↓ / Journey →",
-      addPhase:"＋ Phase", addPhaseTitle:"Add a release phase (row)",
-      addActivity:"＋ Activity", addActTitle:"Add a journey activity (column)",
-      import:"Import", copy:"Copy JSON", download:"Download",
+      addPhase:"＋ phase", addPhaseTitle:"Add a release phase (row)",
+      addActivity:"＋ activity", addActTitle:"Add a journey activity (column)",
+      import:"Import", copy:"Copy to Clipboard", download:"Export",
       reset:"Reset", resetTitle:"Discard edits, restore the original",
-      langBtn:"中文", langTitle:"切换到中文",
-      hint1:"↕ <b>Drag a card</b> into any cell to re-slice it; drop above/below other cards to rank it.",
-      hint2:"<b>Drag a phase / activity header</b> to reorder rows &amp; columns.",
-      hint3:"Double-click text to edit · hover a card for ⌗ tags / ×",
+      grip:"Drag to move",
       count:n=>`${n} ${n===1?"story":"stories"}`, addStory:"＋ story", newStory:"New story",
       newPhaseName:n=>"Phase "+n, newPhaseGoal:"New phase — describe the goal",
       newActName:"New activity", newActTask:"Describe this step",
@@ -403,12 +414,9 @@
       eyebrow:"用户故事地图", corner:"阶段 ↓ / 旅程 →",
       addPhase:"＋ 阶段", addPhaseTitle:"添加发布阶段（行）",
       addActivity:"＋ 活动", addActTitle:"添加旅程活动（列）",
-      import:"导入", copy:"复制 JSON", download:"下载",
+      import:"导入", copy:"复制到剪贴板", download:"导出",
       reset:"重置", resetTitle:"放弃修改，恢复原始地图",
-      langBtn:"EN", langTitle:"Switch to English",
-      hint1:"↕ <b>拖动卡片</b>到任意单元格即可重新划分；放到其他卡片上方 / 下方可调整排序。",
-      hint2:"<b>拖动阶段 / 活动表头</b>可重新排列行与列。",
-      hint3:"双击文字可编辑 · 悬停卡片可见 ⌗ 标签 / ×",
+      grip:"拖动以移动",
       count:n=>`${n} 个故事`, addStory:"＋ 故事", newStory:"新故事",
       newPhaseName:n=>"阶段 "+n, newPhaseGoal:"新阶段——描述目标",
       newActName:"新活动", newActTask:"描述这一步",
@@ -431,12 +439,9 @@
   function applyLang(){
     document.documentElement.lang = lang==="zh" ? "zh-CN" : "en";
     $("eyebrow").textContent=T("eyebrow");
-    $("add-phase").textContent=T("addPhase"); $("add-phase").title=T("addPhaseTitle");
-    $("add-activity").textContent=T("addActivity"); $("add-activity").title=T("addActTitle");
     $("import").textContent=T("import"); $("export").textContent=T("copy"); $("download").textContent=T("download");
     $("reset").textContent=T("reset"); $("reset").title=T("resetTitle");
-    $("lang").textContent=T("langBtn"); $("lang").title=T("langTitle");
-    $("hint").innerHTML=`<span class="k">${T("hint1")}</span><span class="k">${T("hint2")}</span><span class="k">${T("hint3")}</span>`;
+    document.querySelectorAll("#lang-toggle button").forEach(b=>b.classList.toggle("on",b.dataset.lang===lang));
     $("io-cancel").textContent=T("cancel"); $("io-ok").textContent=T("loadBtn");
     $("tm-new").placeholder=T("tmNew"); $("tm-add").textContent=T("tmAdd");
   }
@@ -459,13 +464,35 @@
   let toastT;
   function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1600); }
 
+  // FLIP: snapshot positions before a re-render, animate the deltas after it
+  const canAnimate = typeof Element!=="undefined" && !!Element.prototype.animate;
+  const reduceMotion = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  function flipKey(el){ return el.dataset.card?"c"+el.dataset.card:el.dataset.act?"a"+el.dataset.act:"p"+el.dataset.phase; }
+  function snapshot(){
+    if(reduceMotion || !canAnimate) return null;
+    const m = new Map();
+    document.querySelectorAll("[data-card],[data-act],[data-phase]").forEach(el=>m.set(flipKey(el),el.getBoundingClientRect()));
+    return m.size?m:null;
+  }
+  function playFlip(prev){
+    if(!prev) return;
+    document.querySelectorAll("[data-card],[data-act],[data-phase]").forEach(el=>{
+      const r0 = prev.get(flipKey(el));
+      if(!r0){ if(el.dataset.card) el.animate([{opacity:0,transform:"scale(.9)"},{opacity:1,transform:"none"}],{duration:160,easing:"ease-out"}); return; }
+      const r1 = el.getBoundingClientRect();
+      const dx = r0.left-r1.left, dy = r0.top-r1.top;
+      if(dx||dy) el.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:"none"}],{duration:220,easing:"cubic-bezier(.2,.8,.2,1)"});
+    });
+  }
+
   function render(){
     const sc = document.querySelector(".scroll");
     const sl = sc.scrollLeft, st = sc.scrollTop;
+    const prevRects = snapshot();
     $("title").textContent = state.title||"";
     const map = $("map");
     const acts = state.activities, phases = state.phases;
-    map.style.gridTemplateColumns = `100px repeat(${acts.length}, minmax(132px,1fr))`;
+    map.style.gridTemplateColumns = `100px repeat(${acts.length}, minmax(132px,1fr)) 84px`;
     const perPhase = {}, perAct = {};
     phases.forEach(p=>perPhase[p.id]=0); acts.forEach(a=>perAct[a.id]=0);
     state.stories.forEach(s=>{ if(perPhase[s.phase]!=null)perPhase[s.phase]++; if(perAct[s.activity]!=null)perAct[s.activity]++; });
@@ -478,6 +505,7 @@
         <span class="seq">${i+1}</span></div>
         <p class="at" contenteditable spellcheck="false" data-edit="act-task" data-id="${a.id}">${esc(a.task||"")}</p></div>`;
     });
+    h += `<div class="cell addact"><button class="addhdr" id="add-activity" title="${T("addActTitle")}">${T("addActivity")}</button></div>`;
     phases.forEach((p,pi)=>{
       const pc = "p"+(pi%6);
       h += `<div class="cell rail ${pc}" draggable="true" data-phase="${p.id}">
@@ -491,10 +519,13 @@
         cards.forEach(s=>{ h += cardHtml(s); });
         h += `<button class="addcard" data-add="${p.id}|${a.id}">${T("addStory")}</button></div>`;
       });
+      h += `<div class="cell filler"></div>`;
     });
+    h += `<div class="cell addphase"><button class="addhdr" id="add-phase" title="${T("addPhaseTitle")}">${T("addPhase")}</button></div><div class="cell filler" style="grid-column:2 / -1"></div>`;
     map.innerHTML = h;
     wire();
     sc.scrollLeft = sl; sc.scrollTop = st;
+    playFlip(prevRects);
   }
 
   function tagClass(t){ const i = state.tags.indexOf(t); return "t" + ((i<0?0:i)%6); }
@@ -502,6 +533,7 @@
   function cardHtml(s){
     return `<div class="card" draggable="true" data-card="${s.id}">
       <div class="ctrls">
+        <span class="grip" title="${T("grip")}">⠿</span>
         <button data-tag="${s.id}" title="${T("tagTitle")}">⌗</button>
         <button data-del="${s.id}" title="${T("del")}">×</button>
       </div>
@@ -591,6 +623,8 @@
     document.querySelectorAll("[data-tag]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openTagMenu(b,b.dataset.tag); });
     document.querySelectorAll("[data-del-phase]").forEach(b=>b.onclick=()=>delPhase(b.dataset.delPhase));
     document.querySelectorAll("[data-del-act]").forEach(b=>b.onclick=()=>delAct(b.dataset.delAct));
+    $("add-phase").onclick=()=>{ state.phases.push({id:uid("ph"),name:T("newPhaseName",state.phases.length+1),goal:T("newPhaseGoal")}); save(); render(); };
+    $("add-activity").onclick=()=>{ state.activities.push({id:uid("a"),name:T("newActName"),task:T("newActTask")}); save(); render(); };
   }
   function commitEdit(el){
     const v=el.textContent.trim(), id=el.dataset.id, t=el.dataset.edit;
@@ -660,10 +694,12 @@
     if(n && !confirm(T("cDelAct",n))) return;
     state.activities=state.activities.filter(a=>a.id!==id); state.stories=state.stories.filter(s=>s.activity!==id); save(); render();
   }
-  $("add-phase").onclick=()=>{ state.phases.push({id:uid("ph"),name:T("newPhaseName",state.phases.length+1),goal:T("newPhaseGoal")}); save(); render(); };
-  $("add-activity").onclick=()=>{ state.activities.push({id:uid("a"),name:T("newActName"),task:T("newActTask")}); save(); render(); };
   $("reset").onclick=()=>{ if(confirm(T("cReset"))){ state=normalize(clone(raw)); try{localStorage.removeItem(KEY);}catch(e){} render(); toast(T("tReset")); } };
-  $("lang").onclick=()=>{ lang = lang==="en"?"zh":"en"; try{localStorage.setItem("usm:lang",lang);}catch(e){} applyLang(); render(); if(!tagmenu.hidden) renderTagMenu(); };
+  document.querySelectorAll("#lang-toggle button").forEach(b=>b.onclick=()=>{
+    if(lang===b.dataset.lang) return;
+    lang=b.dataset.lang; try{localStorage.setItem("usm:lang",lang);}catch(e){}
+    applyLang(); render(); if(!tagmenu.hidden) renderTagMenu();
+  });
 
   // import / export
   const io=$("io");

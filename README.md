@@ -12,12 +12,12 @@ Ask Claude for a story map and it builds a **self-contained, interactive user st
 
 ### What you can do on the map
 
-- **Drag a card into any cell** to re-slice which phase & activity a story belongs to; drop above/below other cards to rank it
+- **Drag a card into any cell** to re-slice which phase & activity a story belongs to; drop above/below other cards to rank it — moves animate, and a ⠿ grip appears on hover
 - **Drag a phase rail or activity header** onto another to reorder rows & columns
-- **Double-click any text** to edit inline; `＋ story` / `＋ Phase` / `＋ Activity` to grow the map
+- **Double-click any text** to edit inline; dashed `＋ story` / `＋ activity` / `＋ phase` buttons in the grid grow the map
 - **Tag cross-cutting themes** (e.g. `AI`) via the ⌗ menu on each card — add a tag to a card, create new tags, or delete a tag from the whole map
-- **EN / 中文 toggle** for the UI language
-- **Copy JSON / Download / Import / Reset** — export the re-sliced map as JSON and paste it back to Claude to regenerate your downstream plan or tickets; edits persist in the browser's `localStorage`
+- **EN | 中文 toggle** (top right) for the UI language
+- **Copy to Clipboard / Export / Import / Reset** — export the re-sliced map as JSON and paste it back to Claude to regenerate your downstream plan or tickets; edits persist in the browser's `localStorage`
 
 ### Install
 
