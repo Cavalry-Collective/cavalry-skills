@@ -642,7 +642,8 @@ function setSize (id) {
   S.size = s;
   $$('#sizeSwitch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.size === id)));
   closeComposer();
-  applyWindowSize(); fitZoom(); drawMarks(); renderPanel();
+  // The frame height follows the new viewport, so refit before anything reads it.
+  applyWindowSize(); fitFrameHeight(); fitZoom(); drawMarks(); renderPanel();
 }
 /** Re-label every static surface. Comment text is the reviewer's, never ours. */
 function applyLang () {
@@ -747,23 +748,48 @@ function loadFrame (keepScroll) {
     if (!keepScroll) fitZoom();
   };
 }
+/* A flowing document lays out at its full height inside the scroller, so comment
+   coordinates are document coordinates and the window box does the scrolling.
+   An app shell (.app{height:100vh} with its own scrolling panes) is the opposite:
+   its height IS the frame's height, so measuring it first and sizing to the
+   result collapses the whole page to nothing. Measure at the viewport height and
+   only let a document that genuinely overflows grow — and only if that growth
+   settles. A layout that keeps growing as we grow it is viewport-driven, so it
+   stays exactly one viewport tall and scrolls its own panes, like a real browser. */
+let sizingFrame = false;
+function fitFrameHeight () {
+  if (!fdoc) return 0;
+  const vh = S.size.height;
+  const apply = h => { frame.style.height = h + 'px'; scroller.style.height = h + 'px' };
+  const measure = () => Math.max(fdoc.documentElement.scrollHeight, fdoc.body?.scrollHeight || 0, 1);
+  sizingFrame = true;
+  apply(vh);
+  const natural = measure();
+  if (natural > vh + 2) {
+    apply(natural);
+    if (measure() > natural + 2) apply(vh);
+  }
+  requestAnimationFrame(() => { sizingFrame = false });
+  return parseFloat(frame.style.height) || 0;
+}
+let refitQueued = false;
 function sizeFrame () {
   if (!fdoc) return;
-  // The document lays out at its full height inside the scroller, so comment
-  // coordinates are document coordinates; the window box does the scrolling.
-  const measure = () => Math.max(fdoc.documentElement.scrollHeight, fdoc.body?.scrollHeight || 0, 200);
-  const set = () => { const h = measure(); frame.style.height = h + 'px'; scroller.style.height = h + 'px' };
-  set();
-  let queued = false;
-  const ro = frame._ro || (frame._ro = new ResizeObserver(() => {
-    if (queued) return;
-    queued = true;
+  fitFrameHeight();
+  // Rebuilt on every load rather than cached, so a viewport change can never be
+  // measured against the size the observer was created with.
+  try { frame._ro?.disconnect() } catch {}
+  const ro = frame._ro = new ResizeObserver(() => {
+    // Our own apply() resizes the body; ignore the echo or it never settles.
+    if (sizingFrame || refitQueued) return;
+    refitQueued = true;
     requestAnimationFrame(() => {
-      queued = false;
-      if (Math.abs(measure() - parseFloat(frame.style.height)) > 2) { set(); drawMarks() }
+      refitQueued = false;
+      const before = parseFloat(frame.style.height) || 0;
+      if (Math.abs(fitFrameHeight() - before) > 2) drawMarks();
     });
-  }));
-  try { ro.disconnect(); ro.observe(fdoc.body) } catch {}
+  });
+  try { ro.observe(fdoc.body) } catch {}
 }
 
 function setZoom (z) {
