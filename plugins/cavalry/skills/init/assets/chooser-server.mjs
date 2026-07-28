@@ -2,7 +2,7 @@
 /*
  * chooser-server.mjs — serve the stack & add-on chooser, take one answer, exit.
  *
- * Deliberately NOT the ui-review / story-map live link. Those keep a session
+ * Deliberately NOT the wireframe / story-map live link. Those keep a session
  * open for rounds of edits; this asks one question once. One POST and it is
  * done, which is why it owns ~150 lines instead of sharing 300 it would only
  * use a third of.

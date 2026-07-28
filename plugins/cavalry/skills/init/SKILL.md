@@ -132,7 +132,7 @@ Delete the template's own root `README.md` once instantiation is done — its Da
 
 - **Never edit `assets/chooser.html` or `chooser-server.mjs`** to fit a project — they're the engine.
 - The chooser is a **one-shot** by design: it asks a single question, so it doesn't use the live-link machinery
-  behind `ui-review` and `user-story-map`. Don't wire it into them.
+  behind `wireframe` and `user-story-map`. Don't wire it into them.
 - Unknown directories still work. A pack or add-on the chooser has no blurb for renders from its own README,
   so an upstream addition never breaks the page.
 - `--out` moves `choice.json`; `--port` moves the port. Port busy usually means a chooser is already running.

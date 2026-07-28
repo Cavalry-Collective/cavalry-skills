@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * review-server.mjs — the local half of the ui-review loop.
+ * review-server.mjs — the local half of the wireframe review loop.
  *
  * You point it at one HTML file — a mockup, an exported screen, any page you
  * want eyes on. It serves that file inside the review workspace so the two
@@ -499,7 +499,7 @@ function cmdServe () {
   server.listen(port, '127.0.0.1', () => {
     fs.mkdirSync(STORE, { recursive: true })
     fs.writeFileSync(P.url(), url + '\n')
-    console.log(`ui-review · ${pageName()} · v${loadState().version}`)
+    console.log(`wireframe · ${pageName()} · v${loadState().version}`)
     console.log(`  workspace  ${url}`)
     console.log(`  page       ${FILE}`)
     console.log(idleTimeout > 0
