@@ -21,7 +21,7 @@ cp -R cavalry-skills/plugins/cavalry/skills/<skill-name> ~/.claude/skills/
 | Skill | Invoke | What it does |
 | --- | --- | --- |
 | [user-story-map](#user-story-map) | `/cavalry:user-story-map` | Interactive drag-and-drop user story map — re-slice stories across release phases, rank everything, track status, tag themes, and send the result straight back to Claude |
-| [ui-review](#ui-review) | `/cavalry:ui-review` | Comment directly on any HTML UI in a review workspace, and send structured feedback straight back to Claude — a two-way loop, like reviewing with a designer |
+| [wireframe](#wireframe) | `/cavalry:wireframe` | Build a wireframe or mockup, then comment directly on it in a review workspace and send structured feedback straight back to Claude — a two-way loop, like reviewing with a designer |
 | [phase-wireframe](#phase-wireframe) | `/cavalry:phase-wireframe` | Cut one signed-off mockup into a mockup per release phase — each showing only what exists by that phase, with the layout untouched. Subtraction only, checked mechanically |
 | [init](#init) | `/cavalry:init` | Start a project from the Cavalry template — pick the stack and add-ons on a visual chooser, delete the rest, and work through Day-1 until the repo is ready to build in |
 
@@ -94,7 +94,7 @@ This same block is what **Send to Claude** hands back, what **Download JSON** wr
 
 ---
 
-## ui-review
+## wireframe
 
 Design review without the screenshot-and-markup detour. Claude opens **any HTML UI** — a mockup it just built, an exported screen, a prototype — in a **review workspace** where you comment straight on the page, then applies your comments and publishes the next version while you watch.
 
@@ -127,7 +127,7 @@ It's a conversation, not a hand-off. You comment; Claude applies what's clear, *
 ### Use
 
 ```
-/cavalry:ui-review a settings page for our billing product — plans, invoices, payment methods
+/cavalry:wireframe a settings page for our billing product — plans, invoices, payment methods
 ```
 
 Or point it at a page that already exists:
@@ -181,7 +181,7 @@ node assets/check-subtraction.mjs --base design/app.html --phase design/phase-1/
 #  ✓ pure subtraction — CSS untouched, nothing invented, nothing moved
 ```
 
-- **Then review it.** Each phase hands off to [ui-review](#ui-review), so you comment on a phase
+- **Then review it.** Each phase hands off to [wireframe](#wireframe), so you comment on a phase
   mockup the same way you commented on the original.
 
 ### Use
@@ -253,7 +253,7 @@ plugins/cavalry/                     ← the `cavalry` plugin
     user-story-map/                  ← one directory per skill
       SKILL.md
       assets/…
-    ui-review/
+    wireframe/
       SKILL.md
       assets/…                       ← workspace, local server, artifact bundler
       references/…                   ← loaded on demand, not up-front

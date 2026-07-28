@@ -150,4 +150,4 @@ Delete the template's own root `README.md` once instantiation is done — its Da
   Commit it — it's a project record, not scratch. Keep `.cavalry/choice.json` beside it as the raw answer.
 - **Next** — `/cavalry:requirements` writes `specs/requirements.md`. **That stage isn't built yet**; until it
   is, say so and offer the two things that are: write `specs/requirements.md` by hand together, or go straight
-  to a first screen with `/cavalry:ui-review`. Don't invent a requirements stage to fill the gap.
+  to a first screen with `/cavalry:wireframe`. Don't invent a requirements stage to fill the gap.

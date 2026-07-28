@@ -1,6 +1,6 @@
 # Wishlist — the Cavalry pipeline
 
-**Status: proposal, with two stages built.** This repo ships four skills today — `ui-review`,
+**Status: proposal, with two stages built.** This repo ships four skills today — `wireframe`,
 `user-story-map`, `phase-wireframe` (stage 5) and `init` (stage 0). This document describes what it
 would take to turn them into links in a chain that runs from a raw idea to shipped code, and records
 the design decisions already made so they don't have to be re-argued.
@@ -415,27 +415,24 @@ duplication buy robustness against a skill being invoked cold, which for the dua
 **Offer, don't interrogate.** A stage ends by naming its successor and offering to run it. It doesn't
 ask *"shall I continue?"* in the abstract, and it doesn't run the next stage unasked.
 
-## Renames this would require
+## Renames — done
 
-| Today | Would become | Cost |
+| Was | Is | Cost |
 |---|---|---|
-| `ui-review` | `wireframe` | breaks `/cavalry:ui-review` for anyone who installed it; needs a major version bump |
-| `user-story-map` | *unchanged* | none — it keeps its name and gains only the handoff footer |
+| `ui-review` | **`wireframe`** | broke `/cavalry:ui-review` for anyone who had it; plugin went to 2.0.0 |
+| `user-story-map` | *unchanged* | none — it keeps its name, and gains only the handoff footer when the chain lands |
 
-Only one skill moves. Its engine would move **unchanged** — `review-server.mjs`, `workspace.html`,
-`bundle-artifact.mjs`. The internal paths (`.ui-review/`, `ui-review:*` localStorage keys) would
-deliberately keep the old names: renaming them breaks in-flight reviews for no user-visible gain.
-Worth a line in the SKILL.md so it doesn't read as an oversight.
+The engine moved **unchanged** — `review-server.mjs`, `workspace.html`, `bundle-artifact.mjs`. Its
+internal paths (`.ui-review/`, the `ui-review:*` `localStorage` keys) **deliberately keep the old
+name**: renaming them would orphan every review already on disk and every comment already in a
+browser, for nothing anyone can see. That's stated in the skill's Notes so it doesn't read as a
+missed find-and-replace.
 
-*This was trial-built once and reverted. The rename is mechanical and the engine smoke-tested clean
-from a new path — publish, status, artifact bundle, and the story-map bridge serving over HTTP. The
-rename is not the risky part.*
-
-**One thing the new name changes.** `ui-review` today does two jobs: generate a page, and run the
-comment loop over any HTML file. `wireframe` describes the first well and the second not at all — so
-the description would have to carry the review triggers explicitly ("review, annotate, mark up or
-comment on a page"), or the review loop becomes hard to reach for someone who just wants to critique
-an existing screen. Worth watching after the rename lands.
+**The name costs one thing, and it's mitigated, not solved.** The skill does two jobs — generate a
+page, and run the comment loop over *any* HTML file. `wireframe` names the first and not the second,
+so the description carries the review triggers explicitly ("review, annotate, mark up or comment on a
+page or design"). If someone with an existing screen to critique still can't reach it, the trigger
+list is where to look first.
 
 ## Two indexes that must agree
 

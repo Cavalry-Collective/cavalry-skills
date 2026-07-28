@@ -8,7 +8,7 @@
     {
       "name": "cavalry",
       "source": "./plugins/cavalry",
-      "description": "Cavalry Collective skills for Claude Code. init — start a project from the Cavalry template, choosing stack and add-ons on a visual chooser. user-story-map — interactive drag-and-drop story map. ui-review — comment directly on any HTML UI in a review workspace. phase-wireframe — cut one signed-off mockup into a mockup per release phase, subtracting only, checked mechanically."
+      "description": "Cavalry Collective skills for Claude Code. init — start a project from the Cavalry template, choosing stack and add-ons on a visual chooser. user-story-map — interactive drag-and-drop story map. wireframe — build a UI wireframe and comment directly on it in a review workspace. phase-wireframe — cut one signed-off mockup into a mockup per release phase, subtracting only, checked mechanically."
     }
   ]
 }

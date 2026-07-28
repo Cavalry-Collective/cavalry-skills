@@ -1,6 +1,6 @@
 ---
-name: ui-review
-description: Open any HTML UI in an interactive review workspace where the user comments directly on the page, and turn those comments into structured instructions for the next iteration. Use when the user wants a UI mockup, wireframe, screen design or prototype built; wants to review, annotate, mark up or comment on a page or design; wants to iterate on a UI; or wants to compare versions of a screen.
+name: wireframe
+description: Build a UI wireframe or mockup and open it in an interactive review workspace where the user comments directly on the page, turning those comments into the next iteration. Use when the user wants a wireframe, UI mockup, screen design or prototype built; wants to review, annotate, mark up or comment on a page or design; wants to iterate on a UI; or wants to compare versions of a screen.
 ---
 
 A two-way review loop over one HTML file. The user comments on the page; you apply the comments, ask about anything ambiguous, and publish the next version. It works on a mockup you just generated, an exported screen, a prototype — anything that is a self-contained HTML page.
@@ -229,6 +229,7 @@ node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "<artifact-url
 
 - **Never edit `assets/workspace.html`, `review-server.mjs` or `bundle-artifact.mjs`** to fit a project — they're the engine. Only the page under review is yours. (`harvest-reference.js` is meant to be pasted and run, not edited.)
 - State lives in `<dir>/.ui-review/<name>/` beside the file — versions, reviews, threads, and the sentinels. The page itself stays clean.
+- **`.ui-review/` and the `ui-review:*` `localStorage` keys keep the old name on purpose.** They are the engine's own paths, not the skill's; renaming them would orphan every review already on disk and every comment already in a browser, for no visible gain. Not an oversight.
 - The server binds to `127.0.0.1` only. Port 7788 busy usually means a review server is already running — pass `--port`.
 - `node "$SKILL/assets/review-server.mjs" status --file "$FILE"` prints the current version, whether a review is waiting, and any cancel / sign-off / share request outstanding.
 - Full command reference and troubleshooting: `references/workflow.md`.
