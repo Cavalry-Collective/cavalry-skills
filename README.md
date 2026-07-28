@@ -53,9 +53,11 @@ Scrub the timeline to watch a release take shape — **Highlight new** marks wha
 
 ## The thinking behind it
 
-A written spec gets skimmed, approved to be polite, and contradicted by the code three days later — the review that mattered never happened. Plans don't fail as ideas; they fail as documents.
+Spec-driven development got one thing right: agree on what you're building before you build it. Then it buried the agreement in text. A spec here, a plan there, a task list under that — until the team is snowed under by documents that get skimmed, approved to be polite, and contradicted by the code three days later. The review that mattered never happened.
 
-**Visual-first delivery** is the alternative: every stage produces something you operate instead of something you read. Change what's wrong, and the change *is* the feedback. It's the oldest value in the [Agile Manifesto](https://agilemanifesto.org/) — *working software over comprehensive documentation* — applied to the planning artifacts themselves. Prose is the export, never the interface.
+**Visual-first delivery turns that on its head. Humans are visual. Products are visual. The plan should be too.**
+
+So every stage produces something you operate instead of something you read: change what's wrong, and the change *is* the feedback. It's the oldest value in the [Agile Manifesto](https://agilemanifesto.org/) — *working software over comprehensive documentation* — finally applied to the planning artifacts themselves. Prose is the export, never the interface.
 
 ---
 
