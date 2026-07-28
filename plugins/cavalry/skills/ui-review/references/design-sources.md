@@ -6,41 +6,51 @@ the fastest way to make a review loop feel like it's going backwards.
 
 ## 1 · A reference site the user names
 
-Match a real product's look. Use the Chrome tools:
+Match a real product's look — by measuring it, not by remembering it. Use the
+Chrome tools:
 
-1. Open the URL in a new tab and screenshot it at the target width (1440 desktop / 390 mobile).
-2. Pull the actual values rather than eyeballing them — run this with the
-   javascript tool on the page. Capture at the size the mockup will lead with
-   (the workspace offers 2560 / 1440 / 834 / 390):
+1. `navigate` to the URL in a new tab. Dismiss the cookie banner first (decline
+   non-essential) so it is in neither the screenshots nor the numbers.
+2. Screenshot at each size the mockup needs — 1440 first, then 390 if the design
+   has to work small. Save them beside the page under review.
+3. Run **`assets/harvest-reference.js`** with the javascript tool, at the width
+   the mockup will lead with (the workspace offers 2560 / 1440 / 834 / 390). It
+   returns JSON:
 
-```js
-const seen = new Map();
-const bump = (k, v) => v && seen.set(k + '|' + v, (seen.get(k + '|' + v) || 0) + 1);
-for (const el of document.querySelectorAll('body *')) {
-  const c = getComputedStyle(el);
-  if (el.offsetParent === null) continue;
-  bump('color', c.color); bump('bg', c.backgroundColor);
-  bump('font', c.fontFamily.split(',')[0].replace(/["']/g, ''));
-  bump('size', c.fontSize); bump('weight', c.fontWeight);
-  bump('radius', c.borderRadius); bump('border', c.borderColor);
-  bump('shadow', c.boxShadow === 'none' ? '' : c.boxShadow);
-}
-JSON.stringify([...seen].sort((a, b) => b[1] - a[1]).slice(0, 60));
-```
+   | | |
+   |---|---|
+   | `palette` | backgrounds, text and border colours, **weighted by how much of the page they cover** — so the dominant surface sorts above an accent used once |
+   | `type` | families in use, the real size/weight/line-height combinations, tracking, and the first few headings with their actual sizes |
+   | `shape` | radii, shadows, and the spacing values the page actually repeats |
+   | `layout` | nav model (top bar / side rail) and its size, content width, grid column templates, how many tables and inputs |
 
-3. Note the **structure** too, not just the palette: nav model (top bar / side
-   rail / both), density, how tables and forms are laid out, button hierarchy,
-   how empty states read.
-4. Write it all to `<page-dir>/<name>-reference.md` and drop the screenshots
-   beside it. Every later iteration reads that file instead of re-scraping.
+   Every number is a value the page is really painting. A colour eyeballed off a
+   screenshot is always slightly wrong, and twenty slightly-wrong values is what
+   makes a mockup read as a knock-off of the thing it is meant to be.
+4. Note what the JSON can't see: button hierarchy, density, how empty states
+   read, what the page leads with.
+5. Write it all to `<page-dir>/<name>-reference.md`, screenshots beside it. Every
+   later iteration reads that file instead of re-scraping — which is what stops
+   v4 drifting away from v1's source.
 
 Ignore transient page chrome — cookie banners, promo strips, A/B experiments.
 
+**Never sign in to capture a page.** If the real reference is behind a login, ask
+the user to navigate there themselves and tell you when to capture.
+
+Copy the *layout and system*; leave logos, wordmarks, photography and real copy
+as placeholders.
+
 ## 2 · Reference screenshots the user provides
 
-Same output, derived by eye: palette, type scale, spacing rhythm, radii, shadow
-depth, component shapes. Write it to the same reference file. Say what you
-inferred so the user can correct it in the first review round.
+Read every image, then derive the same list by eye: palette, type scale, spacing
+rhythm, radii, shadow depth, component shapes, nav model. Write it to the same
+reference file and **mark each value as inferred** — the first review round is
+where the user corrects the ones you read wrong, and they can only do that if
+they know which were guesses.
+
+If they give you both a URL and screenshots, the URL wins for values and the
+screenshots for intent — they chose those particular frames for a reason.
 
 ## 3 · The project's own design system
 

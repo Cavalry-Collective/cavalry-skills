@@ -13,7 +13,6 @@
   --bg:#f4f3f6; --panel:#ffffff; --sunken:#eceaf0; --ink:#171320; --ink-2:#665e72;
   --ink-3:#8f889c; --line:#e2dfe8; --line-2:#cfc9d8;
   --accent:#e02b20; --accent-soft:#fff1f0; --accent-line:#ffb3ad;
-  --must:#e02b20; --should:#b7791f; --nice:#5b6b8c;
   --ok:#12805c; --ok-soft:#e9f9f2;
   --shadow:0 1px 2px rgba(23,19,32,.06),0 8px 24px rgba(23,19,32,.08);
   --window-shadow:0 2px 6px rgba(23,19,32,.10),0 18px 48px rgba(23,19,32,.16);
@@ -65,6 +64,52 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .seg.icons button:hover{color:var(--ink)}
 .seg.icons button[aria-pressed=true]{background:var(--sunken);color:var(--ink)}
 #modeSwitch button[aria-pressed=true]{background:var(--ink);color:#fff}
+/* Live link to the Claude session — the same tell the story map carries, so
+   "is anyone still listening?" is answered before Send is pressed, not after. */
+.linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
+  letter-spacing:.03em;color:var(--ink-3);white-space:nowrap}
+.linkdot[hidden]{display:none}
+.linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
+.linkdot.on{color:var(--ok)}
+.linkdot.on::before{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+
+/* Send is the loop; approve is the way out of it. Same control, because they
+   are the same decision made two ways — one more round, or done. */
+.split{display:inline-flex}
+.split .btn{border-radius:7px 0 0 7px}
+.split .caret{border-radius:0 7px 7px 0;border-left:1px solid rgba(255,255,255,.28);padding:0 8px;width:28px;
+  justify-content:center}
+.split .btn[disabled]+.caret{border-left-color:rgba(255,255,255,.28)}
+#sendMenu{position:absolute;top:42px;right:12px;z-index:60;width:266px;background:var(--panel);
+  border:1px solid var(--line-2);border-radius:10px;box-shadow:var(--shadow);padding:5px;display:none}
+#sendMenu.on{display:block}
+#sendMenu button{display:block;width:100%;text-align:left;padding:8px 9px;border-radius:7px}
+#sendMenu button:hover{background:var(--sunken)}
+#sendMenu .t{display:block;font-weight:600;font-size:12.5px}
+#sendMenu .d{display:block;font-size:11.5px;color:var(--ink-3);line-height:1.35;margin-top:3px}
+#sendMenu button.armed{background:var(--accent-soft)}
+#sendMenu button.armed .t{color:var(--accent)}
+#sendMenu button[disabled]{cursor:default}
+#sendMenu button[disabled]:hover{background:none}
+#sendMenu .warn{color:#b7791f;font-weight:600}
+#sendMenu .mrule{height:1px;background:var(--line);margin:4px 6px}
+#sendMenu .url{font:500 11px/1.4 var(--mono);color:var(--ok);word-break:break-all}
+/* A link waiting under the caret is easy to miss — mark the caret itself. */
+.split .caret{position:relative}
+.split .caret.flag::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;
+  border-radius:50%;background:#fff;box-shadow:0 0 0 2px var(--accent)}
+
+/* The end of the review, said once and plainly. */
+#doneScreen{position:fixed;inset:0;z-index:200;display:none;place-items:center;
+  background:color-mix(in srgb,var(--ink) 34%,transparent);backdrop-filter:blur(2px)}
+#doneScreen.on{display:grid}
+#doneScreen .card{background:var(--panel);border-radius:14px;box-shadow:var(--window-shadow);
+  padding:26px 28px;max-width:380px;text-align:center}
+#doneScreen .tick{width:42px;height:42px;border-radius:50%;background:var(--ok-soft);color:var(--ok);
+  display:grid;place-items:center;font-size:20px;font-weight:700;margin:0 auto 12px}
+#doneScreen h2{margin:0 0 6px;font-size:16px}
+#doneScreen p{margin:0;font-size:12.5px;color:var(--ink-2);line-height:1.55}
 #langSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
 .seg svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6;
   stroke-linecap:round;stroke-linejoin:round}
@@ -165,23 +210,45 @@ button{cursor:pointer;background:none;border:0;padding:0}
 #composer .creply.on{display:block}
 #composer .cfoot{display:flex;align-items:center;gap:5px;padding:8px 9px;margin-top:8px;
   border-top:1px solid var(--line);background:var(--bg)}
-#composer .sevs{display:flex;gap:3px;flex:1}
-#composer .sevs button{font:600 10px/1 var(--font);text-transform:uppercase;letter-spacing:.02em;
-  padding:5px 6px;border-radius:5px;border:1px solid var(--line-2);color:var(--ink-3)}
-#composer .sevs button[aria-pressed=true][data-sev=must]{background:color-mix(in srgb,var(--must) 12%,transparent);border-color:var(--must);color:var(--must)}
-#composer .sevs button[aria-pressed=true][data-sev=should]{background:color-mix(in srgb,var(--should) 12%,transparent);border-color:var(--should);color:var(--should)}
-#composer .sevs button[aria-pressed=true][data-sev=nice]{background:color-mix(in srgb,var(--nice) 12%,transparent);border-color:var(--nice);color:var(--nice)}
+#composer .cfoot .hint{flex:1;font-size:11px;color:var(--ink-3)}
+#composer .csave{height:26px;padding:0 11px;border-radius:6px;background:var(--ink);color:#fff;
+  font-weight:600;font-size:11.5px;flex:none}
+#composer .csave:hover{filter:brightness(1.25)}
+#composer .csave .kbd{font:500 9.5px/1 var(--mono);opacity:.6;margin-left:4px}
+/* A comment Claude is working on keeps its own progress, wherever it is shown. */
+#composer.working{border-color:var(--accent-line)}
+#composer.working::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--accent-soft)}
+#composer.working::before{content:"";position:absolute;bottom:0;height:2px;width:38%;background:var(--accent);
+  z-index:1;animation:sweep 1.15s ease-in-out infinite}
 
 /* ── right panel: the index ── */
-#panel{background:var(--panel);border-left:1px solid var(--line);display:grid;
-  grid-template-rows:auto auto 1fr auto;min-height:0}
+/* Flex rather than a fixed row template: the working strip comes and goes, and
+   a display:none grid child would silently reshuffle every other row. */
+#panel{background:var(--panel);border-left:1px solid var(--line);display:flex;
+  flex-direction:column;min-height:0}
+#phead,#pfilter,#pwork,#pfoot{flex:none}
 #phead{display:flex;align-items:center;gap:8px;padding:10px 12px 8px}
 #phead b{font-size:13px}
 #phead .scope{margin-left:auto;font-size:11px;color:var(--ink-3)}
 #pfilter{display:flex;flex-wrap:wrap;gap:5px;padding:0 10px 8px;border-bottom:1px solid var(--line)}
 #pfilter select{height:26px;border:1px solid var(--line-2);border-radius:6px;background:var(--panel);
   padding:0 3px;font-size:11.5px;color:var(--ink-2);flex:1 1 auto;min-width:0}
-#pbody{overflow:auto;padding:8px 10px 14px}
+#pbody{flex:1;overflow:auto;padding:8px 10px 14px;min-height:0}
+
+/* ── work in flight ──
+   Progress lives on the comments themselves, so it is obvious *which* ones are
+   being worked on — and cancel sits next to them, where the doubt is. */
+#pwork{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);
+  background:var(--accent-soft)}
+#pwork[hidden]{display:none}
+#pwork .spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--accent-line);
+  border-top-color:var(--accent);animation:spin .7s linear infinite;flex:none}
+#pwork .ptxt{flex:1;min-width:0;font-size:11.5px;color:var(--ink-2);line-height:1.35}
+#pwork .pcancel{font-size:11.5px;font-weight:600;color:var(--accent);white-space:nowrap;flex:none;
+  border:1px solid var(--accent-line);border-radius:6px;padding:3px 8px;background:var(--panel)}
+#pwork .pcancel:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes sweep{0%{left:-38%}55%{left:100%}100%{left:100%}}
 #pfoot{border-top:1px solid var(--line);padding:9px 10px;display:flex;gap:7px;align-items:center}
 #pfoot .count{flex:1;font-size:11.5px;color:var(--ink-3);line-height:1.3}
 #pfoot .count b{color:var(--ink);font-weight:650}
@@ -191,20 +258,36 @@ button{cursor:pointer;background:none;border:0;padding:0}
 #pfoot .clear:disabled{opacity:.35;cursor:default;text-decoration:none}
 #pfoot .clear:disabled:hover{color:var(--ink-3)}
 
-.item{border:1px solid var(--line);border-radius:8px;padding:7px 9px;margin-bottom:6px;
-  cursor:pointer;transition:border-color .12s}
+.item{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:8px;padding:7px 9px;
+  margin-bottom:6px;cursor:pointer;transition:border-color .12s}
 .item:hover{border-color:var(--line-2)}
 .item.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
-.item.resolved{opacity:.55}
 .item .ih{display:flex;align-items:center;gap:6px}
 .item .n{font:700 10px/1 var(--mono);color:#fff;background:var(--mk,var(--accent));padding:3px 5px;border-radius:4px}
 .item .kind{font-size:11px;color:var(--ink-3);flex:1}
-.item .sevdot{width:7px;height:7px;border-radius:50%;background:var(--mk)}
 .item .note{font-size:12.5px;line-height:1.4;margin-top:4px;overflow:hidden;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
 .item .note.blank{color:var(--ink-3);font-style:italic}
 .item .thread{font-size:11px;color:var(--ink-3);margin-top:4px;display:flex;align-items:center;gap:5px}
 .item .thread.asked{color:var(--accent);font-weight:600}
+/* Indeterminate on purpose: Claude gives no percentage, and a fake one would be
+   a lie. It says "this one, right now" and nothing more. */
+.item.working{border-color:var(--accent-line)}
+.item .bar{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--accent-soft);overflow:hidden}
+.item .bar::after{content:"";position:absolute;top:0;bottom:0;width:38%;background:var(--accent);
+  animation:sweep 1.15s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){
+  .item .bar::after,#composer.working::before{animation:none;left:0;width:100%;opacity:.55}
+  #pwork .spin{animation:none}
+}
+/* Addressed comments stay in the list — done is not the same as gone, and the
+   only way to say "not like that" is to still be able to see it. */
+.item.done{opacity:.72;border-style:dashed}
+.item.done:hover{opacity:1}
+.item .acts{display:flex;gap:5px;margin-top:6px}
+.item .acts button{font:600 10.5px/1 var(--font);padding:4px 7px;border-radius:5px;
+  border:1px solid var(--line-2);color:var(--ink-2);background:var(--panel)}
+.item .acts button:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .empty{color:var(--ink-3);font-size:12.5px;text-align:center;padding:30px 14px;line-height:1.6}
 .grouphd{font:650 10.5px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
   margin:12px 2px 7px;display:flex;align-items:center;gap:6px}
@@ -284,7 +367,17 @@ button{cursor:pointer;background:none;border:0;padding:0}
     </div>
 
     <div class="sep"></div>
-    <button class="btn primary" id="btnSend"></button>
+    <span class="linkdot" id="linkdot" hidden></span>
+    <div class="split">
+      <button class="btn primary" id="btnSend"></button>
+      <button class="btn primary caret" id="btnSendMore" aria-haspopup="true" aria-expanded="false"
+              aria-label="More">▾</button>
+    </div>
+    <div id="sendMenu">
+      <button id="btnShare"><span class="t"></span><span class="d"></span></button>
+      <div class="mrule"></div>
+      <button id="btnApprove"><span class="t"></span><span class="d"></span></button>
+    </div>
   </div>
 
   <div id="main">
@@ -313,11 +406,12 @@ button{cursor:pointer;background:none;border:0;padding:0}
           <span id="histText">Viewing an earlier version — read only</span>
           <button class="btn sm" id="btnNow">Back to current</button>
         </div>
+        <!-- Only ever announces a version that has landed. Work in flight is
+             shown on the comments it belongs to, in the panel. -->
         <div class="banner" id="workBanner">
-          <span class="spin" id="workSpin"></span>
-          <span class="txt" id="workText">Sent — Claude is working…</span>
-          <button class="btn sm primary" id="btnRefresh" style="display:none">Review changes</button>
-          <button class="btn sm" id="btnDismissWork" style="display:none">Later</button>
+          <span class="txt" id="workText"></span>
+          <button class="btn sm primary" id="btnRefresh">Review changes</button>
+          <button class="btn sm" id="btnDismissWork">Later</button>
         </div>
 
         <div id="composer">
@@ -331,11 +425,8 @@ button{cursor:pointer;background:none;border:0;padding:0}
           <div class="cthread"></div>
           <textarea class="creply" placeholder="Reply…"></textarea>
           <div class="cfoot">
-            <div class="sevs">
-              <button data-sev="must">Must</button>
-              <button data-sev="should">Should</button>
-              <button data-sev="nice">Nice</button>
-            </div>
+            <span class="hint"></span>
+            <button class="csave"></button>
           </div>
         </div>
 
@@ -356,8 +447,12 @@ button{cursor:pointer;background:none;border:0;padding:0}
     <div id="panel">
       <div id="phead"><b>Comments</b><span class="scope" id="pscope"></span></div>
       <div id="pfilter">
-        <select id="fSeverity"><option value="">Any severity</option><option value="must">Must</option><option value="should">Should</option><option value="nice">Nice</option></select>
         <select id="fStatus"><option value="open">Open</option><option value="question">Claude asked</option><option value="">All</option><option value="addressed">Addressed</option></select>
+      </div>
+      <div id="pwork" hidden>
+        <span class="spin"></span>
+        <span class="ptxt" id="pworkText"></span>
+        <button class="pcancel" id="btnCancel"></button>
       </div>
       <div id="pbody"></div>
       <div id="pfoot">
@@ -365,6 +460,14 @@ button{cursor:pointer;background:none;border:0;padding:0}
         <button class="clear" id="btnClear"></button>
       </div>
     </div>
+  </div>
+</div>
+
+<div id="doneScreen">
+  <div class="card">
+    <div class="tick">✓</div>
+    <h2 id="doneTitle"></h2>
+    <p id="doneBody"></p>
   </div>
 </div>
 
@@ -392,7 +495,9 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const uid = () => 'c' + Math.random().toString(36).slice(2, 8);
 
-const SEV_COLOR = { must: 'var(--must)', should: 'var(--should)', nice: 'var(--nice)' };
+/* One severity: everything the reviewer writes is something to do. The mark
+   colour is the accent, and nothing on screen has to be decoded. */
+const MARK = 'var(--accent)';
 
 /* ── language ─────────────────────────────────────────────────────────
    The workspace chrome speaks two languages; the page under review is
@@ -403,7 +508,7 @@ const STR = {
     view: 'View — click through the page (space)', annotate: 'Annotate — click for a comment, drag for an area (space)',
     del: 'Delete comment', clearAll: 'Clear all', clearSure: 'Sure?',
     cleared: n => `Cleared ${n} comment${n > 1 ? 's' : ''}`,
-    comments: 'Comments', anySeverity: 'Any severity', must: 'Must', should: 'Should', nice: 'Nice',
+    comments: 'Comments',
     open: 'Open', asked: 'Claude asked', all: 'All', addressed: 'Addressed',
     send: 'Send to Claude', copyFor: 'Copy for Claude',
     comment: 'Comment', areaComment: 'Area comment', notePlaceholder: 'What needs to change?',
@@ -428,13 +533,39 @@ const STR = {
     raised: v => `Raised on v${v} — still unanswered`, onlyOne: 'Only one version so far',
     ultrawide: 'Ultrawide', desktop: 'Desktop', tablet: 'Tablet', phone: 'Phone',
     noServer: 'Could not reach the review server.',
+    save: 'Save', saveHint: 'Everything here is a must.', linkOn: 'Linked', linkOff: 'Link lost',
+    linkOffTitle: 'The Claude session is no longer serving this review — anything you write is kept in this tab only.',
+    workingOn: n => `Claude is working on ${n} comment${n > 1 ? 's' : ''}`,
+    cancel: 'Cancel', cancelled: 'Asked Claude to pause', cancelFail: 'Could not ask Claude to stop',
+    addressedGroup: n => `Addressed (${n})`,
+    revert: 'Revert', refine: 'Refine',
+    revertTitle: 'Ask Claude to put this back the way it was',
+    refineTitle: 'Reopen this and say what still needs doing',
+    revertAsked: 'Revert requested — send it back to Claude',
+    refineAsked: 'Reopened — say what still needs doing',
+    revertNote: 'Revert this change — put it back the way it was before.',
+    wantsRevert: 'Revert requested',
+    approve: 'Approve & finish', approveSure: 'Approve & close the review?',
+    approveHint: 'The design is signed off — close the review and let Claude carry on.',
+    approveOpen: n => `${n} open comment${n > 1 ? 's' : ''} will be left unapplied.`,
+    approvedTitle: 'Approved — the review is closed',
+    approvedBody: 'Claude has been told the design is signed off and can carry on. You can close this tab.',
+    approveFail: 'Could not reach the server to approve',
+    share: 'Publish a shareable link',
+    shareHint: 'Claude flattens this review into one file and publishes it as an Artifact — comments and all — for anyone not at this machine.',
+    shareWorking: 'Claude is publishing the link…', shareWait: 'It appears here when it is ready.',
+    shareReady: 'Shareable link — click to copy',
+    shareStale: 'Republish the shareable link',
+    shareStaleHint: v => `The published copy is v${v} — this review has moved on since.`,
+    shareAsked: 'Asked Claude for a shareable link', shareGot: 'Shareable link ready — under the ▾',
+    shareFail: 'Could not ask for a link',
   },
   zh: {
     viewLabel: '查看', annotateLabel: '批注',
     view: '查看 — 直接操作页面（空格键）', annotate: '批注 — 点击留言，拖拽框选区域（空格键）',
     del: '删除批注', clearAll: '全部清除', clearSure: '确定？',
     cleared: n => `已清除 ${n} 条批注`,
-    comments: '批注', anySeverity: '全部优先级', must: '必须', should: '建议', nice: '可选',
+    comments: '批注',
     open: '待处理', asked: 'Claude 提问', all: '全部', addressed: '已处理',
     send: '发送给 Claude', copyFor: '复制给 Claude',
     comment: '批注', areaComment: '区域批注', notePlaceholder: '需要改什么？',
@@ -459,6 +590,32 @@ const STR = {
     raised: v => `在 v${v} 提出 — 仍未解决`, onlyOne: '目前只有一个版本',
     ultrawide: '超宽屏', desktop: '桌面', tablet: '平板', phone: '手机',
     noServer: '无法连接评审服务器。',
+    save: '保存', saveHint: '这里写的每一条都必须处理。', linkOn: '已连接', linkOff: '连接已断开',
+    linkOffTitle: 'Claude 会话不再提供此评审——你写的内容只保存在这个标签页里。',
+    workingOn: n => `Claude 正在处理 ${n} 条批注`,
+    cancel: '取消', cancelled: '已请求 Claude 暂停', cancelFail: '无法通知 Claude 停止',
+    addressedGroup: n => `已处理（${n}）`,
+    revert: '撤回', refine: '继续完善',
+    revertTitle: '让 Claude 把这处改回原样',
+    refineTitle: '重新打开这条，说明还差什么',
+    revertAsked: '已标记撤回 — 发送后 Claude 会处理',
+    refineAsked: '已重新打开 — 说明还差什么',
+    revertNote: 'Revert this change — put it back the way it was before.',
+    wantsRevert: '要求撤回',
+    approve: '批准并结束', approveSure: '确定批准并关闭评审？',
+    approveHint: '设计已定稿——关闭评审，让 Claude 继续下一步。',
+    approveOpen: n => `还有 ${n} 条批注不会被处理。`,
+    approvedTitle: '已批准 — 评审已关闭',
+    approvedBody: 'Claude 已收到定稿通知，可以继续下一步。你可以关闭此标签页。',
+    approveFail: '无法连接服务器，批准失败',
+    share: '发布分享链接',
+    shareHint: 'Claude 会把整个评审打包成一个文件，发布为 Artifact——连同批注一起，方便不在这台机器上的人查看。',
+    shareWorking: 'Claude 正在发布链接…', shareWait: '完成后会显示在这里。',
+    shareReady: '分享链接 — 点击复制',
+    shareStale: '重新发布分享链接',
+    shareStaleHint: v => `已发布的是 v${v}，之后评审又有更新。`,
+    shareAsked: '已请求 Claude 生成分享链接', shareGot: '分享链接已就绪 — 在 ▾ 里',
+    shareFail: '无法请求分享链接',
   },
 };
 let LANG = 'en';
@@ -488,7 +645,12 @@ const S = {
   ann: [], carried: [],
   sel: null,
   awaiting: false, pendingUpdate: null, sentSig: null,
-  filter: { severity: '', status: 'open' },
+  // Which comments went out with the last send and have not come back yet.
+  working: new Set(),
+  linked: null,   // null until the connection has actually said one way or other
+  // The shareable Artifact: asked for here, published by Claude, link comes back.
+  share: { url: null, version: null, pending: false },
+  filter: { status: 'open' },
 };
 const isHistory = () => S.viewing !== S.version;
 
@@ -511,6 +673,7 @@ async function boot () {
   S.versions = data.versions || [];
   S.reviews = data.reviews || {};
   S.version = S.viewing = data.currentVersion || 1;
+  adoptShare(data);
 
   loadAnnotations();
   $('#pageName').textContent = S.name;
@@ -535,7 +698,7 @@ function loadAnnotations () {
 }
 // status: open (waiting on Claude) · question (Claude asked, waiting on you) ·
 // addressed (Claude changed it). Only Claude moves a comment to addressed.
-const normalise = a => ({ severity: 'must', status: 'open', note: '', size: 'desktop', replies: [], ...a });
+const normalise = a => ({ status: 'open', note: '', size: 'desktop', replies: [], ...a });
 const lsKey = () => `ui-review:${S.fileName}:v${S.version}`;
 const lsGet = () => { try { return JSON.parse(localStorage.getItem(lsKey())) } catch { return null } };
 
@@ -560,9 +723,16 @@ function save () {
     under the reviewer — announce it, let them pick the moment. */
 function liveReload () {
   const es = new EventSource('/api/events');
+  // The same tell the story map carries: whether the session on the other end
+  // is still there. EventSource reconnects on its own, so this only ever
+  // reports what is true right now.
+  es.onopen = () => setLink(true);
+  es.onerror = () => setLink(false);
   es.addEventListener('reload', async () => {
     let data;
     try { data = await (await fetch('/api/project')).json() } catch { return }
+    // The link can land on its own, without the page or the review moving.
+    adoptShare(data, true);
     const bumped = (data.currentVersion || 1) !== S.version;
     if (!bumped && data.html === S.html) {
       // Only the conversation moved — fold it in without touching the page.
@@ -574,23 +744,72 @@ function liveReload () {
       return;
     }
     S.pendingUpdate = data;
+    // Mid-edit saves are not news — the comments being worked on already say so.
+    // Only a version that has actually landed is worth interrupting for.
     if (bumped) {
       const meta = (data.versions || []).find(v => v.n === data.currentVersion);
-      showWork('ready', T('ready')(data.currentVersion) + (meta?.label ? ' — ' + esc(meta.label) : ''));
-    } else if (S.awaiting) showWork('working', esc(T('editing')));
-    else showWork('ready', T('changed'));
+      showWork(T('ready')(data.currentVersion) + (meta?.label ? ' — ' + esc(meta.label) : ''));
+    } else if (!S.awaiting) showWork(T('changed'));
   });
 }
-function showWork (state, html) {
+function showWork (html) {
   const b = $('#workBanner');
-  b.classList.add('on');
-  b.classList.toggle('ready', state === 'ready');
-  $('#workSpin').style.display = state === 'working' ? '' : 'none';
-  $('#workText').innerHTML = (state === 'ready' ? '<span class="tick">✓</span> ' : '') + html;
-  $('#btnRefresh').style.display = state === 'ready' ? '' : 'none';
-  $('#btnDismissWork').style.display = state === 'ready' ? '' : 'none';
+  b.classList.add('on', 'ready');
+  $('#workText').innerHTML = '<span class="tick">✓</span> ' + html;
 }
 const hideWork = () => $('#workBanner').classList.remove('on');
+
+/** Is the session on the other end still there? Silent until it knows — a dot
+    that says "lost" during the first handshake is just wrong. */
+function setLink (up) {
+  S.linked = up;
+  const el = $('#linkdot');
+  if (S.runtime !== 'local' || up === null) { el.hidden = true; return }
+  el.hidden = false;
+  el.classList.toggle('on', up);
+  el.textContent = up ? T('linkOn') : T('linkOff');
+  el.title = up ? '' : T('linkOffTitle');
+}
+
+/* ─────────────── work in flight ───────────────
+   A sent comment is out of the reviewer's hands until Claude publishes or
+   answers. Saying so on the comment itself — and offering to call it off there —
+   beats a banner that covers the page it is talking about. */
+const setWorking = ids => { S.working = new Set(ids); renderPanel() };
+function clearWorking () {
+  if (!S.working.size) return;
+  S.working.clear();
+  renderPanel();
+}
+function renderWork () {
+  // A comment Claude has finished with, or asked about, is no longer in flight.
+  for (const id of [...S.working]) {
+    const a = S.ann.find(x => x.id === id);
+    if (!a || a.status !== 'open') S.working.delete(id);
+  }
+  const n = S.working.size;
+  $('#pwork').hidden = !n;
+  if (n) $('#pworkText').textContent = T('workingOn')(n);
+  composer.classList.toggle('working', !!S.sel && S.working.has(S.sel));
+}
+
+/** Stop, rather than let Claude finish something the reviewer no longer wants. */
+async function cancelWork () {
+  const ids = [...S.working];
+  clearWorking();
+  S.awaiting = false;
+  if (S.runtime !== 'local') return;
+  try {
+    await fetch('/api/cancel', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: S.version, comments: ids, reason: 'The reviewer cancelled this round from the workspace.' }),
+    });
+    // Sending the same review again has to be possible after calling it off.
+    S.sentSig = null;
+    renderCounts();
+    toast(T('cancelled'));
+  } catch { toast(T('cancelFail')) }
+}
 
 /** Server-side thread state wins; whatever the reviewer is typing does not. */
 function mergeThreads (serverAnn) {
@@ -602,14 +821,20 @@ function mergeThreads (serverAnn) {
     if (!local) { S.ann.push(normalise(sa)); changed = true; continue }
     const sr = (sa.replies || []).length, lr = (local.replies || []).length;
     if (sr !== lr) { local.replies = sa.replies || []; changed = true }
-    if (sa.status !== local.status) { local.status = sa.status; changed = true }
+    if (sa.status !== local.status) {
+      local.status = sa.status;
+      // A comment that has been addressed again starts clean: whatever was
+      // asked for on the way here has now been answered.
+      if (sa.status === 'addressed') { delete local.revert; delete local.reopenedAt }
+      changed = true;
+    }
   }
   return changed;
 }
 
 function adoptUpdate () {
   const data = S.pendingUpdate;
-  S.pendingUpdate = null; S.awaiting = false; hideWork();
+  S.pendingUpdate = null; S.awaiting = false; hideWork(); clearWorking();
   if (!data) { loadFrame(true); return }
   const bumped = (data.currentVersion || 1) !== S.version;
   S.html = data.html; S.versions = data.versions; S.reviews = data.reviews;
@@ -656,14 +881,17 @@ function applyLang () {
   $('#btnNow').textContent = T('backToCurrent');
   $('#btnRefresh').textContent = T('reviewChanges');
   $('#btnDismissWork').textContent = T('later');
+  $('#btnCancel').textContent = T('cancel');
+  renderApprove(); renderShare();
+  composer.querySelector('.csave').innerHTML = esc(T('save')) + ' <span class="kbd">⌘⏎</span>';
+  setLink(S.linked);
+  renderWork();
   $('#phead').querySelector('b').textContent = T('comments');
   $('#btnSend').innerHTML = (S.runtime === 'artifact' ? T('copyFor') : T('send')) + ' <span class="kbd">⌘⏎</span>';
-  const sev = $('#fSeverity'), st = $('#fStatus');
-  [['', 'anySeverity'], ['must', 'must'], ['should', 'should'], ['nice', 'nice']]
-    .forEach(([v, k], i) => { sev.options[i].textContent = T(k) });
+  const st = $('#fStatus');
   [['open', 'open'], ['question', 'asked'], ['', 'all'], ['addressed', 'addressed']]
     .forEach(([v, k], i) => { st.options[i].textContent = T(k) });
-  $$('.sevs button', composer).forEach(b => b.textContent = T(b.dataset.sev));
+  composer.querySelector('.cfoot .hint').textContent = T('saveHint');
   buildSizes();
   render(); syncTimeline();
   if (S.sel) openComposer(S.sel, false);
@@ -678,7 +906,6 @@ function setLang (l) {
 function wireChrome () {
   $$('#modeSwitch button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
   $$('#langSwitch button').forEach(b => b.onclick = () => setLang(b.dataset.lang));
-  $('#fSeverity').onchange = e => { S.filter.severity = e.target.value; renderPanel() };
   $('#fStatus').onchange = e => { S.filter.status = e.target.value; renderPanel() };
   $('#btnReload').onclick = () => S.pendingUpdate ? adoptUpdate() : loadFrame(true);
   // Two clicks, because throwing away a whole review by accident would sting.
@@ -701,6 +928,7 @@ function wireChrome () {
   $('#btnNow').onclick = () => gotoVersion(S.version);
   $('#btnRefresh').onclick = adoptUpdate;
   $('#btnDismissWork').onclick = hideWork;
+  $('#btnCancel').onclick = cancelWork;
   $('#canvasWrap').addEventListener('scroll', reposition);
   $('#viewportBox').addEventListener('scroll', reposition);
 }
@@ -834,7 +1062,7 @@ function onKey (e) {
   const t = e.target;
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable;
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); openSend(); return }
-  if (e.key === 'Escape') { closeComposer(); return }
+  if (e.key === 'Escape') { closeSendMenu(); closeComposer(); return }
   if (typing) return;
   if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); toggleMode(); return }
   if (e.key === 'ArrowLeft') stepVersion(-1);
@@ -946,7 +1174,6 @@ function openComposer (id, focus) {
   if (!a) return;
   S.sel = id;
   composer.classList.add('on');
-  composer.style.setProperty('--mk', SEV_COLOR[a.severity]);
   composer.querySelector('.cnum').textContent = num(a);
   composer.querySelector('.ckind').textContent = T(a.kind === 'area' ? 'areaComment' : 'comment');
 
@@ -980,7 +1207,8 @@ function openComposer (id, focus) {
   // button for the same outcome is just noise.
   composer.querySelector('.cdel').style.display = hasSubstance(a) && !isHistory() ? '' : 'none';
   composer.querySelector('.cdel').title = T('del');
-  $$('.sevs button', composer).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sev === a.severity)));
+  composer.querySelector('.csave').style.display = isHistory() ? 'none' : '';
+  composer.classList.toggle('working', S.working.has(id));
   placeComposer();
   if (focus !== false) setTimeout(() => (canReply && a.note ? reply : note).focus(), 0);
   drawMarks(); renderPanel();
@@ -1008,6 +1236,29 @@ function postReply (a, text) {
   if (a.status === 'question') a.status = 'open';
   save();
 }
+
+/**
+ * Addressed is Claude's word for it, not the last word. Reopening a comment puts
+ * it back in play for the next round: refine adds to what was asked, revert asks
+ * for the change to be undone. `reopenedAt` is what lets the server take a
+ * status going backwards from a client — nothing else can un-address a comment.
+ */
+function reopen (a, mode) {
+  if (isHistory()) return;
+  a.status = 'open';
+  a.reopenedAt = new Date().toISOString();
+  if (mode === 'revert') {
+    a.revert = true;
+    postReply(a, STR.en.revertNote);
+  } else {
+    delete a.revert;
+    save();
+  }
+  S.sentSig = null;
+  render();
+  toast(T(mode === 'revert' ? 'revertAsked' : 'refineAsked'));
+  if (mode !== 'revert') reveal(a, true);
+}
 function wireComposer () {
   const note = composer.querySelector('.cnote');
   note.addEventListener('input', () => {
@@ -1029,14 +1280,9 @@ function wireComposer () {
   };
   note.addEventListener('keydown', submit);
   composer.querySelector('.creply').addEventListener('keydown', submit);
-  $$('.sevs button', composer).forEach(b => b.onclick = () => {
-    const a = annById(S.sel);
-    if (!a || isHistory()) return;
-    a.severity = b.dataset.sev;
-    composer.style.setProperty('--mk', SEV_COLOR[a.severity]);
-    $$('.sevs button', composer).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    save(); drawMarks(); renderPanel();
-  });
+  // ⌘⏎ has always saved; the button says so out loud, for anyone who would
+  // otherwise wonder whether closing the note threw it away.
+  composer.querySelector('.csave').onclick = closeComposer;
   composer.querySelector('.cclose').onclick = closeComposer;
   composer.querySelector('.cdel').onclick = () => {
     const id = S.sel;
@@ -1055,6 +1301,7 @@ function wireComposer () {
 }
 function threadNote (a) {
   const n = (a.replies || []).length;
+  if (a.revert && a.status !== 'addressed') return `<div class="thread asked">${esc(T('wantsRevert'))}</div>`;
   if (a.status === 'question') return `<div class="thread asked">${esc(T('claudeAsked'))}</div>`;
   if (a.status === 'addressed') return `<div class="thread">${esc(T('addressedBy'))}</div>`;
   return n ? `<div class="thread">${n} ${esc(T(n > 1 ? 'replies' : 'reply'))}</div>` : '';
@@ -1073,7 +1320,7 @@ function drawMarks () {
   for (const a of visibleAnn()) drawMark(a);
 }
 function drawMark (a) {
-  const col = SEV_COLOR[a.severity] || 'var(--accent)';
+  const col = MARK;
   const ghost = !!a.fromVersion, done = a.status !== 'open', n = num(a);
   const cls = (S.sel === a.id ? ' sel' : '') + (ghost ? ' ghost' : '') + (done ? ' done' : '');
 
@@ -1115,17 +1362,22 @@ const sizeLabel = id => T(id);
 function render () { drawMarks(); renderPanel() }
 
 function renderPanel () {
+  renderWork();
   const body = $('#pbody');
   body.innerHTML = '';
   $('#pscope').textContent = isHistory() ? T('readOnly')(S.viewing) : sizeLabel(S.size.id);
   const f = S.filter;
   // "Open" means unfinished — a comment Claude has asked a question about is
   // still very much open, and hiding it would strand the conversation.
-  const match = a => hasSubstance(a) && (!f.severity || a.severity === f.severity) &&
-    (!f.status || (f.status === 'open' ? a.status !== 'addressed' : a.status === f.status));
+  // Addressed comments are never mixed in with the live ones — they get their
+  // own section at the bottom, where revert and refine live.
+  const match = a => hasSubstance(a) && a.status !== 'addressed' &&
+    (!f.status || f.status === 'open' || a.status === f.status);
   const here = S.ann.filter(a => match(a) && (a.size || 'desktop') === S.size.id);
   const elsewhere = S.ann.filter(a => match(a) && (a.size || 'desktop') !== S.size.id);
   const carried = S.carried.filter(a => a.status === 'open');
+  const done = f.status === 'question' ? [] : S.ann.filter(a =>
+    hasSubstance(a) && a.status === 'addressed');
 
   if (!S.ann.some(hasSubstance) && !carried.length) {
     body.innerHTML = `<div class="empty">${esc(T('emptyTitle'))}<br><br>${esc(T('emptyBody'))}</div>`;
@@ -1133,11 +1385,15 @@ function renderPanel () {
   for (const a of here) body.appendChild(itemNode(a));
   if (elsewhere.length) {
     body.appendChild(group(T('otherSizes')(elsewhere.length)));
-    for (const a of elsewhere) body.appendChild(itemNode(a, false, true));
+    for (const a of elsewhere) body.appendChild(itemNode(a, { otherSize: true }));
   }
   if (carried.length) {
     body.appendChild(group(T('stillOpen')(carried.length)));
-    for (const a of carried) body.appendChild(itemNode(a, true));
+    for (const a of carried) body.appendChild(itemNode(a, { ghost: true }));
+  }
+  if (done.length) {
+    body.appendChild(group(T('addressedGroup')(done.length)));
+    for (const a of done) body.appendChild(itemNode(a, { done: true }));
   }
   renderCounts();
 }
@@ -1146,19 +1402,25 @@ function group (text) {
   h.className = 'grouphd'; h.textContent = text;
   return h;
 }
-function itemNode (a, ghost, otherSize) {
+function itemNode (a, { ghost, otherSize, done } = {}) {
+  const working = S.working.has(a.id);
   const el = document.createElement('div');
-  el.className = 'item' + (S.sel === a.id ? ' sel' : '') + (a.status !== 'open' ? ' resolved' : '');
+  el.className = 'item' + (S.sel === a.id ? ' sel' : '') + (done ? ' done' : '') + (working ? ' working' : '');
   el.dataset.id = a.id;
-  el.style.setProperty('--mk', SEV_COLOR[a.severity] || 'var(--accent)');
+  el.style.setProperty('--mk', MARK);
   el.innerHTML = `
     <div class="ih">
       <span class="n">${ghost ? 'v' + a.fromVersion : num(a)}</span>
       <span class="kind">${T(a.kind === 'area' ? 'areaComment' : 'comment')}${otherSize ? ' · ' + sizeLabel(a.size) : ''}</span>
-      <span class="sevdot" title="${a.severity}"></span>
     </div>
     <div class="note${a.note ? '' : ' blank'}">${esc(a.note || T('noNote'))}</div>
-    ${threadNote(a)}`;
+    ${threadNote(a)}
+    ${done && !isHistory() ? `<div class="acts">
+      <button data-act="revert" title="${esc(T('revertTitle'))}">${esc(T('revert'))}</button>
+      <button data-act="refine" title="${esc(T('refineTitle'))}">${esc(T('refine'))}</button>
+    </div>` : ''}
+    ${working ? '<div class="bar"></div>' : ''}`;
+  $$('[data-act]', el).forEach(b => b.onclick = e => { e.stopPropagation(); reopen(a, b.dataset.act) });
   el.onclick = () => {
     if (ghost) { toast(T('raised')(a.fromVersion)); return }
     if ((a.size || 'desktop') !== S.size.id) { setSize(a.size); setTimeout(() => reveal(a), 320); return }
@@ -1166,17 +1428,15 @@ function itemNode (a, ghost, otherSize) {
   };
   return el;
 }
-function reveal (a) {
+function reveal (a, focus = false) {
   const r = anchorRect(a);
   vpBox.scrollTo({ top: Math.max(0, r.y - 120), behavior: 'smooth' });
-  setTimeout(() => openComposer(a.id, false), 220);
+  setTimeout(() => openComposer(a.id, focus), 220);
 }
 function renderCounts () {
   const open = S.ann.filter(a => a.status !== 'addressed' && hasSubstance(a));
-  const by = s => open.filter(a => a.severity === s).length;
   $('#counts').innerHTML = open.length
-    ? `<b>${open.length}</b> ${esc(T('open').toLowerCase())} · ${by('must')} ${esc(T('must').toLowerCase())}`
-      + ` · ${by('should')} ${esc(T('should').toLowerCase())} · ${by('nice')} ${esc(T('nice').toLowerCase())}`
+    ? `<b>${open.length}</b> ${esc(T('open').toLowerCase())}`
       + (S.ann.some(a => a.status === 'question') ? '<br>' + esc(T('waiting')) : '')
     : esc(T('noOpen'));
   const clear = $('#btnClear');
@@ -1264,15 +1524,24 @@ $('#tlTrack').addEventListener('pointerdown', e => {
 function buildFeedback () {
   const items = S.ann.filter(a => a.status !== 'addressed' && hasSubstance(a));
   const carried = S.carried.filter(a => a.status !== 'addressed');
-  const sev = s => items.filter(a => a.severity === s).length;
-  const order = { must: 0, should: 1, nice: 2 };
+
+  const reverts = items.concat(carried).filter(a => a.revert);
+  const reopened = items.concat(carried).filter(a => a.reopenedAt && !a.revert);
 
   const L = [];
   L.push(`# Mockup review — ${S.name} · v${S.version}`);
-  L.push(`${items.length} comment(s) · ${sev('must')} must · ${sev('should')} should · ${sev('nice')} nice` +
-    (carried.length ? ` · ${carried.length} carried over` : ''));
+  L.push(`${items.length} comment(s) — every one is a must` +
+    (carried.length ? ` · ${carried.length} carried over` : '') +
+    (reverts.length ? ` · ${reverts.length} revert` : '') +
+    (reopened.length ? ` · ${reopened.length} reopened` : ''));
   L.push('');
   L.push(`Apply these to \`${S.fileName}\`, then publish the next version.`);
+  if (reverts.length || reopened.length) {
+    L.push('');
+    L.push('Some of these you already marked addressed and they were sent back: ' +
+      '**revert** means undo what you did there, **reopened** means it did not go far enough. ' +
+      'Read the note and the thread again before touching anything.');
+  }
   L.push('');
 
   const bySize = {};
@@ -1285,8 +1554,9 @@ function buildFeedback () {
     // workspace is showing. The reviewer's own words pass through untouched.
     L.push(`## ${STR.en[sid]} — ${size.width} × ${size.height}`);
     L.push('');
-    for (const a of list.sort((x, y) => order[x.severity] - order[y.severity])) {
-      L.push(`### #${num(a)} · ${a.severity}`);
+    for (const a of list) {
+      L.push(`### #${num(a)}${a.revert ? ' · REVERT' : ''}`);
+      if (a.revert) L.push('**They asked for your last change here to be undone** — restore what was there before, then apply the note again only if it still stands.');
       const where = a.kind === 'area'
         ? `Area ${Math.round(a.rect.w)}×${Math.round(a.rect.h)} at ${Math.round(a.rect.x)},${Math.round(a.rect.y)}`
         : `At ${Math.round(a.point.x)},${Math.round(a.point.y)}`;
@@ -1303,7 +1573,7 @@ function buildFeedback () {
     L.push('## Still open from earlier versions');
     L.push('');
     for (const a of carried) {
-      L.push(`- **[v${a.fromVersion} · ${a.severity}]** ${a.note}${a.anchorText ? ` — on “${a.anchorText}”` : ''}`);
+      L.push(`- **[v${a.fromVersion}]** ${a.note}${a.anchorText ? ` — on “${a.anchorText}”` : ''}`);
     }
     L.push('');
   }
@@ -1318,8 +1588,11 @@ function buildFeedback () {
   const payload = {
     page: S.fileName, name: S.name, version: S.version,
     comments: items.concat(carried).map(a => ({
-      id: a.id, kind: a.kind, severity: a.severity, status: a.status, note: a.note,
+      id: a.id, kind: a.kind, status: a.status, note: a.note,
       replies: a.replies || [],
+      // Reopened after you called it done — either put it back (revert) or
+      // take it further. Either way it is not finished.
+      reopened: !!a.reopenedAt, wantsRevert: !!a.revert,
       anchorText: a.anchorText || null,
       screenSize: a.size || 'desktop',
       point: a.point || null, rect: a.rect || null,
@@ -1329,14 +1602,14 @@ function buildFeedback () {
   return {
     markdown: L.join('\n') + '\n\n```json\n' + JSON.stringify(payload, null, 2) + '\n```\n',
     feedback: payload,
-    counts: { total: items.length + carried.length, must: sev('must'), should: sev('should'), nice: sev('nice') },
+    counts: { total: items.length + carried.length },
   };
 }
 
 /** What was last handed over, so an unchanged review can't be sent twice. */
 const reviewSignature = () => JSON.stringify(S.ann
   .filter(a => a.status !== 'addressed' && hasSubstance(a))
-  .map(a => [a.id, a.note, a.severity, (a.replies || []).length]));
+  .map(a => [a.id, a.note, a.status, !!a.revert, (a.replies || []).length]));
 
 async function openSend () {
   closeComposer();
@@ -1355,11 +1628,130 @@ async function openSend () {
     });
     S.awaiting = true;
     S.sentSig = reviewSignature();
-    renderCounts();
-    showWork('working', esc(T('working')(pending.counts.total)));
+    // Every comment that just went out is now in flight, and says so on itself.
+    setWorking(pending.feedback.comments.map(c => c.id));
+    toast(T('working')(pending.counts.total));
   } catch { toast(T('sendFail')) }
 }
 $('#btnSend').onclick = openSend;
+
+/* ─────────────── approve: the way out of the loop ───────────────
+   Send says "one more round". Approve says the design is done — it closes the
+   review, which ends the server and hands Claude back the thread. It sits under
+   the same button because it is the same decision, answered the other way. */
+const sendMenu = $('#sendMenu');
+let approveArmed = null;
+function closeSendMenu () {
+  sendMenu.classList.remove('on');
+  $('#btnSendMore').setAttribute('aria-expanded', 'false');
+  clearTimeout(approveArmed); approveArmed = null;
+  renderApprove();
+}
+// Opening the menu is seeing the link — the flag has done its job.
+const clearShareFlag = () => $('#btnSendMore').classList.remove('flag');
+function renderApprove () {
+  const open = S.ann.filter(a => a.status !== 'addressed' && hasSubstance(a)).length + S.carried.length;
+  const armed = !!approveArmed;
+  $('#btnApprove').classList.toggle('armed', armed);
+  $('#btnApprove .t').textContent = armed ? T('approveSure') : T('approve');
+  $('#btnApprove .d').innerHTML = esc(T('approveHint')) +
+    (open ? `<br><span class="warn">${esc(T('approveOpen')(open))}</span>` : '');
+}
+$('#btnSendMore').onclick = e => {
+  e.stopPropagation();
+  const on = !sendMenu.classList.contains('on');
+  closeSendMenu();
+  if (!on) return;
+  sendMenu.classList.add('on');
+  $('#btnSendMore').setAttribute('aria-expanded', 'true');
+  clearShareFlag();
+  renderApprove(); renderShare();
+};
+// Signing off ends the review for everyone, so it asks once — the same second
+// click Clear all asks for.
+$('#btnApprove').onclick = () => {
+  if (!approveArmed) {
+    approveArmed = setTimeout(() => { approveArmed = null; renderApprove() }, 4000);
+    renderApprove();
+    return;
+  }
+  clearTimeout(approveArmed); approveArmed = null;
+  approve();
+};
+document.addEventListener('pointerdown', e => {
+  if (sendMenu.classList.contains('on') && !e.target.closest('#sendMenu, #btnSendMore')) closeSendMenu();
+});
+
+/* ─────────────── the shareable copy ───────────────
+   The workspace cannot publish an Artifact — only Claude can. So this asks, the
+   same way cancel and approve ask, and the link comes back down the same wire
+   the page reloads on. */
+function adoptShare (data, announce) {
+  const had = S.share.url;
+  S.share = {
+    url: data.shareUrl || null,
+    version: data.shareVersion || null,
+    pending: !!data.sharePending,
+  };
+  const fresh = !!S.share.url && S.share.url !== had;
+  if (fresh) $('#btnSendMore').classList.add('flag');
+  renderShare();
+  if (fresh && announce) toast(T('shareGot'));
+}
+function renderShare () {
+  const b = $('#btnShare');
+  if (S.runtime === 'artifact') { b.hidden = true; $('#sendMenu .mrule').hidden = true; return }
+  const s = S.share;
+  b.disabled = s.pending;
+  if (s.pending) { b.querySelector('.t').textContent = T('shareWorking'); b.querySelector('.d').textContent = T('shareWait'); return }
+  if (s.url && s.version === S.version) {
+    b.querySelector('.t').textContent = T('shareReady');
+    b.querySelector('.d').innerHTML = `<span class="url">${esc(s.url)}</span>`;
+    return;
+  }
+  b.querySelector('.t').textContent = s.url ? T('shareStale') : T('share');
+  b.querySelector('.d').textContent = s.url ? T('shareStaleHint')(s.version) : T('shareHint');
+}
+async function requestShare () {
+  const s = S.share;
+  // A link that is already current is a link to copy, not one to ask for again.
+  if (s.url && s.version === S.version) { copy(s.url); closeSendMenu(); return }
+  S.share.pending = true; renderShare();
+  try {
+    await fetch('/api/share', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: S.version }),
+    });
+    toast(T('shareAsked'));
+  } catch { S.share.pending = false; renderShare(); toast(T('shareFail')) }
+  closeSendMenu();
+}
+$('#btnShare').onclick = requestShare;
+
+async function approve () {
+  closeSendMenu();
+  const open = S.ann.filter(a => a.status !== 'addressed' && hasSubstance(a));
+  if (S.runtime === 'artifact') { showDone(); return }
+  try {
+    await fetch('/api/approve', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        version: S.version,
+        openComments: open.map(a => ({ id: a.id, note: a.note })),
+      }),
+    });
+    showDone();
+  } catch { toast(T('approveFail')) }
+}
+function showDone () {
+  clearWorking();
+  closeComposer();
+  setMode('view');
+  hideWork();
+  $('#doneTitle').textContent = T('approvedTitle');
+  $('#doneBody').textContent = T('approvedBody');
+  $('#doneScreen').classList.add('on');
+}
 async function copy (t) {
   try { await navigator.clipboard.writeText(t); toast(T('copied')) }
   catch {

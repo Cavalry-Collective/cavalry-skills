@@ -21,7 +21,7 @@ Establish before building — ask only what you genuinely can't infer, in one me
 
 - **What screen**, and what the user is trying to do on it.
 - **Which screen size leads** — the workspace offers ultrawide (2560), desktop (1440), tablet (834) and phone (390).
-- **Visual reference** — a website to match, or the project's design system (see §2).
+- **Visual reference** — a site to match, screenshots to match, or the project's design system (§2). If they name a site or hand you images, **capture it before building** (§2a).
 - **States** — which loading / empty / error states matter enough to be shown.
 
 Keep the first pass deliberately lean. The review loop is how it gets rich; a bloated v1 wastes the user's first review on deletions.
@@ -30,10 +30,42 @@ Keep the first pass deliberately lean. The review loop is how it gets rich; a bl
 
 In priority order — see `references/design-sources.md` for the detail:
 
-1. **A reference site the user names** — open it with the Chrome tools, screenshot it, and extract the real palette / type scale / spacing / radii / component shapes.
-2. **Reference screenshots the user provides** — read them and derive the same.
+1. **A reference site the user names** — capture it (§2a) rather than describing it from memory.
+2. **Reference screenshots the user provides** — Read every one and derive the same, saying what you inferred.
 3. **The project's design system** — a `design/` folder with `tokens.css` (+ often `design-guide.html`, `CLAUDE.md`). Use its tokens verbatim. **If it ships its own principles doc, read it and follow it — it outranks the defaults below.**
 4. Nothing found → ask, don't invent silently.
+
+### 2a · Building from an existing site
+
+**A URL or a screenshot is a design source, not a description of one.** When the user
+says "like Linear", "match our admin", or drops a screenshot in, don't work from an
+impression of it — capture it, write down what you measured, and build against those
+numbers.
+
+With a **URL**, use the Chrome tools:
+
+1. `navigate` to it in a new tab. Dismiss the cookie banner (decline non-essential) so
+   it isn't in the screenshots or the measurements.
+2. `resize_window` and screenshot at each size the mockup needs — 1440 first, then 390
+   if the design has to work small. Save them beside the mockup.
+3. Run **`assets/harvest-reference.js`** with the javascript tool. It returns JSON —
+   the palette weighted by how much of the page it covers, the type scale actually in
+   use, spacing rhythm, radii, shadows, and the layout skeleton (nav model, content
+   width, grid columns, how many tables and inputs). Read it out of the page rather
+   than off a screenshot: a colour eyeballed from an image is always slightly wrong,
+   and twenty slightly-wrong values is exactly what makes a mockup look like a knock-off.
+4. If a signed-in view is the real reference, ask the user to navigate there themselves
+   and say when to capture — never enter credentials.
+
+With **screenshots**, derive the same list by eye and mark each value as inferred.
+
+Either way, write the result to `<page-dir>/<name>-reference.md` — the measured tokens,
+the structure notes, the screenshot paths, and which real font each system-font stack is
+standing in for. **Every later round reads that file instead of re-capturing**, which is
+what stops v4 from drifting away from the thing it is supposed to look like.
+
+Copying a *layout* is the point; copying logos, wordmarks, photography or copy is not —
+those stay as placeholders.
 
 Default principles, unless the design source overrides them:
 
@@ -76,17 +108,36 @@ The page opens in **its own browser window** on the canvas — own viewport, own
 | **View / Annotate** | two modes, **space** toggles. **View hides every annotation** so the page is judged as it really is; Annotate brings them back |
 | **Click** | a comment pin at that spot |
 | **Drag** | an area comment over that region |
-| Either way | the note opens **on the canvas** where the mark is, defaulting to **must**. A comment with nothing typed in it is discarded on dismiss |
+| Either way | the note opens **on the canvas** where the mark is. A comment with nothing typed in it is discarded on dismiss |
 | Captions | stay hidden — a mark shows its note when it's open, or on hover in Annotate |
 | **Screen size** | ultrawide · desktop · tablet · phone. A comment belongs to the size it was made at and only shows there |
 | **Thread** | your replies appear on the comment itself; they answer underneath |
+| **Save** (⌘⏎) | on the comment — the same commit ⌘⏎ has always done, now visible |
 | **Timeline** (bottom) | drag the handle to scrub through published versions; history is read-only |
 | **EN / 中文** | workspace chrome only — comments stay in whatever words they were written in |
 | **Delete** | on the comment, once it has words in it |
 | **Clear all** | in the comment list footer, behind a confirm |
+| **Link status** | a dot beside Send — linked to your session, or link lost. Nothing is said until the connection has actually answered |
 | **Send to Claude** (⌘⏎) | sends straight through — no preview step — and wakes you up. It greys out until something actually changes |
+| **In flight** | every comment you were sent keeps an indeterminate progress bar until you publish or reply. No banner covers the page any more — the progress is on the comments it belongs to |
+| **Addressed** | comments you closed stay in the list in their own section, each offering **Revert** or **Refine** |
+| **Publish a shareable link** (the ▾ beside Send) | asks you for an Artifact copy they can send to someone else. The link comes back into that same menu, tagged with the version it was published from |
+| **Approve & finish** (the ▾ beside Send) | sign-off. Ends the review, closes the server, and tells you the design is settled — behind a confirm that warns how many comments are being left unapplied |
+| **Cancel** | stops the round you're working on. Not a kill: finish what you were mid-way through, then say what you'd already changed |
 
-There is no resolve button: **you** close comments out by addressing them. Comments are located by where they are and the words they sit on — never by CSS selectors, and the user never sees markup.
+There is no per-comment resolve button: **you** close comments out by addressing them. Approve is the
+whole-page verdict, not an item-by-item one — one click that means *the design is done*, which is the
+only way the review ends deliberately rather than by the tab closing. Comments are located by where
+they are and the words they sit on — never by CSS selectors, and the user never sees markup.
+
+**Addressed is your word for it, not the last word.** A comment you closed can come back:
+
+- **Refine** reopens it as it stands — read the note and the thread again, it did not go far enough.
+- **Revert** reopens it asking you to undo what you did there, and posts that as a reply in its thread.
+
+Either way the comment returns in the next brief with `reopened: true` (and `wantsRevert: true` for a
+revert), marked `· REVERT` in the markdown. Nothing else can un-address a comment — the server only
+accepts a status going backwards when the reviewer deliberately sent it back.
 
 ## 5 · Catch the review, and hold up your end of the conversation
 
@@ -94,17 +145,32 @@ After starting the server, arm a waiter with **`run_in_background: true`**. It e
 
 ```bash
 STORE="$(dirname "$FILE")/.ui-review/$(basename "$FILE" .html)"
-until [ -f "$STORE/pending" ] || [ ! -f "$STORE/url" ]; do sleep 2; done
-[ -f "$STORE/pending" ] && cat "$STORE/pending" || echo "review closed"
+until [ -f "$STORE/pending" ] || [ -f "$STORE/approved" ] || [ -f "$STORE/cancel" ] \
+   || [ -f "$STORE/share" ] || [ ! -f "$STORE/url" ]; do sleep 2; done
+if   [ -f "$STORE/approved" ]; then echo "APPROVED";  cat "$STORE/approved"
+elif [ -f "$STORE/cancel" ];   then echo "CANCELLED"; cat "$STORE/cancel"
+elif [ -f "$STORE/share" ];    then echo "SHARE";     cat "$STORE/share"
+elif [ -f "$STORE/pending" ];  then cat "$STORE/pending"
+else echo "review closed"; fi
 ```
 
-It ends either way: a review landed, or the user closed the tab and the server
-shut itself down. On **`review closed`**, don't re-arm — say the review is
-closed. Otherwise:
+**Check the sentinels before falling through** — approve also closes the server, so a
+waiter that only looks at `url` reports a signed-off design as a closed tab and throws the verdict
+away. Five outcomes:
+
+| | What it means | What you do |
+|---|---|---|
+| **`APPROVED`** | the design is signed off; the server has closed itself | don't re-arm. Say it's approved, note any `openComments` deliberately left, and carry on with whatever comes next |
+| **`CANCELLED`** | stop this round | finish or abandon cleanly, then tell the reviewer what you had already changed. Delete `cancel` and re-arm |
+| **`SHARE`** | they want a link to send someone | publish the Artifact and hand the URL back (§6), then re-arm. The review carries on — this is not an ending |
+| a JSON blob | a review landed | apply it — the steps below |
+| **`review closed`** | the tab went away without a verdict | don't re-arm; say the review is closed |
+
+On a review landing:
 
 1. Delete the `pending` file — or the next waiter returns instantly.
-2. Read `feedback.md` (its path is inside `pending`). It carries a markdown brief plus a JSON block with every comment's place, anchor text, severity, screen size and thread.
-3. **Apply every comment that isn't addressed**, `must` first. Locate each from its **anchor text plus coordinates** at the screen size it was made at.
+2. Read `feedback.md` (its path is inside `pending`). It carries a markdown brief plus a JSON block with every comment's place, anchor text, screen size and thread.
+3. **Apply every comment that isn't addressed.** There are no priorities to sort by — if the reviewer wrote it down, it needs doing. Locate each from its **anchor text plus coordinates** at the screen size it was made at.
 4. **Ask instead of guessing.** If a comment is ambiguous, reply to it — the question appears on the mark itself and the user answers there:
    ```bash
    node "$SKILL/assets/review-server.mjs" reply --file "$FILE" \
@@ -128,22 +194,41 @@ server removes `url` and exits. That exit re-invokes you and ends the waiter.
 **say when the review is closed** — the user should never have to guess whether
 a socket is still open.
 
-The workspace never swaps the page out from under the reviewer: while you work it shows *"Claude is working…"*, and on publish it offers **"vN is ready — Review changes"**. Publish once, when the round is done.
+The workspace never swaps the page out from under the reviewer: while you work, each comment you were
+sent carries its own progress bar, and on publish the page offers **"vN is ready — Review changes"**.
+Nothing interrupts them mid-round. Publish once, when the round is done.
 
-## 6 · Share it for review
+## 6 · Publish it as an Artifact
 
-For anyone who isn't at this machine, flatten the same workspace into one self-contained file and publish it with the Artifact tool (favicon `🎨`):
+For anyone who isn't at this machine, flatten the whole workspace into one self-contained
+file and publish it. Do this when the reviewer asks in chat, or when the waiter returns
+**`SHARE`** — they pressed *Publish a shareable link* under the ▾ and the menu is showing
+them a spinner until the URL arrives.
 
 ```bash
 node "$SKILL/assets/bundle-artifact.mjs" --file "$FILE" --out review.html
 ```
 
-The page and the last 3 versions are inlined; comments persist in `localStorage`; **Send** becomes **Copy for Claude**.
+Then publish `review.html` with the **Artifact** tool (favicon `🎨`) and hand the URL back
+so it appears in the workspace:
+
+```bash
+node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "<artifact-url>"
+```
+
+- The page and the last 3 versions are inlined; comments persist in `localStorage`;
+  **Send** becomes **Copy for Claude**; the cancel/approve/share actions are local-only
+  and disappear.
+- The link is tagged with the version it was built from. Publish again after a later
+  round and the menu offers *Republish* instead of a stale link — **redeploy from the
+  same file path** so the URL stays the same and anyone holding it sees the new version.
+- Delete the `share` sentinel once you've handed the URL back; `share --url` does it for
+  you. Then re-arm the waiter — sharing does not end the review.
 
 ## Notes
 
-- **Never edit `assets/workspace.html`, `review-server.mjs` or `bundle-artifact.mjs`** to fit a project — they're the engine. Only the page under review is yours.
-- State lives in `<dir>/.ui-review/<name>/` beside the file — versions, reviews, threads, and the `pending` sentinel. The page itself stays clean.
+- **Never edit `assets/workspace.html`, `review-server.mjs` or `bundle-artifact.mjs`** to fit a project — they're the engine. Only the page under review is yours. (`harvest-reference.js` is meant to be pasted and run, not edited.)
+- State lives in `<dir>/.ui-review/<name>/` beside the file — versions, reviews, threads, and the sentinels. The page itself stays clean.
 - The server binds to `127.0.0.1` only. Port 7788 busy usually means a review server is already running — pass `--port`.
-- `node "$SKILL/assets/review-server.mjs" status --file "$FILE"` prints the current version and whether a review is waiting.
+- `node "$SKILL/assets/review-server.mjs" status --file "$FILE"` prints the current version, whether a review is waiting, and any cancel / sign-off / share request outstanding.
 - Full command reference and troubleshooting: `references/workflow.md`.

@@ -84,7 +84,7 @@ const shell = fs.readFileSync(path.join(HERE, 'workspace.html'), 'utf8')
 // stops any `</script>` in the mockup markup from closing our data island.
 const json = JSON.stringify(bundle).replace(/</g, '\\u003c')
 
-const out = shell.replace(
+let out = shell.replace(
   '<script id="bundle" type="application/json">null</script>',
   `<script id="bundle" type="application/json">${json}</script>`
 )
@@ -92,6 +92,11 @@ if (out === shell) {
   console.error('Could not find the bundle placeholder in workspace.html')
   process.exit(1)
 }
+/* The workspace sets its title from the page once it boots, but a published
+   Artifact is catalogued by the <title> in the file — so a bundle that ships the
+   placeholder gets filed under "Review" alongside every other one. Name it. */
+const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
+out = out.replace('<title>Review</title>', `<title>${esc(name)} — Review</title>`)
 
 const dest = path.resolve(args.out || path.join(DIR, `${NAME}-review.html`))
 fs.mkdirSync(path.dirname(dest), { recursive: true })

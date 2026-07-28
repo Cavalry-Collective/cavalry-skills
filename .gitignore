@@ -1,0 +1,6 @@
+# ui-review keeps its state beside the page under review: frozen versions,
+# annotations, threads, and a `url` file naming a live localhost port. All of it
+# belongs to one machine mid-review, none of it belongs in the repo.
+.ui-review/
+
+.DS_Store

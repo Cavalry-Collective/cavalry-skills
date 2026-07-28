@@ -12,6 +12,7 @@
  *   node review-server.mjs serve   --file <page.html> [--port 7788] [--idle-timeout 90]
  *   node review-server.mjs publish --file <page.html> --label "…" [--addressed c1,c3]
  *   node review-server.mjs reply   --file <page.html> --comment <id> --text "…"
+ *   node review-server.mjs share   --file <page.html> --url <artifact-url>
  *   node review-server.mjs status  --file <page.html>
  *
  * State lives in a sibling directory, out of the way of the page:
@@ -20,6 +21,9 @@
  *     versions/v<n>.html    frozen copy of each published version
  *     reviews/v<n>/         annotations.json · feedback.json · feedback.md
  *     pending               sentinel written on send, watched by Claude
+ *     cancel                sentinel written when the reviewer calls a round off
+ *     approved              sentinel written on sign-off — the review is over
+ *     share                 sentinel — they want a shareable Artifact link
  *     url                   the live URL — present only while the server runs
  *
  * The server closes itself when the browser tab does: the workspace holds an
@@ -70,6 +74,9 @@ const P = {
   version: n => path.join(STORE, 'versions', `v${n}.html`),
   review: n => path.join(STORE, 'reviews', `v${n}`),
   pending: () => path.join(STORE, 'pending'),
+  cancel: () => path.join(STORE, 'cancel'),
+  approved: () => path.join(STORE, 'approved'),
+  share: () => path.join(STORE, 'share'),
   url: () => path.join(STORE, 'url'),
 }
 
@@ -141,7 +148,14 @@ function cmdPublish (quiet) {
   state.version = n
   state.name = pageName()
   saveState(state)
-  if (!quiet) console.log(`Published v${n}${hit ? ` — ${hit} item(s) marked addressed` : ''}`)
+  // A round that reaches publish is over, whatever was asked of it mid-flight —
+  // leaving the sentinel behind would fire the next waiter the instant it arms.
+  const hadCancel = fs.existsSync(P.cancel())
+  if (hadCancel) fs.rmSync(P.cancel(), { force: true })
+  if (!quiet) {
+    console.log(`Published v${n}${hit ? ` — ${hit} item(s) marked addressed` : ''}`)
+    if (hadCancel) console.log('  (cleared a cancel request — say what you did and did not do)')
+  }
   touch()
 }
 
@@ -176,6 +190,26 @@ function cmdReply () {
   process.exit(1)
 }
 
+/**
+ * Hand the published Artifact's URL back to the workspace. It appears under the
+ * ▾ beside Send, tagged with the version it was published from — so a link that
+ * has gone stale says so instead of quietly misleading whoever you sent it to.
+ */
+function cmdShare () {
+  const url = args.url
+  if (!url || url === true) {
+    console.error('Need --url <artifact-url>')
+    process.exit(1)
+  }
+  const state = loadState()
+  state.shareUrl = String(url)
+  state.shareVersion = Number(args.version) || state.version
+  saveState(state)
+  fs.rmSync(P.share(), { force: true })
+  console.log(`Shareable link recorded for v${state.shareVersion} — it is now in the workspace`)
+  touch()
+}
+
 function cmdStatus () {
   const state = loadState()
   console.log(JSON.stringify({
@@ -184,6 +218,10 @@ function cmdStatus () {
     version: state.version,
     versions: listVersions().map(v => `v${v.n}: ${v.label}`),
     pendingReview: fs.existsSync(P.pending()) ? readJSON(P.pending(), {}) : null,
+    cancelRequest: fs.existsSync(P.cancel()) ? readJSON(P.cancel(), {}) : null,
+    approved: fs.existsSync(P.approved()) ? readJSON(P.approved(), {}) : null,
+    shareRequest: fs.existsSync(P.share()) ? readJSON(P.share(), {}) : null,
+    shareUrl: loadState().shareUrl || null,
   }, null, 2))
 }
 
@@ -191,6 +229,8 @@ function cmdStatus () {
 
 const clients = new Set()
 let reloadTimer = null
+/* Set once the server is listening, so a request handler can end the review. */
+let closeServer = null
 /* Live-page bookkeeping, so the server can close itself when the tab does. */
 let everConnected = false
 let idleSince = null
@@ -240,13 +280,17 @@ function payload () {
     currentVersion: state.version,
     html: fs.readFileSync(FILE, 'utf8'),
     versions, reviews,
+    shareUrl: state.shareUrl || null,
+    shareVersion: state.shareVersion || null,
+    sharePending: fs.existsSync(P.share()),
   }
 }
 
 /**
  * The workspace autosaves its whole list, so a reply written here between its
  * last fetch and its next save would be lost. The stored thread wins on length,
- * and a client can never un-address a comment.
+ * and a client can never un-address a comment by accident — only deliberately,
+ * by hitting Revert or Refine, which stamps `reopenedAt`.
  */
 function mergeIncoming (n, incoming) {
   const stored = readJSON(path.join(P.review(n), 'annotations.json'))?.annotations
@@ -257,7 +301,7 @@ function mergeIncoming (n, incoming) {
     if (!prev) return a
     const merged = { ...a }
     if ((prev.replies || []).length > (a.replies || []).length) merged.replies = prev.replies
-    if (prev.status === 'addressed' && a.status !== 'addressed') merged.status = 'addressed'
+    if (prev.status === 'addressed' && a.status !== 'addressed' && !a.reopenedAt) merged.status = 'addressed'
     return merged
   })
 }
@@ -331,8 +375,70 @@ async function handle (req, res) {
       feedback: path.join(dir, 'feedback.md'),
       sentAt: new Date().toISOString(),
     })
+    // A new review supersedes any earlier "stop" — they have moved on.
+    fs.rmSync(P.cancel(), { force: true })
     console.log(`\n● Review sent for v${n} — ${body.counts?.total ?? '?'} comment(s) → ${path.join(dir, 'feedback.md')}`)
     return sendJSON(res, 200, { ok: true })
+  }
+  /**
+   * The reviewer changed their mind while you were working. This is a request to
+   * stop, not a hard kill — nothing here can reach into a running turn. Claude
+   * notices it either through the waiter or on its next check, and answers for
+   * whatever it had already done.
+   */
+  /**
+   * "Give me a link I can send to someone." The workspace cannot publish an
+   * Artifact — only Claude can — so this raises the ask and waits. Claude
+   * bundles, publishes, and hands the URL back with `share --url`.
+   */
+  if (p === '/api/share' && req.method === 'POST') {
+    const body = JSON.parse(await readBody(req) || '{}')
+    const n = Number(body.version) || loadState().version
+    writeJSON(P.share(), { page: FILE, name: pageName(), version: n, at: new Date().toISOString() })
+    console.log(`\n◆ Shareable link requested for v${n} — bundle it, publish the Artifact, then:`)
+    console.log(`    node review-server.mjs share --file "${FILE}" --url <artifact-url>`)
+    touch()
+    return sendJSON(res, 200, { ok: true })
+  }
+  if (p === '/api/cancel' && req.method === 'POST') {
+    const body = JSON.parse(await readBody(req) || '{}')
+    const n = Number(body.version) || loadState().version
+    writeJSON(P.cancel(), {
+      page: FILE,
+      name: pageName(),
+      version: n,
+      comments: body.comments || [],
+      reason: body.reason || 'The reviewer cancelled this round.',
+      at: new Date().toISOString(),
+    })
+    fs.rmSync(P.pending(), { force: true })
+    console.log(`\n■ Cancel requested on v${n} — stop, then tell the reviewer what you had already changed`)
+    touch()
+    return sendJSON(res, 200, { ok: true })
+  }
+  /**
+   * Sign-off. The review is over: write the verdict and close the server, which
+   * removes `url` and ends the waiter — so the same exit that means "tab closed"
+   * now carries a reason, and Claude carries on with the design settled.
+   */
+  if (p === '/api/approve' && req.method === 'POST') {
+    const body = JSON.parse(await readBody(req) || '{}')
+    const n = Number(body.version) || loadState().version
+    writeJSON(P.approved(), {
+      page: FILE,
+      name: pageName(),
+      version: n,
+      openComments: body.openComments || [],
+      at: new Date().toISOString(),
+    })
+    fs.rmSync(P.pending(), { force: true })
+    fs.rmSync(P.cancel(), { force: true })
+    const left = (body.openComments || []).length
+    console.log(`\n✓ Approved at v${n}${left ? ` — ${left} comment(s) left unapplied` : ''} — the review is closed`)
+    sendJSON(res, 200, { ok: true })
+    // Let the response land before the socket goes away with the process.
+    setTimeout(() => closeServer && closeServer('approved'), 350)
+    return
   }
 
   // Anything the page references (images, shared css) resolves beside it.
@@ -346,6 +452,11 @@ async function handle (req, res) {
 function cmdServe () {
   // Serving an unpublished page would name a version with no frozen copy.
   if (loadState().version === 0) cmdPublish(true)
+  // Terminal signals belong to the review that raised them. A new one starts
+  // clean, or the first waiter it arms fires on last week's verdict.
+  fs.rmSync(P.approved(), { force: true })
+  fs.rmSync(P.cancel(), { force: true })
+  fs.rmSync(P.share(), { force: true })
   const port = Number(args.port || 7788)
   const server = http.createServer((req, res) => {
     handle(req, res).catch(e => { try { sendJSON(res, 500, { error: String(e) }) } catch {} })
@@ -371,6 +482,7 @@ function cmdServe () {
     console.log(`closed (${why})`)
     process.exit(0)
   }
+  closeServer = close
 
   const idleTimeout = args['idle-timeout'] === undefined ? 90 : Number(args['idle-timeout'])
   if (idleTimeout > 0) {
@@ -399,9 +511,10 @@ function cmdServe () {
 switch (args._) {
   case 'publish': case 'snapshot': cmdPublish(); break
   case 'reply': cmdReply(); break
+  case 'share': cmdShare(); break
   case 'status': cmdStatus(); break
   case 'serve': cmdServe(); break
   default:
-    console.error(`Unknown command "${args._}". Use: serve | publish | reply | status`)
+    console.error(`Unknown command "${args._}". Use: serve | publish | reply | share | status`)
     process.exit(1)
 }

@@ -20,8 +20,18 @@ mockups/
         feedback.md              the brief you read
         feedback.json            the same, structured
       pending                    sentinel — written on send, deleted by you
+      cancel                     sentinel — the reviewer called this round off
+      approved                   sentinel — signed off; the review is over
+      share                      sentinel — they want a shareable Artifact link
       url                        the live URL — exists only while serving
 ```
+
+`pending`, `cancel`, `approved` and `share` are the four ways the workspace
+reaches you, and only one is ever meaningful at a time: sending clears `cancel`,
+cancelling clears `pending`, approving clears both, publishing clears `cancel`,
+and `serve` clears `cancel`, `approved` and `share` at startup so a new review
+never fires on an old verdict. You delete `pending` and `cancel` once you have
+acted on them; `share --url` clears `share` for you.
 
 ## Commands
 
@@ -39,7 +49,10 @@ node "$SKILL/assets/review-server.mjs" reply --file "$FILE" \
 node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788
 node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --idle-timeout 0   # stay up until stopped
 
-# where are we
+# hand back the published Artifact URL — it appears under the ▾ in the workspace
+node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "https://claude.ai/public/artifacts/…"
+
+# where are we — current version, a waiting review, a cancel, a sign-off, a share request
 node "$SKILL/assets/review-server.mjs" status --file "$FILE"
 
 # shareable single file
@@ -59,14 +72,27 @@ fixing up a version nobody has reviewed yet.
 
 ```bash
 STORE="$(dirname "$FILE")/.ui-review/$(basename "$FILE" .html)"
-until [ -f "$STORE/pending" ] || [ ! -f "$STORE/url" ]; do sleep 2; done
-[ -f "$STORE/pending" ] && cat "$STORE/pending" || echo "review closed"
+until [ -f "$STORE/pending" ] || [ -f "$STORE/approved" ] || [ -f "$STORE/cancel" ] \
+   || [ -f "$STORE/share" ] || [ ! -f "$STORE/url" ]; do sleep 2; done
+if   [ -f "$STORE/approved" ]; then echo "APPROVED";  cat "$STORE/approved"
+elif [ -f "$STORE/cancel" ];   then echo "CANCELLED"; cat "$STORE/cancel"
+elif [ -f "$STORE/share" ];    then echo "SHARE";     cat "$STORE/share"
+elif [ -f "$STORE/pending" ];  then cat "$STORE/pending"
+else echo "review closed"; fi
 ```
 
 Run with `run_in_background: true`. It ends when the user hits **Send to
-Claude**, or when they close the tab and the server shuts itself down — the
-`url` file exists only while the server is listening, so the loop can never
-outlive the review. First thing after waking on a review: delete `pending`.
+Claude**, **Approve**, **Cancel** or **Publish a shareable link**, or when they close the tab and the server
+shuts itself down — the `url` file exists only while the server is listening, so
+the loop can never outlive the review. Test the sentinels before falling through
+to `review closed`: approve closes the server too, so a waiter that only watches
+`url` reports a signed-off design as an abandoned tab. First thing after waking
+on a review: delete `pending`.
+
+**Cancel is a request, not a kill.** Nothing can reach into a turn you are
+already running — the sentinel is how the reviewer says *stop*, and you answer
+for whatever you had already changed. If you are working a long round, check for
+`$STORE/cancel` before you publish.
 
 **Arm exactly one waiter per review.** Re-arming without stopping the previous
 one leaves loops polling paths that no longer exist.
@@ -80,13 +106,14 @@ bottom is the same data structured. Each comment:
 |---|---|
 | `id` | pass back via `--addressed` once handled |
 | `kind` | `comment` (a point) or `area` (a region) |
-| `severity` | `must` → `should` → `nice`, work in that order |
-| `note` | the reviewer's words — the actual requirement |
+| `note` | the reviewer's words — the actual requirement. **Every comment is a must**; there is no severity to triage by |
 | `anchorText` | the words on screen under the mark — how you locate it |
 | `screenSize` | `ultrawide` / `desktop` / `tablet` / `phone` — the layout it was made at |
 | `point` / `rect` | where, in the page's own coordinates at that size |
 | `status` | `open` (yours to act on) · `question` (you asked, waiting on them) · `addressed` |
 | `replies` | the thread so far — `{by: 'claude' \| 'reviewer', text, at}` |
+| `reopened` | you closed this once and it came back — read it again before touching anything |
+| `wantsRevert` | undo what you did here first; the note stands only if it still makes sense afterwards |
 | `fromVersion` | earlier than the current version = it was already asked once |
 
 There are deliberately **no CSS selectors** anywhere. A comment is a place, some
@@ -104,6 +131,13 @@ The reviewer has no resolve button — `publish --addressed <ids>` is the only
 thing that closes a comment out, so anything you skip comes back next round.
 They can delete a comment or clear the lot, but they cannot mark one done.
 Emptying a comment's text deletes it, so an empty comment never reaches you.
+
+What they *can* do is send one back. Addressed comments stay in their list under
+their own heading with **Revert** and **Refine** beside them; either reopens the
+comment and returns it next round, revert with a reply asking for the change to
+be undone. That is the only path by which a status goes backwards — the server
+refuses an un-address from a client unless the annotation carries the
+`reopenedAt` stamp those two buttons write.
 
 Send is one click with no preview, and greys out until a comment is added,
 edited or answered — so a review landing on your waiter always contains
