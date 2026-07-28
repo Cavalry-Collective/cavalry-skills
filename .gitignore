@@ -1,4 +1,5 @@
-# ui-review keeps its state beside the page under review: frozen versions,
+# wireframe keeps its state beside the page under review — the directory is
+# still named .ui-review/ from before the rename, on purpose: frozen versions,
 # annotations, threads, and a `url` file naming a live localhost port. All of it
 # belongs to one machine mid-review, none of it belongs in the repo.
 .ui-review/
