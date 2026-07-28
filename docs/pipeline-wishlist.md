@@ -45,7 +45,7 @@ Three rules fall out of it:
   its JSON *is* the plan, and any markdown is generated from it. Every visual stage inherits that.
   A picture generated *from* a document drifts from it; a document generated *from* the picture
   can't.
-- **No approve/reject.** It's tedious and it produces false approval — the same reason `ui-review`
+- **No approve/reject.** It's tedious and it produces false approval — the same reason `wireframe`
   has no resolve button today. You change what's wrong and the change *is* the feedback.
 - **Edits flow back without copy-paste.** Both live-link mechanisms in this repo already do this;
   see *One engine, not eight* below.
@@ -133,7 +133,7 @@ Three things settled while building it, worth carrying into the rest of the chai
 When the pipeline exists, the only change is where it reads its inputs from and that it writes
 `artifacts.wireframes[].phases`.
 
-**It is not yet visual.** It writes one file per phase and hands each to `ui-review` separately —
+**It is not yet visual.** It writes one file per phase and hands each to `wireframe` separately —
 correct output, wrong shape for the question people ask. The phase slider is the fix; see
 *What each stage looks like* below.
 
@@ -210,9 +210,9 @@ deeper only where you care, and depth is never in your way.
 - **Live sync both ways**, like the wireframe: your changes reach the session, and when the spec is
   regenerated the page offers a refresh rather than yanking the tree out from under you.
 
-### 5 · `phase-wireframe` — the phase slider
+### 5 · `phase-wireframe` — the phase slider · **view only**
 
-Today it writes one file per phase and hands each to `ui-review` separately. That's the wrong shape
+Today it writes one file per phase and hands each to `wireframe` separately. That's the wrong shape
 for the question people actually ask, which is *"what changes between phases?"* — and you can't see
 that by opening three files in three tabs.
 
@@ -220,8 +220,21 @@ Instead: the page in its own frame, **a slider along the bottom, one stop per ph
 the design fills in as features arrive. Phase 1 → 2 → 3 becomes a motion you can scrub, so what each
 phase adds is obvious at a glance.
 
-`ui-review` already ships almost exactly this — its version timeline is a draggable handle that
-scrubs published versions. Same interaction, different axis. Build it once (see below).
+`wireframe` already ships almost exactly this — its version timeline is a draggable handle that
+scrubs published versions. Same interaction, different axis.
+
+**Reviewed to v5 in [`mockups/phase-wireframe-slider.html`](mockups/phase-wireframe-slider.html).**
+It ended up *being* the wireframe workspace — same tokens, same topbar, same canvas and browser
+window, same timeline markup — with the version rail showing phases and one addition, a
+**Highlight new** switch. That is the strongest form of "one engine, not eight" found so far: not a
+shared library, the same page serving a second purpose.
+
+**It is view-only, deliberately.** Annotate, the comments panel and Send are all removed, because
+**how editing should work here is unresolved**. The instinct is that changing something on a phase
+view should change the *story map* — the phase truth lives in `specs/story-map.json`, so dragging a
+feature into a later phase here is really a re-slice there. Nobody has designed what that looks
+like. Until someone does, this stage shows and does not edit; a viewer that can't lie is worth more
+than an editor that edits the wrong file.
 
 ### 6–8 · `phase-build-*` — the mind maps
 
@@ -249,7 +262,7 @@ that colours from the plan will confidently lie the first time a phase ships lat
 Six stages above want the same three components. Building them per-skill would be six copies of the
 hard parts and six places for them to drift.
 
-**The live link.** This repo already has two implementations of it — `ui-review`'s SSE server
+**The live link.** This repo already has two implementations of it — `wireframe`'s SSE server
 (`review-server.mjs`) and the story map's `bridge.py`. They do the same job: serve a self-contained
 page on `127.0.0.1`, wake the session when the user sends, push updates back as an offered refresh
 rather than a silent overwrite, and shut down cleanly when the tab closes. **Writing a third and
@@ -261,7 +274,7 @@ new visual stage, not after two more copies exist.
 drag-to-reparent, and a two-state colour scheme. That is one component fed four datasets, not four
 components.
 
-**The scrubber.** `phase-wireframe`'s phase slider and `ui-review`'s version timeline are the same
+**The scrubber.** `phase-wireframe`'s phase slider and `wireframe`'s version timeline are the same
 control over different axes.
 
 One constraint shapes all three: these pages are **self-contained, no external requests** — it's what
@@ -502,7 +515,7 @@ Rough order, each step independently useful:
 4. **`next`** — small, and it proves the state file that everything after depends on.
 5. **`requirements`**, from another round of design — the v6 mockup was parked, not approved. It is
    also the first mind map, so the graph-layout question gets settled here.
-6. **The `ui-review` → `wireframe` rename + footers**, once the state file has stopped moving.
+6. ~~**The `ui-review` → `wireframe` rename**~~ — **done**. Footers still to come, once the state file has stopped moving.
 7. **`spec`** — the drill-down. Note it must consume whatever `requirements` ends up emitting; the
    current mockup still assumes a feature list rather than a concept graph.
 8. **`phase-build-*`**, last, and only once *existing vs new* has an answer. Three stages sharing one

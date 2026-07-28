@@ -121,7 +121,7 @@ The page opens in **its own browser window** on the canvas — own viewport, own
 | **Send to Claude** (⌘⏎) | sends straight through — no preview step — and wakes you up. It greys out until something actually changes |
 | **In flight** | every comment you were sent keeps an indeterminate progress bar until you publish or reply. No banner covers the page any more — the progress is on the comments it belongs to |
 | **Addressed** | comments you closed stay in the list in their own section, each offering **Revert** or **Refine** |
-| **Publish a shareable link** (the ▾ beside Send) | asks you for an Artifact copy they can send to someone else. The link comes back into that same menu, tagged with the version it was published from |
+| **Publish a shareable link** (the ▾ beside Send) | asks you to publish **the wireframe** as an Artifact they can send to someone else — the design, not the review workspace. The link comes back into that same menu, tagged with the version it was published from |
 | **Approve & finish** (the ▾ beside Send) | sign-off. Ends the review, closes the server, and tells you the design is settled — behind a confirm that warns how many comments are being left unapplied |
 | **Cancel** | stops the round you're working on. Not a kill: finish what you were mid-way through, then say what you'd already changed |
 
@@ -162,7 +162,7 @@ away. Five outcomes:
 |---|---|---|
 | **`APPROVED`** | the design is signed off; the server has closed itself | don't re-arm. Say it's approved, note any `openComments` deliberately left, and carry on with whatever comes next |
 | **`CANCELLED`** | stop this round | finish or abandon cleanly, then tell the reviewer what you had already changed. Delete `cancel` and re-arm |
-| **`SHARE`** | they want a link to send someone | publish the Artifact and hand the URL back (§6), then re-arm. The review carries on — this is not an ending |
+| **`SHARE`** | they want a link to send someone | publish the wireframe as an Artifact and hand the URL back (§6), then re-arm. The review carries on — this is not an ending |
 | a JSON blob | a review landed | apply it — the steps below |
 | **`review closed`** | the tab went away without a verdict | don't re-arm; say the review is closed |
 
@@ -198,32 +198,43 @@ The workspace never swaps the page out from under the reviewer: while you work, 
 sent carries its own progress bar, and on publish the page offers **"vN is ready — Review changes"**.
 Nothing interrupts them mid-round. Publish once, when the round is done.
 
-## 6 · Publish it as an Artifact
+## 6 · Publish the wireframe as a shareable link
 
-For anyone who isn't at this machine, flatten the whole workspace into one self-contained
-file and publish it. Do this when the reviewer asks in chat, or when the waiter returns
-**`SHARE`** — they pressed *Publish a shareable link* under the ▾ and the menu is showing
-them a spinner until the URL arrives.
+**What gets shared is the wireframe** — the design itself, opening full-bleed the way the
+user will meet it. Not the review workspace: someone you send a link to is looking at the
+screen, not at your comment threads.
 
-```bash
-node "$SKILL/assets/bundle-artifact.mjs" --file "$FILE" --out review.html
-```
+Do this when the reviewer asks in chat, or when the waiter returns **`SHARE`** — they
+pressed *Publish a shareable link* under the ▾ and the menu is showing a spinner until the
+URL arrives.
 
-Then publish `review.html` with the **Artifact** tool (favicon `🎨`) and hand the URL back
+Publish **`$FILE` itself** with the **Artifact** tool (favicon `🎨`), then hand the URL back
 so it appears in the workspace:
 
 ```bash
 node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "<artifact-url>"
 ```
 
-- The page and the last 3 versions are inlined; comments persist in `localStorage`;
-  **Send** becomes **Copy for Claude**; the cancel/approve/share actions are local-only
-  and disappear.
-- The link is tagged with the version it was built from. Publish again after a later
-  round and the menu offers *Republish* instead of a stale link — **redeploy from the
-  same file path** so the URL stays the same and anyone holding it sees the new version.
+- **Publish straight after a `publish`**, so the file on disk is the version you're
+  claiming to have shared. `$FILE` is the live working copy — mid-round it can be ahead of
+  the last published version.
+- The page is already self-contained (§2), so it needs no bundling to survive the
+  Artifact CSP.
+- The link is tagged with the version it came from. After a later round the menu offers
+  *Republish* rather than a stale link — **redeploy from the same file path** so the URL
+  stays put and anyone holding it sees the new version.
 - Delete the `share` sentinel once you've handed the URL back; `share --url` does it for
   you. Then re-arm the waiter — sharing does not end the review.
+
+**If they want to comment remotely**, that's a different artifact and an explicit ask.
+`bundle-artifact.mjs` flattens the whole workspace — page, last 3 versions, and the
+commenting UI — into one file you publish the same way; comments persist in
+`localStorage` and **Send** becomes **Copy for Claude**, since there's no session at the
+other end:
+
+```bash
+node "$SKILL/assets/bundle-artifact.mjs" --file "$FILE" --out review.html
+```
 
 ## Notes
 

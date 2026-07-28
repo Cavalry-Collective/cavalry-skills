@@ -533,7 +533,7 @@ const STR = {
     raised: v => `Raised on v${v} — still unanswered`, onlyOne: 'Only one version so far',
     ultrawide: 'Ultrawide', desktop: 'Desktop', tablet: 'Tablet', phone: 'Phone',
     noServer: 'Could not reach the review server.',
-    save: 'Save', saveHint: 'Everything here is a must.', linkOn: 'Linked', linkOff: 'Link lost',
+    save: 'Save', linkOn: 'Linked', linkOff: 'Link lost',
     linkOffTitle: 'The Claude session is no longer serving this review — anything you write is kept in this tab only.',
     workingOn: n => `Claude is working on ${n} comment${n > 1 ? 's' : ''}`,
     cancel: 'Cancel', cancelled: 'Asked Claude to pause', cancelFail: 'Could not ask Claude to stop',
@@ -590,7 +590,7 @@ const STR = {
     raised: v => `在 v${v} 提出 — 仍未解决`, onlyOne: '目前只有一个版本',
     ultrawide: '超宽屏', desktop: '桌面', tablet: '平板', phone: '手机',
     noServer: '无法连接评审服务器。',
-    save: '保存', saveHint: '这里写的每一条都必须处理。', linkOn: '已连接', linkOff: '连接已断开',
+    save: '保存', linkOn: '已连接', linkOff: '连接已断开',
     linkOffTitle: 'Claude 会话不再提供此评审——你写的内容只保存在这个标签页里。',
     workingOn: n => `Claude 正在处理 ${n} 条批注`,
     cancel: '取消', cancelled: '已请求 Claude 暂停', cancelFail: '无法通知 Claude 停止',
@@ -891,7 +891,6 @@ function applyLang () {
   const st = $('#fStatus');
   [['open', 'open'], ['question', 'asked'], ['', 'all'], ['addressed', 'addressed']]
     .forEach(([v, k], i) => { st.options[i].textContent = T(k) });
-  composer.querySelector('.cfoot .hint').textContent = T('saveHint');
   buildSizes();
   render(); syncTimeline();
   if (S.sel) openComposer(S.sel, false);
