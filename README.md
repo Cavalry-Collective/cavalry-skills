@@ -1,6 +1,8 @@
 # Cavalry Collective — Claude Code Skills
 
-[Claude Code](https://claude.com/claude-code) skills by [Cavalry Collective](https://github.com/Cavalry-Collective), published as the **`cavalry`** plugin. Install once and every skill — current and future — is available under `/cavalry:`.
+**Work on the artifact, not in the chat.**
+
+Skills for [Claude Code](https://claude.com/claude-code) that put the work itself in front of you — a design you comment on, a story map you rearrange — and feed every change straight back to Claude. No screenshots, no copy/paste, no describing a layout in prose.
 
 ## Install
 
@@ -9,36 +11,42 @@
 /plugin install cavalry@cavalry-collective
 ```
 
+One install, every skill — including the ones we haven't shipped yet.
+
 ## Skills
 
-| Skill | What you get |
+| Skill | Why you'll want it |
 | --- | --- |
-| `/cavalry:init` | Set up a new project from [`cavalry-template-spa`](https://github.com/Cavalry-Collective/cavalry-template-spa) — pick your stack and add-ons on one page. |
-| `/cavalry:wireframe` | Review a UI by commenting directly on the page. Claude applies your feedback and publishes the next version while you watch. |
-| `/cavalry:user-story-map` | Plan releases on an interactive story map. Drag stories between phases and send the new slicing straight back to Claude. |
-| `/cavalry:phase-wireframe` | See what an approved design looks like at each release phase — a faithful cut-down of the original, per phase. |
+| `/cavalry:wireframe` | Comment right on the design. Watch the next version appear. |
+| `/cavalry:user-story-map` | Drag stories between releases until the plan feels right. Claude replans around it. |
+| `/cavalry:phase-wireframe` | Everyone approved the mockup — now see what Phase 1 actually looks like. |
+| `/cavalry:init` | New project, one page of choices, done. Powered by [`cavalry-template-spa`](https://github.com/Cavalry-Collective/cavalry-template-spa). |
 
 More on the way — ⭐ watch the repo.
 
-The idea behind all of them: **you work on the artifact, not in the chat**. Feedback happens where the work is — a comment pinned to a button, a card dragged to Phase 2 — and flows back to Claude with no copy/paste.
-
-### wireframe
+### Design review, directly on the page
 
 ![Commenting on a hiring queue in the review workspace](docs/wireframe-example.png)
 
-Try it: open [`examples/wireframe.html`](examples/wireframe.html) in a browser.
+See it for yourself: open [`examples/wireframe.html`](examples/wireframe.html) in a browser.
 
-### user-story-map
+### Release planning on a live story map
 
 ![A checkout-flow story map linked to a Claude session](docs/story-map-example.png)
 
-Try it: open [`examples/shopping-checkout.html`](examples/shopping-checkout.html) in a browser.
+See it for yourself: open [`examples/shopping-checkout.html`](examples/shopping-checkout.html) in a browser.
+
+### See each release phase before you build it
+
+![Scrubbing a candidate pipeline from Phase 1 to Phase 3, with what's new highlighted](docs/phase-wireframe-example.png)
+
+Scrub the timeline to watch a release take shape — **Highlight new** marks what each phase adds.
 
 ## Adding a skill
 
-Any directory added under `plugins/cavalry/skills/<name>/` with a `SKILL.md` ships with the plugin and is invocable as `/cavalry:<name>` — no manifest changes needed.
+Drop a directory with a `SKILL.md` under `plugins/cavalry/skills/<name>/` and it ships as `/cavalry:<name>`. That's it.
 
-To use a single skill without the plugin, copy it into your skills directory:
+Want just one skill, no plugin? Copy it straight in:
 
 ```bash
 git clone https://github.com/Cavalry-Collective/cavalry-skills.git
