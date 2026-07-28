@@ -20,12 +20,104 @@ cp -R cavalry-skills/plugins/cavalry/skills/<skill-name> ~/.claude/skills/
 
 | Skill | Invoke | What it does |
 | --- | --- | --- |
-| [user-story-map](#user-story-map) | `/cavalry:user-story-map` | Interactive drag-and-drop user story map — re-slice stories across release phases, rank everything, track status, tag themes, and send the result straight back to Claude |
-| [wireframe](#wireframe) | `/cavalry:wireframe` | Build a wireframe or mockup, then comment directly on it in a review workspace and send structured feedback straight back to Claude — a two-way loop, like reviewing with a designer |
-| [phase-wireframe](#phase-wireframe) | `/cavalry:phase-wireframe` | Cut one signed-off mockup into a mockup per release phase — each showing only what exists by that phase, with the layout untouched. Subtraction only, checked mechanically |
-| [init](#init) | `/cavalry:init` | Start a project from the Cavalry template — pick the stack and add-ons on a visual chooser, delete the rest, and work through Day-1 until the repo is ready to build in |
+| [init](#init) | `/cavalry:init` | Pick your stack and add-ons on one page. Everything you don't pick is deleted — and you see that list before you commit to it |
+| [wireframe](#wireframe) | `/cavalry:wireframe` | Comment straight on the design. Claude applies what's clear, asks about what isn't, and publishes the next version while you watch |
+| [user-story-map](#user-story-map) | `/cavalry:user-story-map` | Drag stories between release phases until the plan is right. One click sends the new slicing back to Claude |
+| [phase-wireframe](#phase-wireframe) | `/cavalry:phase-wireframe` | Cut one approved design down to each release phase. Subtraction only — nothing moves or restyles, and it's checked, not promised |
 
 More skills are on the way — ⭐ watch the repo to catch new ones.
+
+---
+
+## init
+
+A new project starts as [`cavalry-template-spa`](https://github.com/Cavalry-Collective/cavalry-template-spa)
+— architecture contracts, design tokens, stack packs and add-ons, all still optional. This turns it into
+*your* project: clone, choose, delete the rest, fill in the Day-1 checklist.
+
+### The chooser
+
+Rather than a wall of questions, the two decisions happen on one page: **pick one stack pack, tick any
+add-ons**, with a running panel showing what the project will contain and — just as important — **what is
+about to be deleted**.
+
+That list matters, because in this template **adoption is deletion**. Exactly one directory survives under
+`stacks/` and only the wanted ones under `add-ons/`; that's how each area's `CLAUDE.md` knows which contract
+applies. Setup really does end by removing most of what it just cloned, so you see the delete list before you
+confirm it.
+
+The page reads `stacks/` and `add-ons/` **from your clone**, so it always offers what the template actually
+ships — a pack added upstream shows up on its own, and one it has no blurb for still renders from its README.
+
+It asks once. Send, and it writes your answer and shuts down; nothing is left listening.
+
+### Then Day-1, in order
+
+Delete the unchosen directories · record the stack in `CLAUDE.md` · fill the toolchain from the pack's own
+command blocks · declare the primary form factor · **rebrand and confirm the design guide** — the gate before
+any screen gets built · copy runtime config.
+
+The last three steps — protect `main`, stand up staging, confirm CI green — are GitHub settings and a live
+push, so they come back as a checklist rather than happening to your repo unasked.
+
+### Use
+
+```
+/cavalry:init a hiring pipeline for mid-size agencies
+```
+
+Or just say you want to start a new project. If you'd rather answer in chat than on the page, say so — the
+chooser is the nicer path, not the only one.
+
+---
+
+## wireframe
+
+Design review without the screenshot-and-markup detour. Claude opens **any HTML UI** — a mockup it just built, an exported screen, a prototype — in a **review workspace** where you comment straight on the page, then applies your comments and publishes the next version while you watch.
+
+![Example: commenting on a hiring queue](docs/wireframe-example.png)
+
+*Example: a triage queue mid-review — an area comment over the toolbar, a pin on an overdue row, and a note being written on the canvas. Open [`examples/wireframe.html`](examples/wireframe.html) in a browser to try it.*
+
+### The loop
+
+```
+requirements ──► page.html ──► review workspace ──► feedback.md ──┐
+      ▲                        (you comment)                      │
+      └─────── Claude applies it, replies, publishes v(N+1) ◄─────┘
+```
+
+It's a conversation, not a hand-off. You comment; Claude applies what's clear, **asks about what isn't**, and marks each comment done only when it has actually changed it. Anything Claude skips comes back next round — there is no resolve button for you to paper over it with.
+
+### In the workspace
+
+- **Two modes, one key.** **View** clicks through the live page with every annotation hidden, so you judge it as it really is; **Annotate** brings them back. **Space** toggles.
+- **Click for a comment, drag for an area.** That's the whole vocabulary. The note opens on the canvas, right where the mark is — and a comment you leave empty is discarded, so nothing half-said reaches Claude.
+- **Quiet by default.** Marks show their note when you open one or hover it in Annotate, not all at once.
+- **Threads.** Claude's questions appear on the comment itself; you answer there, and the answer goes back with the next round.
+- **Four screen sizes** — ultrawide, desktop, tablet, phone. A comment belongs to the size it was made at, so phone feedback never lands on the desktop layout.
+- **Version timeline** along the bottom — drag the handle to scrub through published versions.
+- **Nothing about markup, anywhere.** Comments are located by where they are and the words they sit on. You never see a CSS selector.
+- **EN / 中文** for the workspace chrome; your comments keep the words you wrote them in.
+- **Send is one click** — no preview step — and greys out until something has actually changed. Delete a comment, or clear the lot, whenever you like.
+
+### Use
+
+```
+/cavalry:wireframe a settings page for our billing product — plans, invoices, payment methods
+```
+
+Or point it at a page that already exists:
+
+> Review this screen with me — open `dist/checkout.html`.
+
+For a new design, point it at a reference site (`match stripe.com`), hand it screenshots, or let it read a `design/` folder with `tokens.css` — it resolves one design source and holds it across every iteration.
+
+### Sharing it
+
+**Publish a shareable link** and what goes out is **the design** — the screen, full-bleed, the way a user would meet it. Not your comment threads. The link comes back into the workspace tagged with the version it was published from, and republishing keeps the same URL.
+
+If a stakeholder needs to *comment* rather than just look, ask for that — Claude can flatten the whole workspace, page and versions and all, into one file instead; **Send** becomes **Copy for Claude**.
 
 ---
 
@@ -94,60 +186,18 @@ This same block is what **Send to Claude** hands back, what **Download JSON** wr
 
 ---
 
-## wireframe
-
-Design review without the screenshot-and-markup detour. Claude opens **any HTML UI** — a mockup it just built, an exported screen, a prototype — in a **review workspace** where you comment straight on the page, then applies your comments and publishes the next version while you watch.
-
-![Example: commenting on a hiring queue](docs/ui-review-example.png)
-
-*Example: a triage queue mid-review — an area comment over the toolbar, a pin on an overdue row, and a note being written on the canvas. Open [`examples/ui-review.html`](examples/ui-review.html) in a browser to try it.*
-
-### The loop
-
-```
-requirements ──► page.html ──► review workspace ──► feedback.md ──┐
-      ▲                        (you comment)                      │
-      └─────── Claude applies it, replies, publishes v(N+1) ◄─────┘
-```
-
-It's a conversation, not a hand-off. You comment; Claude applies what's clear, **asks about what isn't**, and marks each comment done only when it has actually changed it. Anything Claude skips comes back next round — there is no resolve button for you to paper over it with.
-
-### In the workspace
-
-- **Two modes, one key.** **View** clicks through the live page with every annotation hidden, so you judge it as it really is; **Annotate** brings them back. **Space** toggles.
-- **Click for a comment, drag for an area.** That's the whole vocabulary. The note opens on the canvas, right where the mark is — and a comment you leave empty is discarded, so nothing half-said reaches Claude.
-- **Quiet by default.** Marks show their note when you open one or hover it in Annotate, not all at once.
-- **Threads.** Claude's questions appear on the comment itself; you answer there, and the answer goes back with the next round.
-- **Four screen sizes** — ultrawide, desktop, tablet, phone. A comment belongs to the size it was made at, so phone feedback never lands on the desktop layout.
-- **Version timeline** along the bottom — drag the handle to scrub through published versions.
-- **Nothing about markup, anywhere.** Comments are located by where they are and the words they sit on. You never see a CSS selector.
-- **EN / 中文** for the workspace chrome; your comments keep the words you wrote them in.
-- **Send is one click** — no preview step — and greys out until something has actually changed. Delete a comment, or clear the lot, whenever you like.
-
-### Use
-
-```
-/cavalry:wireframe a settings page for our billing product — plans, invoices, payment methods
-```
-
-Or point it at a page that already exists:
-
-> Review this screen with me — open `dist/checkout.html`.
-
-For a new design, point it at a reference site (`match stripe.com`), hand it screenshots, or let it read a `design/` folder with `tokens.css` — it resolves one design source and holds it across every iteration.
-
-### Sharing a review
-
-For a stakeholder who isn't at your machine, Claude flattens the same workspace — page, versions and all — into a single self-contained HTML file and publishes it as a Claude Artifact. Commenting works identically; **Send** becomes **Copy for Claude**.
-
----
-
 ## phase-wireframe
 
 You have a mockup everyone signed off. Now you need to know what it looks like at the end of Phase 1
 — because that's what you're actually building first. This cuts the approved design down, one file
 per phase, and **only ever subtracts**: nothing moves, nothing is resized or restyled, nothing new
 is invented. The Phase 1 file is the real build target for Phase 1, not a redrawing of it.
+
+![Example: a candidate pipeline at Phase 2, with what the phase adds marked](docs/phase-wireframe-example.png)
+
+*The phase viewer, mid-scrub: drag the rail to watch a release fill in, with **Highlight new** marking
+what each phase adds — here Phase 2 brings bulk selection. **This part is designed, not shipped yet**;
+what ships today is the subtraction and its checker, below.*
 
 ```
 base.html ──┬──► phase-1/base.html    only what ships in phase 1
@@ -198,48 +248,6 @@ staged mockups, or slicing a screen by release phase:
 It takes the phases from a [user-story-map](#user-story-map) JSON if you have one (best input — the
 map already says which story lands when), otherwise from a spec's P1/P2/P3 priorities, otherwise from
 whatever you tell it. It won't invent a release plan.
-
----
-
-## init
-
-A new project starts as [`cavalry-template-spa`](https://github.com/Cavalry-Collective/cavalry-template-spa)
-— architecture contracts, design tokens, stack packs and add-ons, all still optional. This turns it into
-*your* project: clone, choose, delete the rest, fill in the Day-1 checklist.
-
-### The chooser
-
-Rather than a wall of questions, the two decisions happen on one page: **pick one stack pack, tick any
-add-ons**, with a running panel showing what the project will contain and — just as important — **what is
-about to be deleted**.
-
-That list matters, because in this template **adoption is deletion**. Exactly one directory survives under
-`stacks/` and only the wanted ones under `add-ons/`; that's how each area's `CLAUDE.md` knows which contract
-applies. Setup really does end by removing most of what it just cloned, so you see the delete list before you
-confirm it.
-
-The page reads `stacks/` and `add-ons/` **from your clone**, so it always offers what the template actually
-ships — a pack added upstream shows up on its own, and one it has no blurb for still renders from its README.
-
-It asks once. Send, and it writes your answer and shuts down; nothing is left listening.
-
-### Then Day-1, in order
-
-Delete the unchosen directories · record the stack in `CLAUDE.md` · fill the toolchain from the pack's own
-command blocks · declare the primary form factor · **rebrand and confirm the design guide** — the gate before
-any screen gets built · copy runtime config.
-
-The last three steps — protect `main`, stand up staging, confirm CI green — are GitHub settings and a live
-push, so they come back as a checklist rather than happening to your repo unasked.
-
-### Use
-
-```
-/cavalry:init a hiring pipeline for mid-size agencies
-```
-
-Or just say you want to start a new project. If you'd rather answer in chat than on the page, say so — the
-chooser is the nicer path, not the only one.
 
 ---
 

@@ -55,18 +55,22 @@ Three rules fall out of it:
 ```
   /cavalry:next  ←  always answers "what now?"
 
-   0  init              clone the template, choose the stack + add-ons, delete the rest
-   1  requirements      specs/requirements.md
-   2  wireframe      ◆  design/<feature>.html            ──┐ review loop
-   3  spec              specs/YYYY-MM-DD-<feature>.md      │
-   4  user-story-map ◆  specs/story-map.json               │
-   5  phase-wireframe    design/phase-<n>/<feature>.html ──┘ review loop
-   6  phase-build-api    apps/backend, db/migrations  ┐
-   7  phase-build-ui     apps/frontend                ├ repeat per phase
-   8  phase-build-infra  infra/                       ┘
+  ◆ 0  init               clone the template, choose the stack + add-ons, delete the rest
+    1  requirements       specs/requirements.md
+  ◆ 2  wireframe          design/<feature>.html            ──┐ review loop
+    3  spec               specs/YYYY-MM-DD-<feature>.md      │
+  ◆ 4  user-story-map     specs/story-map.json               │
+  ◆ 5  phase-wireframe    design/phase-<n>/<feature>.html  ──┘ review loop
+    6  phase-build-api    apps/backend, db/migrations  ┐
+    7  phase-build-ui     apps/frontend                ├ repeat per phase
+    8  phase-build-infra  infra/                       ┘
 
-  ◆ = works standalone, with no pipeline and no template
+  ◆ = shipped
 ```
+
+`wireframe` and `user-story-map` also **work standalone** — no pipeline, no template, nothing to set
+up; see *Standalone stays first-class*. `init` and `phase-wireframe` are pipeline-shaped but neither
+needs the chain to exist yet.
 
 Everything from stage 5 on is named `phase-*`, because everything from stage 5 on happens **once per
 release phase**. That's the part of the chain people lose track of, so the names carry it.
@@ -74,12 +78,12 @@ release phase**. That's the part of the chain people lose track of, so the names
 | # | Skill | Would read | Would write |
 |---|---|---|---|
 | — | `next` | `.cavalry/pipeline.json` | nothing — reports where you are, offers to run the next stage |
-| 0 | `init` | the cwd, `stacks/`, `add-ons/` | a fully instantiated repo — template cloned, one pack kept, add-ons chosen, toolchain filled, design guide confirmed (the whole Day-1 checklist) + `.cavalry/pipeline.json` |
+| 0 | ◆ `init` | the cwd, `stacks/`, `add-ons/` | a fully instantiated repo — template cloned, one pack kept, add-ons chosen, toolchain filled, design guide confirmed (the whole Day-1 checklist) + `.cavalry/pipeline.json` |
 | 1 | `requirements` | the conversation, any brief or notes | `specs/requirements.md` |
-| 2 | `wireframe` ◆ | `specs/requirements.md`, `design/tokens.css`, `design/CLAUDE.md` | `design/<feature>.html`, an inventory row in `design/README.md` |
+| 2 | ◆ `wireframe` | `specs/requirements.md`, `design/tokens.css`, `design/CLAUDE.md` | `design/<feature>.html`, an inventory row in `design/README.md` |
 | 3 | `spec` | `design/<feature>.html`, `specs/requirements.md` | `specs/YYYY-MM-DD-<feature>.md`, fills that row's *owning spec* |
-| 4 | `user-story-map` ◆ | `specs/*.md` | `specs/story-map.json` + `specs/story-map.html` |
-| 5 | `phase-wireframe` | `specs/story-map.json`, `design/<feature>.html` | `design/phase-<n>/<feature>.html` |
+| 4 | ◆ `user-story-map` | `specs/*.md` | `specs/story-map.json` + `specs/story-map.html` |
+| 5 | ◆ `phase-wireframe` | `specs/story-map.json`, `design/<feature>.html` | `design/phase-<n>/<feature>.html` |
 | 6 | `phase-build-api` | the phase-N slice of each spec | `apps/backend/`, `db/migrations/` |
 | 7 | `phase-build-ui` | the phase-N slice, `design/phase-<n>/` | `apps/frontend/` |
 | 8 | `phase-build-infra` | the phase-N slice | `infra/` |

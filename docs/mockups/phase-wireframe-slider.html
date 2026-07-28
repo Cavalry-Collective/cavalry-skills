@@ -156,7 +156,7 @@
       <button data-w="390" title="Phone — 390"><svg viewBox="0 0 24 24"><rect x="7.5" y="2.5" width="9" height="19" rx="2"/></svg></button>
     </div>
 
-    <button class="toggle" id="markBtn" aria-pressed="false"><span class="sw"></span>Highlight new</button>
+    <button class="toggle" id="markBtn" aria-pressed="true"><span class="sw"></span>Highlight new</button>
 
     <div class="seg" id="langSwitch">
       <button data-lang="en" aria-pressed="true">EN</button>
@@ -294,7 +294,10 @@ function apply(n){
     const min = +el.dataset.min || 1;
     const vis = only ? only.split(',').map(Number).includes(cur) : cur >= min;
     el.classList.toggle('gone', !vis);
-    el.classList.toggle('isnew', vis && !only && min === cur && cur > 1);
+    /* One badge per new thing, not per repetition: a new column is marked on its
+       header, not on every row that happens to contain a cell of it. */
+    const repeated = el.closest('tbody');
+    el.classList.toggle('isnew', vis && !only && min === cur && cur > 1 && !repeated);
   });
   $$('.page *').forEach(el => { total++; if(!el.closest('.gone')) shown++; });
 
@@ -337,6 +340,7 @@ addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft')  apply(cur - 1);
 });
 
+document.body.classList.add('mark');   /* on by default — what each phase adds is the question */
 apply(1);
 fit();
 </script>
