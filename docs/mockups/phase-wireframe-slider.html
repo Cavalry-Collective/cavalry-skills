@@ -1,0 +1,286 @@
+<title>Candidate pipeline — by phase</title>
+<style>
+  :root{
+    --paper:#eef0f3; --surface:#fff; --surface-2:#f7f8fa; --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+    --line:#e2e4e9; --line-2:#d0d2d9; --brand:#d23b2e;
+    --ph1:#d23b2e; --ph2:#b0761a; --ph3:#10876e; --new:#4a5fce;
+    --shadow:0 1px 2px rgba(16,17,22,.06);
+    --window-shadow:0 2px 6px rgba(16,17,22,.10),0 18px 48px rgba(16,17,22,.16);
+    --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;
+    --line:#282a31;--line-2:#363942;--brand:#f0685c;
+    --ph1:#ef6a5e;--ph2:#d29a3f;--ph3:#2fb89b;--new:#7d90ee;
+    --shadow:0 1px 2px rgba(0,0,0,.4);--window-shadow:0 2px 6px rgba(0,0,0,.5),0 18px 48px rgba(0,0,0,.6);
+  }}
+  :root[data-theme="light"]{--paper:#eef0f3;--surface:#fff;--surface-2:#f7f8fa;--ink:#16171c;--ink-2:#43454d;--ink-3:#71737c;--line:#e2e4e9;--line-2:#d0d2d9;--brand:#d23b2e;--ph1:#d23b2e;--ph2:#b0761a;--ph3:#10876e;--new:#4a5fce}
+  :root[data-theme="dark"]{--paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;--line:#282a31;--line-2:#363942;--brand:#f0685c;--ph1:#ef6a5e;--ph2:#d29a3f;--ph3:#2fb89b;--new:#7d90ee}
+
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);font-family:var(--font);
+    font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+  #app{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:100vh}
+  #top{display:flex;align-items:center;gap:10px;padding:0 14px;height:50px;background:var(--surface);
+    border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:baseline;gap:8px}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--brand);align-self:center;flex:none}
+  .brand b{font-weight:700;letter-spacing:-.01em;line-height:1.2}
+  .brand .eyebrow{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:700;line-height:1.2}
+  .spacer{flex:1}
+  .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+    border:1px solid var(--line-2);background:var(--surface);font-weight:600;font-size:.8rem}
+  .btn:hover{background:var(--surface-2)}
+  .btn[aria-pressed=true]{background:color-mix(in srgb,var(--new) 12%,var(--surface));border-color:var(--new);color:var(--new)}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.primary:hover{background:color-mix(in srgb,var(--brand) 88%,#000)}
+  .btn.primary[disabled]{opacity:.45;pointer-events:none}
+
+  /* ── stage: the page in its own window ── */
+  #stage{position:relative;overflow:auto;background:var(--surface-2);
+    background-image:radial-gradient(circle at 1px 1px,var(--line-2) 1px,transparent 0);background-size:22px 22px;
+    display:grid;place-items:start center;padding:26px}
+  #browser{background:var(--surface);border-radius:11px;box-shadow:var(--window-shadow);
+    border:1px solid var(--line-2);overflow:hidden;width:1040px;max-width:100%}
+  .window-bar{display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;
+    background:linear-gradient(var(--surface),var(--surface-2));border-bottom:1px solid var(--line-2)}
+  .window-bar .lights{display:flex;gap:6px}
+  .window-bar .lights i{width:10px;height:10px;border-radius:50%;background:var(--line-2)}
+  .window-bar .url{flex:1;height:22px;border-radius:11px;background:var(--paper);border:1px solid var(--line);
+    display:flex;align-items:center;padding:0 10px;font-family:var(--mono);font-size:.68rem;color:var(--ink-3)}
+
+  /* ── the mockup itself ── */
+  .page{padding:0 0 18px}
+  .hd{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .hd h2{margin:0;font-size:1.02rem;font-weight:750;letter-spacing:-.02em;flex:1}
+  .search{height:28px;width:210px;border:1px solid var(--line-2);border-radius:7px;background:var(--surface);
+    display:flex;align-items:center;padding:0 9px;color:var(--ink-3);font-size:.8rem}
+  .pill{height:28px;border:1px solid var(--line-2);border-radius:7px;background:var(--surface);
+    display:inline-flex;align-items:center;padding:0 10px;font-size:.8rem;font-weight:600;color:var(--ink-2)}
+  .pill.acc{background:var(--brand);border-color:var(--brand);color:#fff}
+
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:9px 18px;border-bottom:1px solid var(--line);font-size:.85rem}
+  th{font-family:var(--mono);font-size:.62rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+  td.name{font-weight:600}
+  .chk{width:34px}
+  .box{width:15px;height:15px;border:1.5px solid var(--line-2);border-radius:4px;display:block}
+  .stage-tag{font-family:var(--mono);font-size:.62rem;letter-spacing:.05em;text-transform:uppercase;font-weight:700;
+    color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:.08rem .35rem}
+  .muted{color:var(--ink-3)}
+
+  .bulkbar{display:flex;align-items:center;gap:10px;padding:9px 18px;background:var(--surface-2);
+    border-bottom:1px solid var(--line);font-size:.82rem;color:var(--ink-2)}
+  .bulkbar b{font-weight:700;color:var(--ink)}
+
+  .drawer{position:absolute;top:36px;right:0;bottom:0;width:250px;background:var(--surface);
+    border-left:1px solid var(--line-2);padding:14px 16px}
+  .drawer h3{margin:0 0 .4rem;font-size:.85rem;font-weight:700}
+  .drawer p{margin:0;font-size:.8rem;color:var(--ink-2);line-height:1.55}
+
+  /* skeleton stand-in for a later-phase gate */
+  .skel{border:1px dashed var(--line-2);border-radius:7px;background:repeating-linear-gradient(
+    -45deg,transparent,transparent 5px,color-mix(in srgb,var(--ink-3) 8%,transparent) 5px,
+    color-mix(in srgb,var(--ink-3) 8%,transparent) 10px);color:var(--ink-3);
+    display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.6rem;
+    letter-spacing:.06em;text-transform:uppercase}
+
+  /* what's new in this phase */
+  .isnew{position:relative}
+  body.mark .isnew{outline:1.5px dashed var(--new);outline-offset:2px;border-radius:5px}
+  body.mark .isnew::after{content:"new";position:absolute;top:-8px;left:-2px;font-family:var(--mono);
+    font-size:.5rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--new);
+    padding:.02rem .22rem;border-radius:3px;z-index:3}
+  .gone{display:none!important}
+
+  /* ── the slider ── */
+  #rail{background:var(--surface);border-top:1px solid var(--line);padding:.7rem 1.2rem 1rem}
+  .rhead{display:flex;align-items:baseline;gap:.6rem;margin-bottom:.55rem}
+  .rhead .pn{font-family:var(--mono);font-size:.62rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--pc);background:color-mix(in srgb,var(--pc) 12%,var(--surface));
+    border:1px solid color-mix(in srgb,var(--pc) 30%,transparent);border-radius:4px;padding:.08rem .35rem}
+  .rhead .goal{font-size:.85rem;color:var(--ink-2);flex:1;min-width:0}
+  .rhead .delta{font-family:var(--mono);font-size:.7rem;color:var(--ink-3)}
+
+  .track{position:relative;height:34px;display:flex;align-items:center;user-select:none}
+  .track .line{position:absolute;left:0;right:0;height:3px;background:var(--line);border-radius:2px}
+  .track .fill{position:absolute;left:0;height:3px;background:var(--pc);border-radius:2px;transition:width .18s}
+  .stop{position:absolute;transform:translateX(-50%);display:grid;justify-items:center;gap:5px;cursor:pointer}
+  .stop .tick{width:11px;height:11px;border-radius:50%;background:var(--surface);border:2px solid var(--line-2);
+    transition:border-color .15s,background .15s}
+  .stop.done .tick{border-color:var(--pc);background:var(--pc)}
+  .stop .lb{font-family:var(--mono);font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;
+    font-weight:700;color:var(--ink-3);white-space:nowrap}
+  .stop.done .lb{color:var(--ink-2)}
+  .stop.cur .lb{color:var(--pc)}
+  .knob{position:absolute;width:22px;height:22px;border-radius:50%;background:var(--surface);
+    border:2px solid var(--pc);box-shadow:0 2px 8px rgba(0,0,0,.18);transform:translateX(-50%);
+    cursor:grab;z-index:4;transition:left .18s}
+  .knob:active{cursor:grabbing}
+  .knob::after{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--pc)}
+  #rail.drag .knob,#rail.drag .fill{transition:none}
+  .p1{--pc:var(--ph1)} .p2{--pc:var(--ph2)} .p3{--pc:var(--ph3)}
+</style>
+
+<div id="app">
+  <div id="top">
+    <span class="brand"><span class="dot"></span><b>Candidate pipeline</b>
+      <span class="eyebrow">Cavalry · stage 5</span></span>
+    <span class="spacer"></span>
+    <button class="btn" id="markBtn" aria-pressed="false">Highlight new</button>
+    <button class="btn primary" id="reviewBtn">Review this phase</button>
+  </div>
+
+  <div id="stage">
+    <div id="browser">
+      <div class="window-bar">
+        <span class="lights"><i></i><i></i><i></i></span>
+        <span class="url" id="url">design/phase-1/candidate-pipeline.html</span>
+      </div>
+      <div class="page" style="position:relative">
+        <div class="hd">
+          <h2>Candidate pipeline</h2>
+          <span class="search" data-min="1">Search candidates</span>
+          <span class="pill" data-min="2">Bulk select</span>
+          <span class="pill acc" data-min="3">Ask AI</span>
+          <span class="skel" data-only="1,2" style="height:28px;padding:0 10px">reserved</span>
+        </div>
+
+        <div class="bulkbar" data-min="2"><b>3 selected</b> · Move to stage · Reject · Clear</div>
+
+        <table>
+          <thead>
+            <tr>
+              <th class="chk" data-min="2"><span class="box"></span></th>
+              <th>Name</th><th>Stage</th><th>Waiting</th>
+              <th data-min="3">Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="chk" data-min="2"><span class="box"></span></td>
+              <td class="name">Amara Osei</td><td><span class="stage-tag">Screen</span></td><td class="muted">2 days</td>
+              <td data-min="3" class="muted">—</td>
+            </tr>
+            <tr>
+              <td class="chk" data-min="2"><span class="box"></span></td>
+              <td class="name">Wei Zhang</td><td><span class="stage-tag">Interview</span></td><td class="muted">6 days</td>
+              <td data-min="3">82</td>
+            </tr>
+            <tr>
+              <td class="chk" data-min="2"><span class="box"></span></td>
+              <td class="name">Priya Raman</td><td><span class="stage-tag">Offer</span></td><td class="muted">1 day</td>
+              <td data-min="3">91</td>
+            </tr>
+            <tr>
+              <td class="chk" data-min="2"><span class="box"></span></td>
+              <td class="name">Tomás Herrera</td><td><span class="stage-tag">Applied</span></td><td class="muted">11 days</td>
+              <td data-min="3" class="muted">—</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="drawer" data-min="3">
+          <h3>AI summary</h3>
+          <p>Six years on payments infrastructure. Strong on reliability, lighter on frontend.
+             Two referees both flagged the same thing.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="rail" class="p1">
+    <div class="rhead">
+      <span class="pn" id="pn">Phase 1</span>
+      <span class="goal" id="goal">Work a role's applicants by hand — see them, search them, move them one at a time.</span>
+      <span class="delta" id="delta">14 of 22 elements</span>
+    </div>
+    <div class="track" id="track">
+      <div class="line"></div><div class="fill" id="fill"></div>
+      <div class="knob" id="knob" tabindex="0" role="slider"
+           aria-valuemin="1" aria-valuemax="3" aria-valuenow="1" aria-label="Release phase"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PHASES = [
+  { n:1, label:'Phase 1', goal:"Work a role's applicants by hand — see them, search them, move them one at a time." },
+  { n:2, label:'Phase 2', goal:"Screening days stop being painful — select many, move them together." },
+  { n:3, label:'Phase 3', goal:"AI does the first read, and scores travel with the candidate." },
+];
+
+const $ = s => document.querySelector(s);
+const track = $('#track'), knob = $('#knob'), fill = $('#fill'), rail = $('#rail');
+let cur = 1;
+
+// stops
+PHASES.forEach((p,i) => {
+  const pct = (i / (PHASES.length - 1)) * 100;
+  const el = document.createElement('div');
+  el.className = 'stop'; el.style.left = pct + '%'; el.dataset.n = p.n;
+  el.innerHTML = `<span class="tick"></span><span class="lb">${p.label}</span>`;
+  track.appendChild(el);
+});
+
+function apply(n, animate = true){
+  cur = n;
+  rail.className = 'p' + n;
+  const pct = ((n - 1) / (PHASES.length - 1)) * 100;
+  knob.style.left = pct + '%'; fill.style.width = pct + '%';
+  knob.setAttribute('aria-valuenow', n);
+  knob.setAttribute('aria-valuetext', PHASES[n-1].label);
+
+  track.querySelectorAll('.stop').forEach(s => {
+    const sn = +s.dataset.n;
+    s.classList.toggle('done', sn <= n);
+    s.classList.toggle('cur', sn === n);
+  });
+
+  let shown = 0, total = 0;
+  document.querySelectorAll('.page [data-min], .page [data-only]').forEach(el => {
+    const only = el.dataset.only;
+    const min = +el.dataset.min || 1;
+    const visible = only ? only.split(',').map(Number).includes(n) : n >= min;
+    el.classList.toggle('gone', !visible);
+    el.classList.toggle('isnew', visible && !only && min === n && n > 1);
+  });
+  document.querySelectorAll('.page *').forEach(el => { total++; if(!el.closest('.gone')) shown++; });
+
+  $('#pn').textContent = PHASES[n-1].label;
+  $('#goal').textContent = PHASES[n-1].goal;
+  $('#delta').textContent = `${shown} of ${total} elements`;
+  $('#url').textContent = `design/phase-${n}/candidate-pipeline.html`;
+  void animate;
+}
+
+// drag / click / keys
+const nearest = (clientX) => {
+  const r = track.getBoundingClientRect();
+  const t = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+  return Math.round(t * (PHASES.length - 1)) + 1;
+};
+let dragging = false;
+const move = e => { if(dragging){ const n = nearest(e.clientX); if(n !== cur) apply(n); } };
+knob.addEventListener('pointerdown', e => { dragging = true; rail.classList.add('drag'); knob.setPointerCapture(e.pointerId); });
+knob.addEventListener('pointermove', move);
+knob.addEventListener('pointerup', () => { dragging = false; rail.classList.remove('drag'); });
+track.addEventListener('click', e => { if(!e.target.closest('.knob')) apply(nearest(e.clientX)); });
+knob.addEventListener('keydown', e => {
+  if(e.key === 'ArrowRight' && cur < PHASES.length) apply(cur + 1);
+  if(e.key === 'ArrowLeft'  && cur > 1)             apply(cur - 1);
+});
+
+$('#markBtn').addEventListener('click', e => {
+  const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+  e.currentTarget.setAttribute('aria-pressed', String(on));
+  document.body.classList.toggle('mark', on);
+});
+
+apply(1, false);
+</script>

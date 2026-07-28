@@ -1,0 +1,313 @@
+<title>Phase 2 build plan</title>
+<style>
+  :root{
+    --paper:#eef0f3; --surface:#fff; --surface-2:#f7f8fa; --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+    --line:#e2e4e9; --line-2:#d0d2d9; --brand:#d23b2e;
+    --new:#d23b2e; --have:#71737c; --touch:#b0761a;
+    --shadow:0 1px 2px rgba(16,17,22,.06);
+    --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;
+    --line:#282a31;--line-2:#363942;--brand:#f0685c;--new:#f0685c;--have:#8b8e97;--touch:#d29a3f;
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+  }}
+  :root[data-theme="light"]{--paper:#eef0f3;--surface:#fff;--surface-2:#f7f8fa;--ink:#16171c;--ink-2:#43454d;--ink-3:#71737c;--line:#e2e4e9;--line-2:#d0d2d9;--brand:#d23b2e;--new:#d23b2e;--have:#71737c;--touch:#b0761a}
+  :root[data-theme="dark"]{--paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;--line:#282a31;--line-2:#363942;--brand:#f0685c;--new:#f0685c;--have:#8b8e97;--touch:#d29a3f}
+
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);font-family:var(--font);
+    font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+  #app{display:grid;grid-template-rows:auto auto minmax(0,1fr);min-height:100vh}
+  #top{display:flex;align-items:center;gap:10px;padding:0 14px;height:50px;background:var(--surface);
+    border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:baseline;gap:8px}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--brand);align-self:center;flex:none}
+  .brand b{font-weight:700;letter-spacing:-.01em;line-height:1.2}
+  .brand .eyebrow{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:700;line-height:1.2}
+  .spacer{flex:1}
+  .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;background:var(--surface)}
+  .seg button{height:30px;padding:0 13px;font-weight:600;font-size:.8rem;color:var(--ink-3);
+    border-right:1px solid var(--line-2);display:inline-flex;align-items:center;gap:6px}
+  .seg button:last-child{border-right:0}
+  .seg button:hover{background:var(--surface-2);color:var(--ink)}
+  .seg button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+  .seg .c{font-family:var(--mono);font-size:.62rem;opacity:.7}
+  .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+    border:1px solid var(--line-2);background:var(--surface);font-weight:600;font-size:.8rem}
+  .btn:hover{background:var(--surface-2)}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.primary:hover{background:color-mix(in srgb,var(--brand) 88%,#000)}
+  .btn.primary[disabled]{opacity:.45;pointer-events:none}
+
+  /* ── legend strip ── */
+  #legend{display:flex;align-items:center;gap:1.1rem;padding:.5rem 1rem;background:var(--surface-2);
+    border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .key{display:inline-flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--ink-2)}
+  .key .sw{width:11px;height:11px;border-radius:3px;flex:none}
+  .key.n .sw{background:var(--new)} .key.h .sw{background:var(--have);opacity:.45}
+  .key.t .sw{background:var(--touch)}
+  .key b{font-weight:650;color:var(--ink)}
+  .src{margin-left:auto;font-family:var(--mono);font-size:.68rem;color:var(--ink-3);display:flex;align-items:center;gap:.4rem}
+  .src .warn{color:var(--touch)}
+
+  /* ── canvas ── */
+  #stage{position:relative;overflow:auto;background:var(--surface-2);
+    background-image:radial-gradient(circle at 1px 1px,var(--line-2) 1px,transparent 0);background-size:22px 22px}
+  #plane{position:relative;min-width:100%;min-height:100%}
+  svg#edges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+  svg#edges path{fill:none;stroke:var(--line-2);stroke-width:1.5}
+  svg#edges path.have{stroke-dasharray:3 4;opacity:.6}
+
+  .node{position:absolute;background:var(--surface);border:1px solid var(--line-2);
+    border-left:3px solid var(--c);border-radius:8px;box-shadow:var(--shadow);padding:.42rem .6rem;
+    max-width:230px;display:grid;gap:.12rem;cursor:grab}
+  .node:hover{border-color:color-mix(in srgb,var(--c) 55%,var(--line-2))}
+  .node.new{--c:var(--new)}
+  .node.have{--c:var(--have);opacity:.55;background:var(--surface-2);box-shadow:none}
+  .node.have:hover{opacity:.9}
+  .node.touch{--c:var(--touch)}
+  .node .t{font-size:.83rem;font-weight:620;line-height:1.3;outline:0;font-family:var(--tf,var(--font))}
+  .node.mono .t{font-family:var(--mono);font-size:.76rem}
+  .node .k{font-family:var(--mono);font-size:.55rem;letter-spacing:.09em;text-transform:uppercase;
+    font-weight:700;color:var(--c);display:flex;align-items:center;gap:.35rem}
+  .node .k .st{margin-left:auto;font-size:.5rem;opacity:.85}
+  .node .ctrls{position:absolute;top:-9px;right:-6px;display:none;gap:2px}
+  .node:hover .ctrls{display:flex}
+  .node .ctrls button{width:19px;height:19px;border-radius:5px;border:1px solid var(--line-2);
+    background:var(--surface);font-size:.66rem;line-height:1;color:var(--ink-3);display:grid;place-items:center;
+    box-shadow:var(--shadow)}
+  .node .ctrls button:hover{background:var(--brand);border-color:var(--brand);color:#fff}
+  .node.drop{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,var(--surface))}
+
+  /* ── footer bar ── */
+  #go{position:sticky;bottom:0;display:flex;align-items:center;gap:.7rem;padding:.6rem 1rem;
+    background:var(--surface);border-top:1px solid var(--line)}
+  #go .sum{font-size:.82rem;color:var(--ink-2)}
+  #go .sum b{color:var(--ink);font-weight:700}
+  #go .spacer{flex:1}
+</style>
+
+<div id="app">
+  <div id="top">
+    <span class="brand"><span class="dot"></span><b>Phase 2 build plan</b>
+      <span class="eyebrow">Cavalry · stages 6–8</span></span>
+    <span class="spacer"></span>
+    <div class="seg" id="subjects">
+      <button aria-pressed="true"  data-s="api">Endpoints <span class="c" id="capi"></span></button>
+      <button aria-pressed="false" data-s="ui">Components <span class="c" id="cui"></span></button>
+      <button aria-pressed="false" data-s="infra">Resources <span class="c" id="cinfra"></span></button>
+    </div>
+    <button class="btn primary" id="send" disabled>Send to Claude</button>
+  </div>
+
+  <div id="legend">
+    <span class="key n"><span class="sw"></span><b>New</b> in phase 2</span>
+    <span class="key t"><span class="sw"></span><b>Changed</b> — exists, this phase extends it</span>
+    <span class="key h"><span class="sw"></span><b>Already built</b> — phase 1</span>
+    <span class="src">read from the codebase <span class="warn" title="Not from the phase-1 plan">●</span> 4 min ago</span>
+  </div>
+
+  <div id="stage">
+    <div id="plane">
+      <svg id="edges"></svg>
+      <div id="nodes"></div>
+    </div>
+  </div>
+
+  <div id="go">
+    <span class="sum" id="sum"></span>
+    <span class="spacer"></span>
+    <button class="btn" id="reset">Reset changes</button>
+    <button class="btn primary" id="build">Start the phase 2 build</button>
+  </div>
+</div>
+
+<script>
+/* state: new | touch | have — "have" is read from the codebase, never from a plan */
+const DATA = {
+  api: { mono:true, root:{ id:'api', kind:'API', text:'/v1', state:'have', children:[
+    { id:'r1', kind:'Resource', text:'/roles', state:'have', children:[
+      { id:'e1', kind:'GET',  text:'/roles/:id/candidates', state:'touch', note:'+ bulk cursor', children:[] },
+    ]},
+    { id:'r2', kind:'Resource', text:'/candidates', state:'have', children:[
+      { id:'e2', kind:'GET',   text:'/candidates/:id', state:'have', children:[] },
+      { id:'e3', kind:'PATCH', text:'/candidates/:id/stage', state:'have', children:[] },
+      { id:'e4', kind:'POST',  text:'/candidates/bulk-move', state:'new', children:[] },
+      { id:'e5', kind:'POST',  text:'/candidates/bulk-reject', state:'new', children:[] },
+    ]},
+    { id:'r3', kind:'Resource', text:'/interviews', state:'new', children:[
+      { id:'e6', kind:'POST', text:'/interviews/:token/scorecard', state:'new', children:[] },
+      { id:'e7', kind:'GET',  text:'/interviews/:token', state:'new', children:[] },
+    ]},
+  ]}},
+
+  ui: { root:{ id:'ui', kind:'Frontend', text:'Candidate pipeline', state:'have', children:[
+    { id:'a', kind:'Atoms', text:'Atoms', state:'have', children:[
+      { id:'a1', kind:'Atom', text:'Checkbox', state:'new', children:[] },
+      { id:'a2', kind:'Atom', text:'Button, Input, Tag', state:'have', children:[] },
+    ]},
+    { id:'m', kind:'Molecules', text:'Molecules', state:'have', children:[
+      { id:'m1', kind:'Molecule', text:'Selection bar', state:'new', children:[] },
+      { id:'m2', kind:'Molecule', text:'Stage filter', state:'have', children:[] },
+      { id:'m3', kind:'Molecule', text:'Search field', state:'have', children:[] },
+    ]},
+    { id:'o', kind:'Organisms', text:'Organisms', state:'have', children:[
+      { id:'o1', kind:'Organism', text:'Candidate table', state:'touch', note:'+ row selection', children:[] },
+      { id:'o2', kind:'Organism', text:'Bulk move dialog', state:'new', children:[] },
+    ]},
+    { id:'p', kind:'Pages', text:'Pages', state:'have', children:[
+      { id:'p1', kind:'Page', text:'Role — candidates', state:'touch', note:'+ bulk bar', children:[] },
+      { id:'p2', kind:'Page', text:'Scorecard', state:'new', children:[] },
+    ]},
+  ]}},
+
+  infra: { root:{ id:'in', kind:'Infra', text:'staging + prod', state:'have', children:[
+    { id:'n1', kind:'Compute', text:'Web service', state:'have', children:[] },
+    { id:'n2', kind:'Database', text:'Postgres', state:'touch', note:'+ 2 tables', children:[
+      { id:'n2a', kind:'Migration', text:'bulk_move_jobs', state:'new', children:[] },
+      { id:'n2b', kind:'Migration', text:'scorecards', state:'new', children:[] },
+    ]},
+    { id:'n3', kind:'Queue', text:'Job runner', state:'new', note:'bulk moves run async', children:[] },
+    { id:'n4', kind:'Secrets', text:'Interview token signing key', state:'new', children:[] },
+    { id:'n5', kind:'CDN', text:'Static hosting', state:'have', children:[] },
+  ]}},
+};
+
+let subject = 'api';
+let tree = structuredClone(DATA[subject].root);
+const pristine = {};
+for (const k in DATA) pristine[k] = structuredClone(DATA[k].root);
+
+const $ = s => document.querySelector(s);
+const NODES = $('#nodes'), EDGES = $('#edges'), PLANE = $('#plane');
+/* Adjusting the plan is the only thing worth sending back. */
+const dirty = (on = true) => { $('#send').disabled = !on; };
+const COL = 268, ROW = 52, PAD = 34;
+
+const walkAll = (n, f) => { f(n); (n.children||[]).forEach(k => walkAll(k, f)); };
+const counts = (root) => {
+  let c = { new:0, touch:0, have:0 };
+  walkAll(root, n => { if(n !== root) c[n.state]++; });
+  return c;
+};
+
+function layout(){
+  const out = []; let row = 0;
+  (function w(n, d){
+    const kids = n.children || [];
+    if(!kids.length){ n._y = PAD + row*ROW; row++; }
+    else { kids.forEach(k => w(k, d+1)); n._y = (kids[0]._y + kids[kids.length-1]._y)/2; }
+    n._x = PAD + d*COL; n._d = d; out.push(n);
+  })(tree, 0);
+  return out;
+}
+
+function render(){
+  const all = layout();
+  const mono = DATA[subject].mono ? 'mono' : '';
+  NODES.innerHTML = all.map(n => `
+    <div class="node ${n.state} ${mono}" data-id="${n.id}" draggable="true"
+         style="left:${n._x}px;top:${n._y}px">
+      <div class="k">${n.kind}${n.note ? `<span class="st">${n.note}</span>` : ''}</div>
+      <div class="t" contenteditable="plaintext-only">${n.text}</div>
+      <div class="ctrls">
+        <button data-act="cycle" title="New / changed / already built">◐</button>
+        <button data-act="add" title="Add below">+</button>
+        <button data-act="del" title="Remove from this phase">×</button>
+      </div>
+    </div>`).join('');
+
+  requestAnimationFrame(() => {
+    const box = {}; let w = 0, h = 0;
+    NODES.querySelectorAll('.node').forEach(el => {
+      box[el.dataset.id] = { x:el.offsetLeft, y:el.offsetTop, w:el.offsetWidth, h:el.offsetHeight };
+      w = Math.max(w, el.offsetLeft + el.offsetWidth); h = Math.max(h, el.offsetTop + el.offsetHeight);
+    });
+    const paths = [];
+    (function e(n){
+      for(const k of n.children || []){
+        const a = box[n.id], b = box[k.id];
+        if(a && b){
+          const x1=a.x+a.w, y1=a.y+a.h/2, x2=b.x, y2=b.y+b.h/2, mx=(x1+x2)/2;
+          paths.push(`<path class="${k.state==='have'?'have':''}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}"/>`);
+        }
+        e(k);
+      }
+    })(tree);
+    EDGES.innerHTML = paths.join('');
+    PLANE.style.width = (w+PAD)+'px'; PLANE.style.height = Math.max(h+PAD, 300)+'px';
+  });
+
+  for (const k in DATA){
+    const c = counts(pristine[k]);
+    $('#c'+k).textContent = c.new + c.touch ? `${c.new + c.touch}` : '';
+  }
+  const c = counts(tree);
+  $('#sum').innerHTML = `<b>${c.new}</b> new · <b>${c.touch}</b> changed · ${c.have} already built`;
+}
+
+const find = (id, n = tree, p = null) => {
+  if(n.id === id) return { n, p };
+  for(const k of n.children || []){ const r = find(id, k, n); if(r) return r; }
+  return null;
+};
+
+$('#subjects').addEventListener('click', e => {
+  const b = e.target.closest('[data-s]'); if(!b) return;
+  subject = b.dataset.s; tree = structuredClone(DATA[subject].root); dirty(false);
+  for(const el of $('#subjects').children) el.setAttribute('aria-pressed', String(el === b));
+  render();
+});
+
+NODES.addEventListener('click', e => {
+  const act = e.target.closest('[data-act]'); if(!act) return;
+  const node = e.target.closest('.node');
+  const { n, p } = find(node.dataset.id) || {};
+  if(!n) return;
+  if(act.dataset.act === 'cycle'){
+    n.state = { new:'touch', touch:'have', have:'new' }[n.state];
+  } else if(act.dataset.act === 'add'){
+    (p ? p.children : n.children).push({ id:'x'+Math.round(performance.now()), kind:n.kind, text:'New', state:'new', children:[] });
+  } else if(p){
+    p.children = p.children.filter(k => k !== n);
+  }
+  dirty(); render();
+});
+
+NODES.addEventListener('input', e => {
+  const t = e.target.closest('.t'); if(!t) return;
+  const r = find(t.closest('.node').dataset.id); if(r) { r.n.text = t.textContent.trim(); dirty(); }
+});
+
+let dragId = null;
+NODES.addEventListener('dragstart', e => { const n = e.target.closest('.node'); if(n){ dragId = n.dataset.id; } });
+NODES.addEventListener('dragover', e => {
+  const n = e.target.closest('.node'); if(!n || n.dataset.id === dragId) return;
+  e.preventDefault();
+  NODES.querySelectorAll('.drop').forEach(x => x.classList.remove('drop'));
+  n.classList.add('drop');
+});
+NODES.addEventListener('drop', e => {
+  const n = e.target.closest('.node'); if(!n || !dragId) return;
+  e.preventDefault();
+  const from = find(dragId), to = find(n.dataset.id);
+  if(from && to && from.p && !find(n.dataset.id, from.n)){
+    from.p.children = from.p.children.filter(k => k !== from.n);
+    (to.n.children ||= []).push(from.n);
+  }
+  dragId = null; dirty(); render();
+});
+NODES.addEventListener('dragend', () => {
+  NODES.querySelectorAll('.drop').forEach(x => x.classList.remove('drop')); dragId = null;
+});
+
+$('#reset').addEventListener('click', () => { tree = structuredClone(DATA[subject].root); dirty(false); render(); });
+
+render();
+</script>

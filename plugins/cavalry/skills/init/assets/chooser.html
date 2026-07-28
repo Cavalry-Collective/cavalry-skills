@@ -1,0 +1,259 @@
+<title>Set up the project</title>
+<style>
+  :root{
+    --paper:#eef0f3; --surface:#fff; --surface-2:#f7f8fa; --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+    --line:#e2e4e9; --line-2:#d0d2d9; --brand:#d23b2e;
+    --keep:#10876e; --cut:#71737c;
+    --shadow:0 1px 2px rgba(16,17,22,.06); --radius:9px;
+    --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;
+    --line:#282a31;--line-2:#363942;--brand:#f0685c;--keep:#2fb89b;--cut:#8b8e97;
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+  }}
+  :root[data-theme="light"]{--paper:#eef0f3;--surface:#fff;--surface-2:#f7f8fa;--ink:#16171c;--ink-2:#43454d;--ink-3:#71737c;--line:#e2e4e9;--line-2:#d0d2d9;--brand:#d23b2e;--keep:#10876e;--cut:#71737c;--shadow:0 1px 2px rgba(16,17,22,.06)}
+  :root[data-theme="dark"]{--paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;--line:#282a31;--line-2:#363942;--brand:#f0685c;--keep:#2fb89b;--cut:#8b8e97;--shadow:0 1px 2px rgba(0,0,0,.4)}
+
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);font-family:var(--font);
+    font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+  .wrap{max-width:1500px;margin:0 auto;padding:clamp(1.2rem,3vw,2.4rem) clamp(.8rem,2.5vw,2rem) 4rem;
+    display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:clamp(1rem,2.5vw,2.2rem);align-items:start}
+  @media (max-width:1080px){ .wrap{grid-template-columns:minmax(0,1fr)} #cart{position:static} }
+
+  .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--brand);font-weight:600;margin:0 0 .5rem;display:inline-flex;align-items:center;gap:.5rem}
+  .eyebrow::before{content:"";width:1.5rem;height:2px;background:var(--brand);border-radius:2px}
+  h1{font-size:clamp(1.15rem,2.2vw,1.45rem);line-height:1.1;letter-spacing:-.025em;font-weight:800;margin:0 0 1.4rem}
+
+  h2{font-size:.98rem;font-weight:700;letter-spacing:-.01em;margin:1.9rem 0 .7rem;display:flex;align-items:baseline;gap:.55rem}
+  h2:first-of-type{margin-top:0}
+  h2 .n{font-family:var(--mono);font-size:.66rem;font-weight:700;color:var(--brand);letter-spacing:.08em}
+  h2 .rule{font-family:var(--mono);font-size:.62rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-3);margin-left:auto}
+
+  .grid{display:grid;gap:.6rem}
+  .packs{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+  .addons{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+
+  .card{position:relative;text-align:left;width:100%;background:var(--surface);border:1px solid var(--line-2);
+    border-radius:var(--radius);padding:.6rem .75rem .65rem;box-shadow:var(--shadow);display:grid;gap:.4rem;
+    transition:border-color .12s,background .12s}
+  .card:hover{border-color:color-mix(in srgb,var(--brand) 45%,var(--line-2))}
+  .card .hd{display:flex;align-items:center;gap:.5rem;min-height:20px}
+  .card .q{font-size:.92rem;font-weight:700;letter-spacing:-.015em;color:var(--ink);line-height:1.2}
+  .card .path{font-family:var(--mono);font-style:normal;font-size:.62rem;color:var(--ink-3);
+    margin-left:auto;white-space:nowrap;opacity:.85;line-height:1}
+  .card .desc{font-size:.82rem;color:var(--ink-2);line-height:1.4}
+  .tags{display:flex;flex-wrap:wrap;gap:.28rem;margin-top:.06rem}
+  .tags i{display:inline-flex;align-items:center;height:20px;padding:0 .42rem;
+    font-family:var(--mono);font-style:normal;font-size:.64rem;font-weight:600;letter-spacing:.01em;line-height:1;
+    color:var(--ink-3);background:var(--surface-2);border:1px solid var(--line);border-radius:5px;
+    white-space:nowrap}
+  .card .mark{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line-2);
+    background:var(--surface);display:grid;place-items:center;font-size:.6rem;line-height:1;
+    color:transparent;flex:none}
+  .card[aria-pressed=true]{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 6%,var(--surface))}
+  .card[aria-pressed=true] .mark{background:var(--brand);border-color:var(--brand);color:#fff}
+  .card[aria-pressed=true] .q,.card[aria-pressed=true] .path{color:var(--brand)}
+  .card[aria-pressed=true] .tags i{border-color:color-mix(in srgb,var(--brand) 22%,var(--line));
+    background:color-mix(in srgb,var(--brand) 5%,var(--surface))}
+  .packs .card .mark{border-radius:50%}
+  .addons .card .mark{border-radius:5px}
+
+  /* ── cart ── */
+  #cart{position:sticky;top:clamp(1.2rem,3vw,2.4rem);background:var(--surface);border:1px solid var(--line-2);
+    border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  #cart h3{margin:0;padding:.7rem .9rem;font-size:.8rem;font-weight:700;letter-spacing:-.01em;
+    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:.5rem}
+  #cart h3 .dot{width:8px;height:8px;border-radius:50%;background:var(--brand);flex:none}
+  .lot{padding:.7rem .9rem;border-bottom:1px solid var(--line)}
+  .lot > .h{font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
+    display:flex;align-items:center;gap:.4rem;margin-bottom:.45rem}
+  .lot.keep > .h{color:var(--keep)}
+  .lot.cut > .h{color:var(--cut)}
+  .lot > .h .c{margin-left:auto;font-size:.62rem;color:var(--ink-3)}
+  ul{list-style:none;margin:0;padding:0;display:grid;gap:.16rem}
+  li{font-family:var(--mono);font-size:.72rem;display:flex;align-items:center;gap:.45rem;color:var(--ink-2)}
+  li .g{width:9px;flex:none;text-align:center;font-size:.66rem}
+  .keep li .g{color:var(--keep)}
+  .cut li{color:var(--ink-3);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--ink-3) 55%,transparent)}
+  .cut li .g{color:var(--cut);text-decoration:none}
+  .none{font-family:var(--font);font-size:.78rem;color:var(--ink-3);font-style:italic}
+
+  .act{padding:.75rem .9rem;display:grid;gap:.45rem}
+  .go{background:var(--brand);color:#fff;border-radius:8px;padding:.55rem .8rem;font-weight:650;font-size:.85rem;
+    display:flex;align-items:center;justify-content:center;gap:.4rem}
+  .go:hover{background:color-mix(in srgb,var(--brand) 88%,#000)}
+  .go[disabled]{opacity:.4;pointer-events:none}
+
+  /* the page's one terminal state — it has done its job and closed */
+  #done{position:fixed;inset:0;background:color-mix(in srgb,var(--paper) 92%,transparent);
+    backdrop-filter:blur(3px);display:none;place-content:center;text-align:center;gap:.4rem;padding:2rem;z-index:50}
+  #done.on{display:grid}
+  #done b{font-size:1.05rem;font-weight:800;letter-spacing:-.02em}
+  #done p{margin:0;color:var(--ink-2);max-width:44ch}
+  #done .tick{width:34px;height:34px;border-radius:50%;background:var(--keep);color:#fff;
+    display:grid;place-items:center;font-size:1rem;margin:0 auto .3rem}
+</style>
+
+<div class="wrap">
+  <main>
+    <p class="eyebrow" id="eyebrow">Cavalry · stage 0</p>
+    <h1 id="title">Set up the project</h1>
+
+    <h2><span class="n">01</span> Stack <span class="rule">Pick one</span></h2>
+    <div class="grid packs" id="packs"></div>
+
+    <h2><span class="n">02</span> Add-ons <span class="rule">Pick any</span></h2>
+    <div class="grid addons" id="addons"></div>
+  </main>
+
+  <aside id="cart">
+    <h3><span class="dot"></span> Your project</h3>
+    <div class="lot keep">
+      <div class="h">Keeping <span class="c" id="keepCount">0</span></div>
+      <ul id="keepList"></ul>
+    </div>
+    <div class="lot cut">
+      <div class="h">Deleting <span class="c" id="cutCount">0</span></div>
+      <ul id="cutList"></ul>
+    </div>
+    <div class="act">
+      <button class="go" id="go" disabled>Set up the project</button>
+    </div>
+  </aside>
+</div>
+
+<div id="done">
+  <div><div class="tick">✓</div></div>
+  <b>Sent to Claude</b>
+  <p id="doneBody">Claude is setting the project up now. You can close this tab.</p>
+</div>
+
+<script id="data" type="application/json">
+{
+  "project": "your project",
+  "base": ["CLAUDE.md","apps/","db/","design/","specs/","infra/",".github/"],
+  "packs": [
+    { "id":"vercel", "title":"Vercel SPA", "desc":"Client-rendered React. No server rendering.",
+      "tags":["React","SPA","Vercel","Neon"] },
+    { "id":"vercel-ssr", "title":"Vercel SSR", "desc":"Server-rendered Next.js. Marketing and app in one deployment.",
+      "tags":["Next.js","SSR","Vercel","Neon"] },
+    { "id":"nextjs-nestjs-postgres", "title":"Next + NestJS", "desc":"Separate API service with its own lifecycle.",
+      "tags":["Next.js","NestJS","Postgres","Prisma"] },
+    { "id":"taro-fastify-mysql-tencent", "title":"Taro / Tencent", "desc":"WeChat mini-program, hosted in mainland China.",
+      "tags":["Taro","WeChat","Fastify","MySQL","Tencent"] }
+  ],
+  "addons": [
+    { "id":"multi-tenancy", "title":"Multi-tenancy", "desc":"Organisations share one deployment, data stays isolated.",
+      "tags":["tenant scoping","row isolation","scoped storage"] },
+    { "id":"saas-billing", "title":"SaaS billing", "desc":"Subscriptions, entitlements and seats as a layer.",
+      "tags":["plans","entitlements","seats","usage","webhooks"] },
+    { "id":"otp-auth", "title":"OTP auth", "desc":"Sign in with a code sent by SMS or email.",
+      "tags":["OTP","SMS","email","challenge store"] },
+    { "id":"llm-calls", "title":"LLM calls", "desc":"Guardrails for features that call an AI model.",
+      "tags":["provider adapter","cost caps","canned mode"] },
+    { "id":"enterprise-compliance", "title":"Compliance", "desc":"Controls for SOC 2, ISO 27001, GDPR and PDPA.",
+      "tags":["SSO","MFA","audit log","retention"] },
+    { "id":"test-mode", "title":"Test mode", "desc":"Run end to end with every external side effect stubbed.",
+      "tags":["stubbed sinks","test users"] },
+    { "id":"seo", "title":"SEO", "desc":"Findable by search engines.",
+      "tags":["metadata","sitemap","crawlability"] },
+    { "id":"premium-design", "title":"Premium design", "desc":"Art direction and motion for the screens that carry the product.",
+      "tags":["motion","art direction","craft gate"] }
+  ]
+}
+</script>
+
+<script>
+/* The inventory is injected by chooser-server.mjs from the cloned template, so
+   this always offers what the template actually ships. Opened off disk it falls
+   back to the block above and simply has nowhere to send. */
+const DATA = JSON.parse(document.getElementById('data').textContent);
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let pack = null;
+const addons = new Set();
+
+const card = (it, attr) => `
+  <button class="card" aria-pressed="false" data-${attr}="${esc(it.id)}">
+    <span class="hd"><span class="q">${esc(it.title)}</span><em class="path">${esc(it.id)}</em><span class="mark">✓</span></span>
+    ${it.desc ? `<span class="desc">${esc(it.desc)}</span>` : ''}
+    ${it.tags?.length ? `<span class="tags">${it.tags.map(t => `<i>${esc(t)}</i>`).join('')}</span>` : ''}
+  </button>`;
+
+$('#packs').innerHTML  = DATA.packs.map(p => card(p, 'pack')).join('');
+$('#addons').innerHTML = DATA.addons.map(a => card(a, 'addon')).join('');
+if (DATA.project) $('#title').textContent = `Set up ${DATA.project}`;
+
+const li = (glyph, text) => `<li><span class="g">${glyph}</span>${esc(text)}</li>`;
+
+function render(){
+  const keep = [
+    ...(DATA.base || []).map(b => li('·', b)),
+    pack ? li('✓', `stacks/${pack}/`) : '',
+    ...[...addons].map(a => li('✓', `add-ons/${a}/`)),
+  ].filter(Boolean);
+  const cut = [
+    ...DATA.packs.filter(p => p.id !== pack).map(p => li('×', `stacks/${p.id}/`)),
+    ...DATA.addons.filter(a => !addons.has(a.id)).map(a => li('×', `add-ons/${a.id}/`)),
+  ];
+  $('#keepList').innerHTML = keep.join('');
+  $('#cutList').innerHTML  = cut.length ? cut.join('') : '<li class="none">Nothing yet</li>';
+  $('#keepCount').textContent = pack ? 1 + addons.size : 0;
+  $('#cutCount').textContent  = pack ? cut.length : 0;
+  $('#go').disabled = !pack;
+}
+
+$('#packs').addEventListener('click', e => {
+  const b = e.target.closest('[data-pack]'); if(!b) return;
+  pack = b.dataset.pack;
+  for (const el of $('#packs').children) el.setAttribute('aria-pressed', String(el === b));
+  render();
+});
+
+$('#addons').addEventListener('click', e => {
+  const b = e.target.closest('[data-addon]'); if(!b) return;
+  const on = b.getAttribute('aria-pressed') !== 'true';
+  b.setAttribute('aria-pressed', String(on));
+  on ? addons.add(b.dataset.addon) : addons.delete(b.dataset.addon);
+  render();
+});
+
+$('#go').addEventListener('click', async () => {
+  const choice = {
+    pack,
+    addons: [...addons],
+    deleting: {
+      packs:  DATA.packs.filter(p => p.id !== pack).map(p => p.id),
+      addons: DATA.addons.filter(a => !addons.has(a.id)).map(a => a.id),
+    },
+  };
+  $('#go').disabled = true;
+  try {
+    const r = await fetch('/choose', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(choice),
+    });
+    if (!r.ok) throw new Error(r.status);
+    $('#done').classList.add('on');
+  } catch {
+    /* no server — off disk or it already closed. Hand the JSON over instead. */
+    $('#done').classList.add('on');
+    $('#done').querySelector('b').textContent = 'Copy this to Claude';
+    $('#doneBody').innerHTML =
+      `<textarea readonly style="width:min(70vw,560px);height:9rem;font:12px/1.5 var(--mono);
+        padding:.6rem;border-radius:8px;border:1px solid var(--line-2);background:var(--surface);
+        color:var(--ink)">${esc(JSON.stringify(choice, null, 2))}</textarea>`;
+  }
+});
+
+render();
+</script>

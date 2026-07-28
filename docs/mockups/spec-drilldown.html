@@ -1,0 +1,291 @@
+<title>Candidate pipeline — spec</title>
+<style>
+  :root{
+    --paper:#eef0f3; --surface:#fff; --surface-2:#f7f8fa; --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+    --line:#e2e4e9; --line-2:#d0d2d9; --brand:#d23b2e;
+    --p1:#d23b2e; --p2:#b0761a; --p3:#4a5fce; --note:#8a53c0;
+    --shadow:0 1px 2px rgba(16,17,22,.06); --radius:9px;
+    --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;
+    --line:#282a31;--line-2:#363942;--brand:#f0685c;
+    --p1:#ef6a5e;--p2:#d29a3f;--p3:#7d90ee;--note:#b98cec;--shadow:0 1px 2px rgba(0,0,0,.4);
+  }}
+  :root[data-theme="light"]{--paper:#eef0f3;--surface:#fff;--surface-2:#f7f8fa;--ink:#16171c;--ink-2:#43454d;--ink-3:#71737c;--line:#e2e4e9;--line-2:#d0d2d9;--brand:#d23b2e;--p1:#d23b2e;--p2:#b0761a;--p3:#4a5fce;--note:#8a53c0;--shadow:0 1px 2px rgba(16,17,22,.06)}
+  :root[data-theme="dark"]{--paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;--line:#282a31;--line-2:#363942;--brand:#f0685c;--p1:#ef6a5e;--p2:#d29a3f;--p3:#7d90ee;--note:#b98cec;--shadow:0 1px 2px rgba(0,0,0,.4)}
+
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);font-family:var(--font);
+    font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+  #top{display:flex;align-items:center;gap:10px;padding:0 14px;height:50px;background:var(--surface);
+    border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .brand{display:flex;align-items:baseline;gap:8px}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--brand);align-self:center;flex:none}
+  .brand b{font-weight:700;letter-spacing:-.01em;line-height:1.2}
+  .brand .eyebrow{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:700;line-height:1.2}
+  .spacer{flex:1}
+  .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+    border:1px solid var(--line-2);background:var(--surface);font-weight:600;font-size:.8rem}
+  .btn:hover{background:var(--surface-2)}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.primary:hover{background:color-mix(in srgb,var(--brand) 88%,#000)}
+  .btn.primary[disabled]{opacity:.45;pointer-events:none}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;color:var(--ink-3);
+    font-family:var(--mono);letter-spacing:.04em}
+  .live .d{width:7px;height:7px;border-radius:50%;background:#10876e}
+
+  .wrap{max-width:960px;margin:0 auto;padding:clamp(1.1rem,3vw,2rem) clamp(.8rem,2.5vw,1.6rem) 5rem}
+  .head{margin-bottom:1.4rem}
+  .head .eyebrow{font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--brand);font-weight:600;margin:0 0 .45rem;display:inline-flex;align-items:center;gap:.5rem}
+  .head .eyebrow::before{content:"";width:1.5rem;height:2px;background:var(--brand);border-radius:2px}
+  h1{font-size:clamp(1.4rem,3.2vw,2rem);line-height:1.08;letter-spacing:-.03em;font-weight:800;margin:0 0 .35rem}
+  .goal{color:var(--ink-2);margin:0;max-width:62ch}
+  .meta{display:flex;gap:.5rem;align-items:center;margin-top:.7rem;font-family:var(--mono);font-size:.66rem;
+    color:var(--ink-3);letter-spacing:.05em;text-transform:uppercase}
+
+  /* ── the tree ── */
+  .story{background:var(--surface);border:1px solid var(--line-2);border-left:3px solid var(--pc);
+    border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:.5rem;overflow:hidden}
+  .story.P1{--pc:var(--p1)} .story.P2{--pc:var(--p2)} .story.P3{--pc:var(--p3)}
+  .row{display:flex;align-items:center;gap:.6rem;width:100%;text-align:left;padding:.62rem .8rem;position:relative}
+  .row:hover{background:var(--surface-2)}
+  .tw{width:14px;flex:none;color:var(--ink-3);font-size:.6rem;transition:transform .14s;display:grid;place-items:center}
+  [aria-expanded=true] > .tw{transform:rotate(90deg)}
+  .pri{font-family:var(--mono);font-size:.58rem;font-weight:800;letter-spacing:.06em;color:var(--pc);
+    background:color-mix(in srgb,var(--pc) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--pc) 30%,transparent);
+    border-radius:4px;padding:.06rem .3rem;flex:none}
+  .ttl{font-weight:650;font-size:.92rem;flex:1;min-width:0;outline:0}
+  .count{font-family:var(--mono);font-size:.66rem;color:var(--ink-3);flex:none}
+  .flag{font-family:var(--mono);font-size:.56rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--note);background:color-mix(in srgb,var(--note) 12%,var(--surface));
+    border:1px solid color-mix(in srgb,var(--note) 30%,transparent);border-radius:4px;padding:.05rem .3rem;flex:none}
+
+  .body{border-top:1px solid var(--line);padding:.15rem 0 .35rem}
+  .body[hidden]{display:none}
+
+  .crit{margin:0 .8rem}
+  .crow{display:flex;align-items:flex-start;gap:.55rem;padding:.4rem 0;position:relative}
+  .crow + .crow{border-top:1px dashed var(--line)}
+  .crow .tw{margin-top:.15rem}
+  .ctext{flex:1;min-width:0;font-size:.86rem;color:var(--ink-2);outline:0}
+  .verify{margin:.3rem 0 .45rem 1.05rem;padding:.42rem .55rem;background:var(--surface-2);
+    border:1px solid var(--line);border-radius:7px;font-family:var(--mono);font-size:.74rem;
+    color:var(--ink-2);line-height:1.5;outline:0}
+  .verify[hidden]{display:none}
+  .verify .lbl{display:block;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
+    color:var(--ink-3);margin-bottom:.2rem}
+
+  .ctrls{display:flex;gap:2px;flex:none;opacity:0;transition:opacity .1s}
+  .row:hover .ctrls,.crow:hover .ctrls,.ctrls:focus-within{opacity:1}
+  .ctrls button{width:21px;height:21px;border-radius:5px;border:1px solid transparent;color:var(--ink-3);
+    font-size:.72rem;line-height:1;display:grid;place-items:center}
+  .ctrls button:hover{background:var(--surface);border-color:var(--line-2);color:var(--ink)}
+  .ctrls button.n:hover{color:var(--note);border-color:color-mix(in srgb,var(--note) 40%,transparent)}
+  .ctrls button.x:hover{color:var(--brand);border-color:color-mix(in srgb,var(--brand) 40%,transparent)}
+
+  .note{margin:.25rem .8rem .35rem;padding:.42rem .6rem;border-radius:7px;
+    background:color-mix(in srgb,var(--note) 8%,var(--surface));
+    border:1px solid color-mix(in srgb,var(--note) 26%,transparent);border-left-width:3px;
+    font-size:.83rem;color:var(--ink-2);display:flex;gap:.5rem;align-items:flex-start}
+  .note .who{font-family:var(--mono);font-size:.56rem;letter-spacing:.08em;text-transform:uppercase;
+    font-weight:700;color:var(--note);flex:none;margin-top:.15rem}
+  .note .txt{flex:1;outline:0}
+  .note .kill{color:var(--ink-3);font-size:.72rem;flex:none}
+  .note .kill:hover{color:var(--brand)}
+
+  .add{display:flex;align-items:center;gap:.4rem;margin:.15rem .8rem .1rem;padding:.35rem .5rem;
+    border:1px dashed var(--line-2);border-radius:7px;color:var(--ink-3);font-size:.8rem;width:calc(100% - 1.6rem)}
+  .add:hover{border-color:var(--brand);color:var(--brand)}
+  .addstory{margin-top:.5rem;padding:.55rem;justify-content:center;width:100%}
+
+  .foot{margin-top:1.6rem;font-size:.78rem;color:var(--ink-3);text-align:center;line-height:1.6}
+</style>
+
+<div id="top">
+  <span class="brand"><span class="dot"></span><b>Candidate pipeline</b>
+    <span class="eyebrow">Cavalry · stage 3</span></span>
+  <span class="spacer"></span>
+  <span class="live"><span class="d"></span>Live</span>
+  <button class="btn" id="collapse">Collapse all</button>
+  <button class="btn primary" id="send" disabled>Send to Claude</button>
+</div>
+
+<div class="wrap">
+  <div class="head">
+    <p class="eyebrow">Spec</p>
+    <h1>Candidate pipeline</h1>
+    <p class="goal">Hiring managers work a role's applicants end to end — see them, move them, and
+      collect interview feedback — without leaving the pipeline.</p>
+    <div class="meta">
+      <span>specs/2026-07-28-candidate-pipeline.md</span> ·
+      <span>from design/candidate-pipeline.html</span>
+    </div>
+  </div>
+
+  <div id="tree"></div>
+  <button class="add addstory" id="addStory">+ Add a story</button>
+
+  <p class="foot">Everything here is editable. There is nothing to approve —<br>
+    change what's wrong, and the change is the feedback.</p>
+</div>
+
+<script>
+/* The tree IS the spec. specs/…md is generated from this, never the other way. */
+let spec = [
+  { id:'s1', pri:'P1', title:'See everyone who applied to a role', open:false, notes:[], crit:[
+    { id:'c1', text:'The list opens newest-first and shows name, stage and days waiting.',
+      verify:'Open /roles/42 — top row is the most recent application.', open:false, notes:[] },
+    { id:'c2', text:'Searching by name narrows the list as you type.',
+      verify:'Type "ama" — only Amara Osei remains, in under 200ms.', open:false, notes:[] },
+    { id:'c3', text:'Filtering by stage shows only that stage, and the count updates.',
+      verify:'Filter → Interview. Count reads 3, all rows show Interview.', open:false, notes:[] },
+  ]},
+  { id:'s2', pri:'P1', title:'Move a candidate forward, or reject them', open:false, notes:[
+    { who:'Note', text:'Rejection reasons need to be a fixed list — free text makes this unreportable later.' },
+  ], crit:[
+    { id:'c4', text:'Advancing moves the candidate to the next stage and stamps the timeline.',
+      verify:'Advance Wei Zhang → Interview. Timeline gains "Moved to Interview" with today\'s date.', open:false, notes:[] },
+    { id:'c5', text:'Rejecting requires a reason before it will submit.',
+      verify:'Reject with an empty reason — the button stays disabled.', open:false, notes:[] },
+  ]},
+  { id:'s3', pri:'P2', title:'Move a dozen candidates at once after a screening day', open:false, notes:[], crit:[
+    { id:'c6', text:'Selecting rows reveals a bulk bar with the count and the available moves.',
+      verify:'Select 12 rows — bar reads "12 selected".', open:false, notes:[] },
+    { id:'c7', text:'A bulk move that partly fails reports which candidates did not move, and why.',
+      verify:'Force one failure — the result names the candidate and leaves the other 11 moved.', open:false, notes:[] },
+  ]},
+  { id:'s4', pri:'P2', title:'Collect a scorecard from an interviewer', open:false, notes:[], crit:[
+    { id:'c8', text:'The link opens one candidate and nothing else.',
+      verify:'Open the token URL signed out — only that candidate is reachable.', open:false, notes:[] },
+    { id:'c9', text:'Other scorecards stay hidden until yours is submitted.',
+      verify:'Two interviewers, one submitted — the second sees no feedback until they submit.', open:false, notes:[] },
+  ]},
+  { id:'s5', pri:'P3', title:'See everything a candidate did on one timeline', open:false, notes:[], crit:[
+    { id:'c10', text:'The timeline shows applied, screened, interviewed and offered, in order.',
+      verify:'Open a candidate at offer stage — four events, oldest first.', open:false, notes:[] },
+  ]},
+];
+
+const $ = (s) => document.querySelector(s);
+/* Expanding something is not a change — only edits arm Send. */
+const dirty = () => { $('#send').disabled = false; };
+const esc = (s) => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function noteHtml(n, path){
+  return `<div class="note" data-note="${path}">
+      <span class="who">${n.who || 'Note'}</span>
+      <span class="txt" contenteditable="plaintext-only">${esc(n.text)}</span>
+      <button class="kill" data-act="unnote" title="Remove">×</button>
+    </div>`;
+}
+
+function render(){
+  $('#tree').innerHTML = spec.map((s, si) => {
+    const openCrit = s.crit.length;
+    const flagged = s.notes.length || s.crit.some(c => c.notes.length);
+    return `
+    <div class="story ${s.pri}" data-s="${si}">
+      <button class="row" aria-expanded="${s.open}" data-act="tog">
+        <span class="tw">▶</span>
+        <span class="pri">${s.pri}</span>
+        <span class="ttl" contenteditable="plaintext-only" data-act="edit-title">${esc(s.title)}</span>
+        ${flagged ? '<span class="flag">Noted</span>' : ''}
+        <span class="count">${openCrit} criteria</span>
+        <span class="ctrls">
+          <button class="n" data-act="note" title="Add a note">✎</button>
+          <button class="x" data-act="del" title="Delete this story">×</button>
+        </span>
+      </button>
+      <div class="body" ${s.open ? '' : 'hidden'}>
+        ${s.notes.map((n,ni) => noteHtml(n, `${si}.${ni}`)).join('')}
+        <div class="crit">
+          ${s.crit.map((c, ci) => `
+            <div class="crow" data-c="${ci}">
+              <button class="tw" aria-expanded="${c.open}" data-act="togc">▶</button>
+              <span style="flex:1;min-width:0">
+                <span class="ctext" contenteditable="plaintext-only" data-act="edit-crit">${esc(c.text)}</span>
+                <div class="verify" ${c.open ? '' : 'hidden'} contenteditable="plaintext-only" data-act="edit-verify">
+                  <span class="lbl" contenteditable="false">Verified by</span>${esc(c.verify)}
+                </div>
+                ${c.notes.map((n,ni) => noteHtml(n, `${si}.${ci}.${ni}`)).join('')}
+              </span>
+              <span class="ctrls">
+                <button class="n" data-act="notec" title="Add a note">✎</button>
+                <button class="x" data-act="delc" title="Delete this criterion">×</button>
+              </span>
+            </div>`).join('')}
+        </div>
+        <button class="add" data-act="addc">+ Add a criterion</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+$('#tree').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-act]');
+  const story = e.target.closest('.story');
+  if (!btn || !story) return;
+  const si = +story.dataset.s;
+  const crow = e.target.closest('.crow');
+  const ci = crow ? +crow.dataset.c : null;
+  const act = btn.dataset.act;
+
+  if (act === 'edit-title' || act === 'edit-crit' || act === 'edit-verify') return;
+
+  if (act === 'tog')  { spec[si].open = !spec[si].open; }
+  if (act === 'togc') { spec[si].crit[ci].open = !spec[si].crit[ci].open; }
+  if (act === 'del')  { spec.splice(si,1); }
+  if (act === 'delc') { spec[si].crit.splice(ci,1); }
+  if (act === 'note') { spec[si].notes.push({ who:'Note', text:'' }); spec[si].open = true; }
+  if (act === 'notec'){ spec[si].crit[ci].notes.push({ who:'Note', text:'' }); }
+  if (act === 'addc') { spec[si].crit.push({ id:'c'+Date.now(), text:'New criterion', verify:'How this gets checked', open:true, notes:[] }); }
+  if (act === 'unnote'){
+    const p = e.target.closest('[data-note]').dataset.note.split('.').map(Number);
+    p.length === 2 ? spec[p[0]].notes.splice(p[1],1) : spec[p[0]].crit[p[1]].notes.splice(p[2],1);
+  }
+  if (act !== 'tog' && act !== 'togc') dirty();
+  e.stopPropagation();
+  render();
+  if (act === 'note' || act === 'notec') {
+    const notes = $('#tree').querySelectorAll('.note .txt');
+    notes[notes.length-1]?.focus();
+  }
+});
+
+$('#tree').addEventListener('input', (e) => {
+  const t = e.target;
+  const story = t.closest('.story'); if(!story) return;
+  const si = +story.dataset.s;
+  const crow = t.closest('.crow');
+  if (t.dataset.act === 'edit-title') spec[si].title = t.textContent.trim();
+  else if (t.dataset.act === 'edit-crit' && crow) spec[si].crit[+crow.dataset.c].text = t.textContent.trim();
+  else if (t.dataset.act === 'edit-verify' && crow) {
+    spec[si].crit[+crow.dataset.c].verify = t.textContent.replace(/^Verified by/,'').trim();
+  } else if (t.classList.contains('txt')) {
+    const p = t.closest('[data-note]').dataset.note.split('.').map(Number);
+    (p.length === 2 ? spec[p[0]].notes[p[1]] : spec[p[0]].crit[p[1]].notes[p[2]]).text = t.textContent.trim();
+  }
+  dirty();
+});
+
+$('#addStory').addEventListener('click', () => {
+  spec.push({ id:'s'+Date.now(), pri:'P3', title:'New story', open:true, notes:[], crit:[] });
+  dirty(); render();
+});
+
+$('#collapse').addEventListener('click', () => {
+  const anyOpen = spec.some(s => s.open);
+  spec.forEach(s => { s.open = !anyOpen; s.crit.forEach(c => c.open = false); });
+  $('#collapse').textContent = anyOpen ? 'Expand all' : 'Collapse all';
+  render();
+});
+
+render();
+</script>

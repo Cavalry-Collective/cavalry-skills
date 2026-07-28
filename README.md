@@ -22,6 +22,8 @@ cp -R cavalry-skills/plugins/cavalry/skills/<skill-name> ~/.claude/skills/
 | --- | --- | --- |
 | [user-story-map](#user-story-map) | `/cavalry:user-story-map` | Interactive drag-and-drop user story map — re-slice stories across release phases, rank everything, track status, tag themes, and send the result straight back to Claude |
 | [ui-review](#ui-review) | `/cavalry:ui-review` | Comment directly on any HTML UI in a review workspace, and send structured feedback straight back to Claude — a two-way loop, like reviewing with a designer |
+| [phase-wireframe](#phase-wireframe) | `/cavalry:phase-wireframe` | Cut one signed-off mockup into a mockup per release phase — each showing only what exists by that phase, with the layout untouched. Subtraction only, checked mechanically |
+| [init](#init) | `/cavalry:init` | Start a project from the Cavalry template — pick the stack and add-ons on a visual chooser, delete the rest, and work through Day-1 until the repo is ready to build in |
 
 More skills are on the way — ⭐ watch the repo to catch new ones.
 
@@ -140,6 +142,107 @@ For a stakeholder who isn't at your machine, Claude flattens the same workspace 
 
 ---
 
+## phase-wireframe
+
+You have a mockup everyone signed off. Now you need to know what it looks like at the end of Phase 1
+— because that's what you're actually building first. This cuts the approved design down, one file
+per phase, and **only ever subtracts**: nothing moves, nothing is resized or restyled, nothing new
+is invented. The Phase 1 file is the real build target for Phase 1, not a redrawing of it.
+
+```
+base.html ──┬──► phase-1/base.html    only what ships in phase 1
+            ├──► phase-2/base.html    phase 1 + phase 2
+            └──► phase-3/base.html    phase 1 + 2 + 3   ( = the base, if phases cover it all )
+```
+
+Phases are **cumulative** — Phase 2 shows Phase 1 as well — and every phase is cut from the original,
+never from the previous phase's output, so errors don't compound.
+
+### How it works
+
+- **The plan comes first.** Claude inventories every element in the mockup and assigns each the
+  earliest phase it exists in, then shows you that table before touching any HTML. This is where you
+  argue about what's in Phase 1 — and where elements that no story covers get flagged instead of
+  silently kept or cut.
+- **Phase order, one at a time.** Phase 1 is generated, checked and reviewed before Phase 2 starts,
+  because a comment on Phase 1 usually changes every later phase.
+- **Gated features get a skeleton.** If a Phase 1 feature only opens through a Phase 3 modal, the
+  feature stays exactly where it is and the modal is replaced with the minimum empty frame — so the
+  Phase 1 feature stays visible and reachable. Every skeleton is marked in the file, so a reviewer
+  can see the blank space is deliberate.
+- **The subtraction is proved, not promised.** Each phase file is checked against the base before you
+  see it: the stylesheet must be byte-identical, no element may exist that isn't in the base, and the
+  surviving elements must appear in the base's exact order. Moved, restyled or invented anything, and
+  it fails and gets fixed before it reaches you.
+
+```bash
+node assets/check-subtraction.mjs --base design/app.html --phase design/phase-1/app.html
+#  18 kept · 14 removed (44%) · 0 skeletons
+#  ✓ pure subtraction — CSS untouched, nothing invented, nothing moved
+```
+
+- **Then review it.** Each phase hands off to [ui-review](#ui-review), so you comment on a phase
+  mockup the same way you commented on the original.
+
+### Use
+
+```
+/cavalry:phase-wireframe cut design/candidate-pipeline.html into phases using specs/story-map.json
+```
+
+Or in natural language — it triggers on a Phase 1 or MVP version of an existing mockup, phased or
+staged mockups, or slicing a screen by release phase:
+
+> Show me what this screen looks like in Phase 1.
+
+It takes the phases from a [user-story-map](#user-story-map) JSON if you have one (best input — the
+map already says which story lands when), otherwise from a spec's P1/P2/P3 priorities, otherwise from
+whatever you tell it. It won't invent a release plan.
+
+---
+
+## init
+
+A new project starts as [`cavalry-template-spa`](https://github.com/Cavalry-Collective/cavalry-template-spa)
+— architecture contracts, design tokens, stack packs and add-ons, all still optional. This turns it into
+*your* project: clone, choose, delete the rest, fill in the Day-1 checklist.
+
+### The chooser
+
+Rather than a wall of questions, the two decisions happen on one page: **pick one stack pack, tick any
+add-ons**, with a running panel showing what the project will contain and — just as important — **what is
+about to be deleted**.
+
+That list matters, because in this template **adoption is deletion**. Exactly one directory survives under
+`stacks/` and only the wanted ones under `add-ons/`; that's how each area's `CLAUDE.md` knows which contract
+applies. Setup really does end by removing most of what it just cloned, so you see the delete list before you
+confirm it.
+
+The page reads `stacks/` and `add-ons/` **from your clone**, so it always offers what the template actually
+ships — a pack added upstream shows up on its own, and one it has no blurb for still renders from its README.
+
+It asks once. Send, and it writes your answer and shuts down; nothing is left listening.
+
+### Then Day-1, in order
+
+Delete the unchosen directories · record the stack in `CLAUDE.md` · fill the toolchain from the pack's own
+command blocks · declare the primary form factor · **rebrand and confirm the design guide** — the gate before
+any screen gets built · copy runtime config.
+
+The last three steps — protect `main`, stand up staging, confirm CI green — are GitHub settings and a live
+push, so they come back as a checklist rather than happening to your repo unasked.
+
+### Use
+
+```
+/cavalry:init a hiring pipeline for mid-size agencies
+```
+
+Or just say you want to start a new project. If you'd rather answer in chat than on the page, say so — the
+chooser is the nicer path, not the only one.
+
+---
+
 ## Repo layout / adding a skill
 
 ```
@@ -154,6 +257,15 @@ plugins/cavalry/                     ← the `cavalry` plugin
       SKILL.md
       assets/…                       ← workspace, local server, artifact bundler
       references/…                   ← loaded on demand, not up-front
+    phase-wireframe/
+      SKILL.md
+      assets/…                       ← the subtraction checker
+    init/
+      SKILL.md
+      assets/…                       ← the chooser page + its one-shot server
+docs/
+  pipeline-wishlist.md               ← where the chain is going, and what's still open
+  mockups/                           ← screens for the stages not yet built
 ```
 
 Every directory added under `plugins/cavalry/skills/` ships with the plugin and is invocable as `/cavalry:<skill-name>` — no manifest changes needed.

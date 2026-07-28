@@ -1,0 +1,500 @@
+<title>Requirements</title>
+<style>
+  :root{
+    --paper:#eef0f3; --surface:#fff; --surface-2:#f7f8fa; --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+    --line:#e2e4e9; --line-2:#d0d2d9; --brand:#d23b2e;
+    --b0:#4a5fce; --b1:#10876e; --b2:#b0761a; --b3:#8a53c0; --b4:#0f7f9c; --b5:#d23b2e;
+    --root:#71737c; --rel:#8a53c0;
+    --shadow:0 1px 2px rgba(16,17,22,.06); --radius:9px;
+    --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;
+    --line:#282a31;--line-2:#363942;--brand:#f0685c;
+    --b0:#7d90ee;--b1:#2fb89b;--b2:#d29a3f;--b3:#b98cec;--b4:#3fb6d6;--b5:#ef6a5e;
+    --root:#8b8e97;--rel:#b98cec;--shadow:0 1px 2px rgba(0,0,0,.4);
+  }}
+  :root[data-theme="light"]{--paper:#eef0f3;--surface:#fff;--surface-2:#f7f8fa;--ink:#16171c;--ink-2:#43454d;--ink-3:#71737c;--line:#e2e4e9;--line-2:#d0d2d9;--brand:#d23b2e;--b0:#4a5fce;--b1:#10876e;--b2:#b0761a;--b3:#8a53c0;--b4:#0f7f9c;--b5:#d23b2e;--root:#71737c;--rel:#8a53c0;--shadow:0 1px 2px rgba(16,17,22,.06)}
+  :root[data-theme="dark"]{--paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;--line:#282a31;--line-2:#363942;--brand:#f0685c;--b0:#7d90ee;--b1:#2fb89b;--b2:#d29a3f;--b3:#b98cec;--b4:#3fb6d6;--b5:#ef6a5e;--root:#8b8e97;--rel:#b98cec;--shadow:0 1px 2px rgba(0,0,0,.4)}
+
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);font-family:var(--font);
+    font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+  #app{display:grid;grid-template-rows:auto minmax(0,1fr);min-height:100vh}
+  #top{display:flex;align-items:center;gap:10px;padding:0 14px;height:50px;background:var(--surface);
+    border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:baseline;gap:8px}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--brand);align-self:center;flex:none}
+  .brand b{font-weight:700;letter-spacing:-.01em;line-height:1.2}
+  .brand .eyebrow{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:700;line-height:1.2}
+  .spacer{flex:1}
+  .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+    border:1px solid var(--line-2);background:var(--surface);font-weight:600;font-size:.8rem}
+  .btn:hover{background:var(--surface-2)}
+  .btn[disabled]{opacity:.45;pointer-events:none}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.primary:hover{background:color-mix(in srgb,var(--brand) 88%,#000)}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;color:var(--ink-3);
+    font-family:var(--mono);letter-spacing:.04em}
+  .live .d{width:7px;height:7px;border-radius:50%;background:var(--b1)}
+  kbd{font-family:var(--mono);font-size:.63rem;font-weight:600;background:var(--surface-2);
+    border:1px solid var(--line-2);border-bottom-width:2px;border-radius:4px;padding:.05rem .3rem;color:var(--ink-2)}
+
+  #main{display:grid;grid-template-columns:330px minmax(0,1fr);min-height:0}
+  @media (max-width:900px){ #main{grid-template-columns:minmax(0,1fr)} #write{display:none} }
+
+  #write{display:grid;grid-template-rows:auto minmax(0,1fr);border-right:1px solid var(--line);
+    background:var(--surface);min-height:0}
+  #write .h{padding:.6rem .85rem .5rem;border-bottom:1px solid var(--line)}
+  #write .h b{font-size:.82rem;font-weight:700}
+  #req{border:0;resize:none;padding:.85rem;font:inherit;font-size:.86rem;line-height:1.65;
+    background:none;color:var(--ink);min-height:0}
+  #req:focus{outline:0}
+
+  #legend{display:flex;align-items:center;gap:.55rem;padding:.4rem .9rem;background:var(--surface);
+    border-bottom:1px solid var(--line);flex-wrap:wrap;font-size:.74rem;color:var(--ink-3)}
+  #legend .swatch{display:inline-flex;align-items:center;gap:.35rem;color:var(--ink-2)}
+  #legend .swatch i{width:16px;height:0;border-top:2px solid var(--line-2);display:block}
+  #legend .swatch.rel i{border-top:2px dashed var(--rel)}
+  #legend .arm{margin-left:auto;color:var(--rel);font-weight:650;display:none}
+  body.linking #legend .arm{display:inline}
+  body.linking #legend .rest{display:none}
+
+  /* ── canvas ── */
+  #stage{position:relative;overflow:auto;background:var(--surface-2);
+    background-image:radial-gradient(circle at 1px 1px,var(--line-2) 1px,transparent 0);background-size:22px 22px;
+    touch-action:none}
+  #plane{position:relative;min-width:100%;min-height:100%}
+  svg#edges{position:absolute;inset:0;width:100%;height:100%;overflow:visible;transition:opacity .12s}
+  svg#edges path{fill:none;pointer-events:none}
+  svg#edges path.tree{stroke:var(--line-2);stroke-width:1.5}
+  svg#edges path.rel{stroke:var(--rel);stroke-width:1.5;stroke-dasharray:4 4;marker-end:url(#arrow)}
+  body.dragging svg#edges{opacity:.25}
+
+  .rl{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:3px;
+    background:var(--surface);border:1px solid color-mix(in srgb,var(--rel) 35%,var(--line-2));
+    border-radius:5px;padding:.04rem .3rem;font-size:.68rem;color:var(--rel);font-weight:600;
+    white-space:nowrap;z-index:6;box-shadow:var(--shadow)}
+  .rl span{outline:0;cursor:text;min-width:1ch}
+  .rl button{color:var(--ink-3);font-size:.66rem;line-height:1;opacity:0}
+  .rl:hover button{opacity:1}
+  .rl button:hover{color:var(--brand)}
+
+  .node{position:absolute;background:var(--surface);border:1px solid var(--line-2);
+    border-left:3px solid var(--nc);border-radius:8px;box-shadow:var(--shadow);
+    padding:.36rem .55rem;width:max-content;max-width:240px;display:grid;gap:.06rem;
+    cursor:grab;user-select:none}
+  .node:hover{box-shadow:0 3px 12px rgba(0,0,0,.10)}
+  .node.sel{border-color:var(--nc);box-shadow:0 0 0 2px color-mix(in srgb,var(--nc) 38%,transparent)}
+  .node.into{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 12%,var(--surface));
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--brand) 45%,transparent)}
+  .node.moving{z-index:20;box-shadow:0 10px 28px rgba(0,0,0,.22);cursor:grabbing}
+  .node .t{font-size:.85rem;font-weight:600;line-height:1.32;outline:0;white-space:pre-wrap;cursor:text}
+  .node.pinned::before{content:"";position:absolute;left:-7px;top:-5px;width:7px;height:7px;
+    border-radius:50%;background:var(--nc);box-shadow:0 0 0 2px var(--surface)}
+  .node.root{--nc:var(--root);font-weight:700}
+  body.linking .node{cursor:crosshair}
+  body.linking .node.src{box-shadow:0 0 0 2px var(--rel)}
+  body.linking .node:hover{border-color:var(--rel);box-shadow:0 0 0 2px color-mix(in srgb,var(--rel) 50%,transparent)}
+
+  /* controls sit in a strip that touches the node, so the pointer never
+     crosses dead space on its way to them and they never vanish mid-reach */
+  .rail{position:absolute;left:100%;top:0;height:100%;padding-left:6px;display:none;
+    align-items:center;gap:3px}
+  .node:hover .rail,.node.sel .rail{display:flex}
+  body.linking .rail{display:none!important}
+  .rail button{width:19px;height:19px;border-radius:50%;border:1px solid var(--line-2);
+    background:var(--surface);color:var(--ink-3);font-size:.66rem;line-height:1;
+    display:grid;place-items:center;box-shadow:var(--shadow);flex:none}
+  .rail button:hover{border-color:var(--brand);color:var(--brand)}
+  .rail button.link:hover{border-color:var(--rel);color:var(--rel)}
+  .rail button.del:hover{background:var(--brand);border-color:var(--brand);color:#fff}
+  .rail .tog.count{font-family:var(--mono);font-size:.58rem;font-weight:700;
+    background:var(--nc);border-color:var(--nc);color:#fff}
+
+  #gap{position:absolute;height:3px;background:var(--brand);border-radius:2px;display:none;z-index:25;
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 18%,transparent)}
+  body.dragging{cursor:grabbing}
+</style>
+
+<div id="app">
+  <div id="top">
+    <span class="brand"><span class="dot"></span><b>Requirements</b>
+      <span class="eyebrow">Cavalry · stage 1</span></span>
+    <span class="spacer"></span>
+    <button class="btn" id="tidy" disabled>Tidy up</button>
+    <span class="live"><span class="d"></span>Live</span>
+    <button class="btn primary" id="send" disabled>Send to Claude</button>
+  </div>
+
+  <div id="main">
+    <section id="write">
+      <div class="h"><b>What you need</b></div>
+      <textarea id="req" spellcheck="false">Hiring managers open a role and see everyone who applied, newest first.
+
+They can search by name and filter by stage, then move a candidate forward or reject them with a reason.
+
+Recruiters need to bulk-move candidates after a screening day — a dozen at a time, not one by one.
+
+Interviewers get a link to a candidate and leave a scorecard without seeing anyone else's until they've submitted theirs.
+
+Everything a candidate did should be visible on one timeline: applied, screened, interviewed, offered.</textarea>
+    </section>
+
+    <section style="display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0">
+      <div id="legend">
+        <span class="swatch"><i></i>hierarchy</span>
+        <span class="swatch rel"><i></i>relationship / flow</span>
+        <span class="rest">· drag a card anywhere and it stays · drop it on another to nest ·
+          <kbd>Tab</kbd> child · <kbd>⏎</kbd> sibling · <kbd>⌫</kbd> delete</span>
+        <span class="arm">Click the card to link to — <kbd>Esc</kbd> to cancel</span>
+      </div>
+      <div id="stage">
+        <div id="plane">
+          <svg id="edges"><defs>
+            <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6"
+                    orient="auto-start-reverse">
+              <path d="M0,1 L7,4 L0,7" fill="none" stroke="var(--rel)" stroke-width="1.4"/>
+            </marker>
+          </defs></svg>
+          <div id="rels"></div>
+          <div id="nodes"></div>
+          <div id="gap"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* Hierarchy is the tree. Relationships and flows are separate labelled links,
+   so the same map carries "belongs to" and "then what happens" at once. */
+let tree = {
+  id:'r', text:'Hiring pipeline', children:[
+    { id:'role', text:'Role', children:[
+      { id:'ro1', text:'Title, team, hiring manager', children:[] },
+      { id:'ro2', text:'Defines its own stages', children:[] },
+    ]},
+    { id:'cand', text:'Candidate', children:[
+      { id:'ca1', text:'Name, contact', children:[] },
+    ]},
+    { id:'app', text:'Application', children:[
+      { id:'ap2', text:'Sits at exactly one stage', children:[] },
+      { id:'ap3', text:'Rejection needs a reason', children:[] },
+    ]},
+    { id:'stage', text:'Stage', children:[
+      { id:'st1', text:'Applied · Screen · Interview · Offer', children:[] },
+    ]},
+    { id:'intv', text:'Interview', children:[
+      { id:'in2', text:'Interviewer and time', children:[] },
+    ]},
+    { id:'card', text:'Scorecard', children:[
+      { id:'sc2', text:'Hidden until yours is submitted', children:[] },
+    ]},
+    { id:'tl', text:'Timeline', children:[] },
+  ]
+};
+
+let links = [
+  { id:'l1', from:'cand',  to:'app',   label:'applies via' },
+  { id:'l2', from:'role',  to:'app',   label:'receives' },
+  { id:'l3', from:'app',   to:'stage', label:'sits at' },
+  { id:'l4', from:'app',   to:'intv',  label:'then' },
+  { id:'l5', from:'intv',  to:'card',  label:'produces' },
+  { id:'l6', from:'app',   to:'tl',    label:'writes to' },
+];
+
+const $ = s => document.querySelector(s);
+const NODES = $('#nodes'), EDGES = $('#edges'), PLANE = $('#plane'), GAP = $('#gap'), RELS = $('#rels');
+
+let sel = 'r';
+let linkFrom = null;
+const collapsed = new Set();
+let uid = 0;
+const nid = p => p + (++uid) + Date.now().toString(36);
+const dirty = () => { $('#send').disabled = false; };
+$('#req').addEventListener('input', dirty);
+
+function find(id, n = tree, p = null){
+  if (n.id === id) return { n, p };
+  for (const k of n.children) { const r = find(id, k, n); if (r) return r; }
+  return null;
+}
+const contains = (a, id) => !!find(id, a);
+const subtreeIds = (n, out = []) => { out.push(n.id); n.children.forEach(k => subtreeIds(k, out)); return out; };
+
+function addChild(id){
+  const r = find(id); if (!r) return;
+  collapsed.delete(id);
+  const kid = { id:nid('n'), text:'', children:[] };
+  r.n.children.push(kid); sel = kid.id; dirty(); render(kid.id);
+}
+function addSibling(id){
+  const r = find(id); if (!r || !r.p) return addChild(id);
+  const kid = { id:nid('n'), text:'', children:[] };
+  r.p.children.splice(r.p.children.indexOf(r.n) + 1, 0, kid);
+  sel = kid.id; dirty(); render(kid.id);
+}
+function remove(id){
+  const r = find(id); if (!r || !r.p) return;                 /* the root stays */
+  const gone = new Set(subtreeIds(r.n));
+  const i = r.p.children.indexOf(r.n);
+  r.p.children.splice(i, 1);
+  links = links.filter(l => !gone.has(l.from) && !gone.has(l.to));   /* no dangling links */
+  sel = (r.p.children[i] || r.p.children[i-1] || r.p).id;
+  dirty(); render();
+}
+
+/* ── layout: auto-tidy, then honour pins ───────────────────────────────────── */
+const COL = 250, ROW = 44, PAD = 36;
+function layout(){
+  const vis = []; let row = 0;
+  (function auto(n, d){
+    const kids = collapsed.has(n.id) ? [] : n.children;
+    if (!kids.length) { n._ay = PAD + row * ROW; row++; }
+    else { kids.forEach(k => auto(k, d + 1)); n._ay = (kids[0]._ay + kids[kids.length-1]._ay) / 2; }
+    n._ax = PAD + d * COL; n._d = d;
+    vis.push(n);
+  })(tree, 0);
+
+  tree.children.forEach((b, i) => (function mark(n){ n._b = i; n.children.forEach(mark); })(b));
+
+  (function pin(n, dx, dy){
+    if (n.px != null) { dx = n.px - n._ax; dy = n.py - n._ay; }
+    n._x = n._ax + dx; n._y = n._ay + dy;
+    (collapsed.has(n.id) ? [] : n.children).forEach(k => pin(k, dx, dy));
+  })(tree, 0, 0);
+
+  return vis;
+}
+const anyPinned = () => { let f = false; (function w(n){ if(n.px!=null) f=true; n.children.forEach(w); })(tree); return f; };
+
+function render(focusId){
+  const vis = layout();
+  const visible = new Set(vis.map(n => n.id));
+
+  NODES.innerHTML = vis.map(n => {
+    const kids = n.children.length, isCol = collapsed.has(n.id);
+    return `<div class="node ${n._d===0?'root':''} ${sel===n.id?'sel':''} ${n.px!=null?'pinned':''}"
+                 data-id="${n.id}"
+                 style="left:${n._x}px;top:${n._y}px${n._d?`;--nc:var(--b${n._b%6})`:''}">
+      <div class="t" contenteditable="plaintext-only" spellcheck="false">${n.text}</div>
+      <div class="rail">
+        ${kids ? `<button class="tog ${isCol?'count':''}" data-act="tog"
+                    title="${isCol?'Expand':'Collapse'}">${isCol?kids:'−'}</button>` : ''}
+        <button class="link" data-act="link" title="Draw a relationship or flow">↗</button>
+        <button data-act="add" title="Add a child">+</button>
+        ${n._d ? '<button class="del" data-act="del" title="Delete">×</button>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  requestAnimationFrame(() => {
+    const box = {}; let w = 0, h = 0;
+    NODES.querySelectorAll('.node').forEach(el => {
+      box[el.dataset.id] = { x:el.offsetLeft, y:el.offsetTop, w:el.offsetWidth, h:el.offsetHeight };
+      w = Math.max(w, el.offsetLeft + el.offsetWidth + 100);
+      h = Math.max(h, el.offsetTop + el.offsetHeight);
+    });
+
+    const paths = [];
+    (function edges(n){
+      if (collapsed.has(n.id)) return;
+      for (const k of n.children) {
+        const a = box[n.id], b = box[k.id];
+        if (a && b) {
+          const x1=a.x+a.w, y1=a.y+a.h/2, x2=b.x, y2=b.y+b.h/2, mx=(x1+x2)/2;
+          paths.push(`<path class="tree" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}"/>`);
+        }
+        edges(k);
+      }
+    })(tree);
+
+    /* relationships bow outward so they read as a separate layer to the tree */
+    const labels = [];
+    for (const l of links) {
+      if (!visible.has(l.from) || !visible.has(l.to)) continue;
+      const a = box[l.from], b = box[l.to];
+      if (!a || !b) continue;
+      const x1=a.x+a.w/2, y1=a.y+a.h/2, x2=b.x+b.w/2, y2=b.y+b.h/2;
+      const mx=(x1+x2)/2, my=(y1+y2)/2;
+      const nx = -(y2-y1), ny = (x2-x1), len = Math.hypot(nx,ny) || 1;
+      const bow = Math.min(70, len * 0.22);
+      const cx = mx + (nx/len)*bow, cy = my + (ny/len)*bow;
+      paths.push(`<path class="rel" d="M${x1},${y1} Q${cx},${cy} ${x2},${y2}"/>`);
+      labels.push({ id:l.id, label:l.label, x:(x1 + 2*cx + x2)/4, y:(y1 + 2*cy + y2)/4 });
+    }
+
+    EDGES.innerHTML = EDGES.querySelector('defs').outerHTML + paths.join('');
+    RELS.innerHTML = labels.map(l => `
+      <div class="rl" data-link="${l.id}" style="left:${l.x}px;top:${l.y}px">
+        <span contenteditable="plaintext-only" spellcheck="false">${l.label}</span>
+        <button data-act="unlink" title="Remove">×</button>
+      </div>`).join('');
+
+    PLANE.style.width = (w + PAD) + 'px';
+    PLANE.style.height = (h + PAD) + 'px';
+    $('#tidy').disabled = !anyPinned();
+
+    if (focusId) {
+      const el = NODES.querySelector(`[data-id="${focusId}"] .t`);
+      if (el) { el.focus(); document.getSelection().selectAllChildren(el); }
+    }
+  });
+}
+
+/* ── links ─────────────────────────────────────────────────────────────────── */
+function armLink(id){
+  linkFrom = id;
+  document.body.classList.add('linking');
+  NODES.querySelector(`[data-id="${id}"]`)?.classList.add('src');
+}
+function disarm(){
+  linkFrom = null;
+  document.body.classList.remove('linking');
+  NODES.querySelectorAll('.src').forEach(n => n.classList.remove('src'));
+}
+
+RELS.addEventListener('click', e => {
+  if (!e.target.closest('[data-act="unlink"]')) return;
+  const id = e.target.closest('[data-link]').dataset.link;
+  links = links.filter(l => l.id !== id);
+  dirty(); render();
+});
+RELS.addEventListener('input', e => {
+  const s = e.target.closest('span'); if (!s) return;
+  const l = links.find(x => x.id === s.closest('[data-link]').dataset.link);
+  if (l) { l.label = s.textContent; dirty(); }
+});
+
+/* ── node controls ─────────────────────────────────────────────────────────── */
+NODES.addEventListener('click', e => {
+  const node = e.target.closest('.node'); if (!node) return;
+  const id = node.dataset.id;
+
+  if (linkFrom) {
+    if (id !== linkFrom && !links.some(l => l.from === linkFrom && l.to === id)) {
+      links.push({ id:nid('l'), from:linkFrom, to:id, label:'relates to' });
+      dirty();
+    }
+    disarm(); render();
+    return;
+  }
+
+  const act = e.target.closest('[data-act]');
+  if (!act) { sel = id; render(); return; }
+  const a = act.dataset.act;
+  if (a === 'tog')  { collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id); render(); }
+  if (a === 'add')  addChild(id);
+  if (a === 'del')  remove(id);
+  if (a === 'link') { sel = id; render(); armLink(id); }
+});
+NODES.addEventListener('input', e => {
+  const t = e.target.closest('.t'); if (!t) return;
+  const r = find(t.closest('.node').dataset.id);
+  if (r) { r.n.text = t.textContent; dirty(); }
+});
+NODES.addEventListener('focusout', () => render());
+
+$('#tidy').addEventListener('click', () => {
+  (function clear(n){ delete n.px; delete n.py; n.children.forEach(clear); })(tree);
+  dirty(); render();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && linkFrom) { disarm(); return; }
+  if (e.target.closest('#req') || e.target.closest('.rl')) return;
+  const editing = e.target.closest('.t');
+  const id = editing ? editing.closest('.node').dataset.id : sel;
+  if (!id) return;
+  if (e.key === 'Tab') { e.preventDefault(); addChild(id); }
+  else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addSibling(id); }
+  else if ((e.key === 'Backspace' || e.key === 'Delete') && !editing) { e.preventDefault(); remove(id); }
+  else if (e.key === 'Escape' && editing) editing.blur();
+});
+
+/* ── drag: the card and its branch move, and stay where they land ──────────── */
+let drag = null;
+
+NODES.addEventListener('pointerdown', e => {
+  if (linkFrom || e.target.closest('.rail') || e.target.closest('.t:focus')) return;
+  const node = e.target.closest('.node'); if (!node) return;
+  const ids = subtreeIds(find(node.dataset.id).n);
+  drag = {
+    id: node.dataset.id, x0: e.clientX, y0: e.clientY, live: false, drop: null,
+    els: ids.map(i => NODES.querySelector(`[data-id="${i}"]`)).filter(Boolean),
+    left: node.offsetLeft, top: node.offsetTop,
+  };
+});
+
+document.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+  if (!drag.live) {
+    if (Math.hypot(dx, dy) < 4) return;
+    drag.live = true;
+    document.body.classList.add('dragging');
+    NODES.querySelector(`[data-id="${drag.id}"]`)?.classList.add('moving');
+  }
+  for (const el of drag.els) el.style.transform = `translate(${dx}px,${dy}px)`;
+
+  NODES.querySelectorAll('.into').forEach(n => n.classList.remove('into'));
+  GAP.style.display = 'none'; drag.drop = null;
+
+  const moving = find(drag.id).n;
+  const hit = document.elementsFromPoint(e.clientX, e.clientY)
+    .map(el => el.closest?.('.node')).filter(Boolean)
+    .find(el => !contains(moving, el.dataset.id));
+  if (!hit) return;
+
+  const r = hit.getBoundingClientRect();
+  const t = (e.clientY - r.top) / r.height;
+  const target = find(hit.dataset.id);
+  if ((t > 0.3 && t < 0.7) || !target.p) {
+    drag.drop = { mode:'into', id:hit.dataset.id };
+    hit.classList.add('into');
+  } else {
+    const before = t <= 0.3;
+    drag.drop = { mode: before ? 'before' : 'after', id:hit.dataset.id };
+    GAP.style.display = 'block';
+    GAP.style.left  = hit.offsetLeft + 'px';
+    GAP.style.width = hit.offsetWidth + 'px';
+    GAP.style.top   = (before ? hit.offsetTop - 4 : hit.offsetTop + hit.offsetHeight + 1) + 'px';
+  }
+});
+
+document.addEventListener('pointerup', e => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  document.body.classList.remove('dragging');
+  GAP.style.display = 'none';
+  for (const el of d.els) el.style.transform = '';
+  NODES.querySelectorAll('.into,.moving').forEach(n => n.classList.remove('into','moving'));
+  if (!d.live) { sel = d.id; render(); return; }
+
+  const src = find(d.id);
+  if (d.drop && src.p) {
+    src.p.children.splice(src.p.children.indexOf(src.n), 1);
+    delete src.n.px; delete src.n.py;
+    if (d.drop.mode === 'into') {
+      collapsed.delete(d.drop.id);
+      find(d.drop.id).n.children.push(src.n);
+    } else {
+      const dst = find(d.drop.id);
+      const i = dst.p.children.indexOf(dst.n);
+      dst.p.children.splice(d.drop.mode === 'before' ? i : i + 1, 0, src.n);
+    }
+  } else {
+    src.n.px = d.left + (e.clientX - d.x0);
+    src.n.py = d.top  + (e.clientY - d.y0);
+  }
+  sel = d.id; dirty(); render();
+});
+
+render();
+</script>
