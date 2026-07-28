@@ -1,9 +1,9 @@
 # Cavalry Visual Stack
 
-**Plan, design, and build software visually — with Claude Code.**
+**Visual-first delivery — plan, design, and build software with Claude Code.**
 By [Cavalry Collective](https://cavalry.sg).
 
-Cavalry Visual Stack is a set of [Claude Code](https://claude.com/claude-code) skills that put the work itself in front of you — a story map you rearrange, a design you comment on — and feed every change straight back to Claude. No screenshots, no copy/paste, no describing a layout in prose.
+Cavalry Visual Stack is a set of [Claude Code](https://claude.com/claude-code) skills for visual-first delivery: the work itself in front of you — a story map you rearrange, a design you comment on — with every change feeding straight back to Claude. No screenshots, no copy/paste, no describing a layout in prose.
 
 ---
 
@@ -55,7 +55,7 @@ Scrub the timeline to watch a release take shape — **Highlight new** marks wha
 
 A written spec gets skimmed, approved to be polite, and contradicted by the code three days later — the review that mattered never happened. Plans don't fail as ideas; they fail as documents.
 
-So every stage here produces something you operate instead of something you read: change what's wrong, and the change *is* the feedback. Shared understanding comes from an artifact the whole team can point at. Prose is the export, never the interface.
+**Visual-first delivery** is the alternative: every stage produces something you operate instead of something you read. Change what's wrong, and the change *is* the feedback. It's the oldest value in the [Agile Manifesto](https://agilemanifesto.org/) — *working software over comprehensive documentation* — applied to the planning artifacts themselves. Prose is the export, never the interface.
 
 ---
 
