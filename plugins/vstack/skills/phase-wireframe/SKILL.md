@@ -24,7 +24,7 @@ original.
 
 **The phases, and what belongs to each.** In priority order:
 
-1. A **story map** (`*.json` from `/cavalry:user-story-map`) — `phases[]` gives the order and goals,
+1. A **story map** (`*.json` from `/vstack:user-story-map`) — `phases[]` gives the order and goals,
    `stories[]` give what lands when. This is the best input; ask for one if a story map exists.
 2. A **spec** with P1/P2/P3 priorities, or a roadmap.
 3. **The user tells you** the phases in the conversation.
@@ -75,7 +75,7 @@ checked and shown:
    placeholder apart from an invented element.
 6. **Do not invent new elements or redesign anything. Only subtract.**
 
-Write each to `<dir>/phase-<n>/<name>.html` — the sibling layout `/cavalry:wireframe` and the
+Write each to `<dir>/phase-<n>/<name>.html` — the sibling layout `/vstack:wireframe` and the
 Cavalry `design/` convention both expect — and suffix the `<title>` with ` — Phase <n>` so the file
 names itself wherever it's opened.
 
@@ -106,7 +106,7 @@ doesn't read copy or data, so still diff the file yourself for changed text.
 ## 5 · Review each phase
 
 A phase file is a design the user should be able to argue with. Hand each one to
-**`/cavalry:wireframe`** — it opens the page in the review workspace, takes comments straight on it,
+**`/vstack:wireframe`** — it opens the page in the review workspace, takes comments straight on it,
 and publishes the next version. Review phase N and settle it before generating phase N+1; a comment
 on phase 1 usually changes the plan for every later phase.
 
@@ -129,6 +129,6 @@ the plan, then regenerate the affected phases from the base.
 Runs standalone today — a base mockup and a set of phases are all it needs.
 
 It is also **stage 5 of the planned Cavalry pipeline** (`docs/pipeline-wishlist.md` in the
-`cavalry-skills` repo), which isn't built. When it is: read the base and phases from
-`.cavalry/pipeline.json`, write `artifacts.wireframes[].phases`, and hand on to the build stages.
+`visual-stack` repo), which isn't built. When it is: read the base and phases from
+`.vstack/pipeline.json`, write `artifacts.wireframes[].phases`, and hand on to the build stages.
 Until then there is no state file to read or write — don't create one.

@@ -1,6 +1,6 @@
 {
   "folders": [
-    { "name": "cavalry-skills", "path": "." }
+    { "name": "visual-stack", "path": "." }
   ],
   "settings": {
     "files.associations": {

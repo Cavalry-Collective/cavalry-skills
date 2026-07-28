@@ -55,12 +55,12 @@ Start it with **`run_in_background: true`**, then tell the user to open **http:/
 
 It reads `stacks/` and `add-ons/` from the repo, so the page offers what the template actually ships — a pack
 added upstream appears with no change here. It asks **once**: on send it writes
-`<repo>/.cavalry/choice.json` and exits. Nothing stays listening.
+`<repo>/.vstack/choice.json` and exits. Nothing stays listening.
 
 Wait for it with **`run_in_background: true`** — the exit re-invokes you:
 
 ```bash
-CHOICE=<repo>/.cavalry/choice.json
+CHOICE=<repo>/.vstack/choice.json
 until [ -f "$CHOICE" ]; do sleep 1; done
 cat "$CHOICE"
 ```
@@ -78,8 +78,8 @@ yourself. The chooser is the nicer path, not the only one.
 
 ```bash
 cd <repo>
-for p in $(jq -r '.deleting.packs[]'  .cavalry/choice.json); do rm -rf "stacks/$p"; done
-for a in $(jq -r '.deleting.addons[]' .cavalry/choice.json); do rm -rf "add-ons/$a"; done
+for p in $(jq -r '.deleting.packs[]'  .vstack/choice.json); do rm -rf "stacks/$p"; done
+for a in $(jq -r '.deleting.addons[]' .vstack/choice.json); do rm -rf "add-ons/$a"; done
 ```
 
 Then record the choice in root `CLAUDE.md` **Learnings**: `Stack: <pack>; appendices under stacks/<pack>/`.
@@ -141,13 +141,13 @@ Delete the template's own root `README.md` once instantiation is done — its Da
 ## State & handoff
 
 - **Read** nothing — this is where the pipeline begins.
-- **Write** `<repo>/.cavalry/pipeline.json`, the file every later stage reads:
+- **Write** `<repo>/.vstack/pipeline.json`, the file every later stage reads:
   ```json
   { "version": 1, "project": "<name>", "stage": "init", "phase": null,
     "artifacts": { "stack": "<pack>", "addOns": ["…"] },
     "history": [{ "stage": "init", "at": "<iso>", "note": "<pack> + N add-ons" }] }
   ```
-  Commit it — it's a project record, not scratch. Keep `.cavalry/choice.json` beside it as the raw answer.
-- **Next** — `/cavalry:requirements` writes `specs/requirements.md`. **That stage isn't built yet**; until it
+  Commit it — it's a project record, not scratch. Keep `.vstack/choice.json` beside it as the raw answer.
+- **Next** — `/vstack:requirements` writes `specs/requirements.md`. **That stage isn't built yet**; until it
   is, say so and offer the two things that are: write `specs/requirements.md` by hand together, or go straight
-  to a first screen with `/cavalry:wireframe`. Don't invent a requirements stage to fill the gap.
+  to a first screen with `/vstack:wireframe`. Don't invent a requirements stage to fill the gap.

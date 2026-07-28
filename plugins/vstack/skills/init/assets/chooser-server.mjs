@@ -15,7 +15,7 @@
  * short title and tags for the ones we know, and anything unknown still renders
  * from its README alone.
  *
- * On send it writes the choice as JSON to --out (default <repo>/.cavalry/choice.json)
+ * On send it writes the choice as JSON to --out (default <repo>/.vstack/choice.json)
  * and exits 0. Ctrl-C, or closing the tab without choosing, exits 1.
  */
 

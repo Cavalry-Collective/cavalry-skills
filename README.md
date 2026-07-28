@@ -10,8 +10,8 @@ Visual Stack is a set of [Claude Code](https://claude.com/claude-code) skills th
 ## Install
 
 ```
-/plugin marketplace add Cavalry-Collective/cavalry-skills
-/plugin install cavalry@cavalry-collective
+/plugin marketplace add Cavalry-Collective/visual-stack
+/plugin install vstack@cavalry-collective
 ```
 
 One install, every skill — including the ones we haven't shipped yet.
@@ -24,10 +24,10 @@ Start the project, design the screens, map the releases, see each phase — one 
 
 | Skill | Why you'll want it |
 | --- | --- |
-| `/cavalry:init` | New project, one page of choices, done. Powered by [`cavalry-template-spa`](https://github.com/Cavalry-Collective/cavalry-template-spa). |
-| `/cavalry:wireframe` | Comment right on the design. Watch the next version appear. |
-| `/cavalry:user-story-map` | Drag stories between releases until the plan feels right. Claude replans around it. |
-| `/cavalry:phase-wireframe` | Everyone approved the mockup — now see what Phase 1 actually looks like. |
+| `/vstack:init` | New project, one page of choices, done. Powered by [`cavalry-template-spa`](https://github.com/Cavalry-Collective/cavalry-template-spa). |
+| `/vstack:wireframe` | Comment right on the design. Watch the next version appear. |
+| `/vstack:user-story-map` | Drag stories between releases until the plan feels right. Claude replans around it. |
+| `/vstack:phase-wireframe` | Everyone approved the mockup — now see what Phase 1 actually looks like. |
 
 More on the way — ⭐ watch the repo.
 
@@ -53,13 +53,13 @@ Scrub the timeline to watch a release take shape — **Highlight new** marks wha
 
 ## Adding a skill
 
-Drop a directory with a `SKILL.md` under `plugins/cavalry/skills/<name>/` and it ships as `/cavalry:<name>`. That's it.
+Drop a directory with a `SKILL.md` under `plugins/vstack/skills/<name>/` and it ships as `/vstack:<name>`. That's it.
 
 Want just one skill, no plugin? Copy it straight in:
 
 ```bash
-git clone https://github.com/Cavalry-Collective/cavalry-skills.git
-cp -R cavalry-skills/plugins/cavalry/skills/<skill-name> ~/.claude/skills/
+git clone https://github.com/Cavalry-Collective/visual-stack.git
+cp -R visual-stack/plugins/vstack/skills/<skill-name> ~/.claude/skills/
 ```
 
 ---

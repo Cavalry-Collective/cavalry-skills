@@ -1,4 +1,4 @@
-# Wishlist — the Cavalry pipeline
+# Wishlist — the Visual Stack pipeline
 
 **Status: proposal, with two stages built.** This repo ships four skills today — `wireframe`,
 `user-story-map`, `phase-wireframe` (stage 5) and `init` (stage 0). This document describes what it
@@ -7,7 +7,7 @@ the design decisions already made so they don't have to be re-argued.
 
 **Mockups for the unbuilt stages live in [`mockups/`](mockups/)** — `requirements`, `spec`, the phase
 slider and the build maps. They are reviewed designs, not implementations; `init`'s chooser was one of
-them until it became `plugins/cavalry/skills/init/assets/chooser.html`.
+them until it became `plugins/vstack/skills/init/assets/chooser.html`.
 
 ## The problem
 
@@ -53,7 +53,7 @@ Three rules fall out of it:
 ## The stages
 
 ```
-  /cavalry:next  ←  always answers "what now?"
+  /vstack:next  ←  always answers "what now?"
 
   ◆ 0  init               clone the template, choose the stack + add-ons, delete the rest
     1  requirements       specs/requirements.md
@@ -77,8 +77,8 @@ release phase**. That's the part of the chain people lose track of, so the names
 
 | # | Skill | Would read | Would write |
 |---|---|---|---|
-| — | `next` | `.cavalry/pipeline.json` | nothing — reports where you are, offers to run the next stage |
-| 0 | ◆ `init` | the cwd, `stacks/`, `add-ons/` | a fully instantiated repo — template cloned, one pack kept, add-ons chosen, toolchain filled, design guide confirmed (the whole Day-1 checklist) + `.cavalry/pipeline.json` |
+| — | `next` | `.vstack/pipeline.json` | nothing — reports where you are, offers to run the next stage |
+| 0 | ◆ `init` | the cwd, `stacks/`, `add-ons/` | a fully instantiated repo — template cloned, one pack kept, add-ons chosen, toolchain filled, design guide confirmed (the whole Day-1 checklist) + `.vstack/pipeline.json` |
 | 1 | `requirements` | the conversation, any brief or notes | `specs/requirements.md` |
 | 2 | ◆ `wireframe` | `specs/requirements.md`, `design/tokens.css`, `design/CLAUDE.md` | `design/<feature>.html`, an inventory row in `design/README.md` |
 | 3 | `spec` | `design/<feature>.html`, `specs/requirements.md` | `specs/YYYY-MM-DD-<feature>.md`, fills that row's *owning spec* |
@@ -121,7 +121,7 @@ to `1`. Without this rule nobody advances the phase and the loop stalls silently
 signed off and **subtracts** it to each release phase, so the phase-1 build target looks exactly like
 the approved design minus what isn't in phase 1 yet. It is the one stage with no equivalent
 elsewhere, and it needs nothing from the pipeline — a base mockup and a set of phases are enough —
-so it was built first. See `plugins/cavalry/skills/phase-wireframe/`.
+so it was built first. See `plugins/vstack/skills/phase-wireframe/`.
 
 Three things settled while building it, worth carrying into the rest of the chain:
 
@@ -159,7 +159,7 @@ correct output, wrong shape for the question people ask. The phase slider is the
 
 ### 0 · `init` — the chooser · **built**
 
-*Shipped as `plugins/cavalry/skills/init/`. What the stage does is under
+*Shipped as `plugins/vstack/skills/init/`. What the stage does is under
 [Stage 0](#stage-0--init-which-is-the-whole-day-1-checklist); this is what it looks like while doing it.*
 
 The two interviews become one page instead of a wall of questions. Stack packs as cards (pick one),
@@ -292,7 +292,7 @@ it halfway through building `requirements`.
 
 One rule would decide the mode:
 
-> **`.cavalry/pipeline.json` exists → pipeline mode. It doesn't → standalone.**
+> **`.vstack/pipeline.json` exists → pipeline mode. It doesn't → standalone.**
 > `wireframe` and `user-story-map` never create it. Only `init`, `requirements` and `next` bring the
 > pipeline into being.
 
@@ -301,10 +301,10 @@ One rule would decide the mode:
 | Inputs | `artifacts.*` from the state file | whatever the user says, plus any file they point at |
 | Output path | `design/<feature>.html`, `specs/story-map.*` | **unchanged from today** — wherever the skill already writes when run cold |
 | Design source | the template's `design/tokens.css` + `design/CLAUDE.md` | today's priority order — reference site → screenshots → project design system → ask |
-| State | rewrites `.cavalry/pipeline.json` | writes none |
-| Ending | *"Next: `/cavalry:spec` — shall I run it?"* | just the result. **One** closing line may mention the chain exists; it never proposes the next stage |
+| State | rewrites `.vstack/pipeline.json` | writes none |
+| Ending | *"Next: `/vstack:spec` — shall I run it?"* | just the result. **One** closing line may mention the chain exists; it never proposes the next stage |
 
-The other six stages would be pipeline-only: run one cold and it offers `/cavalry:init` rather than
+The other six stages would be pipeline-only: run one cold and it offers `/vstack:init` rather than
 improvising a project structure.
 
 ## Stage 0 — `init`, which is the whole Day-1 checklist
@@ -362,7 +362,7 @@ anyone has written a requirement. Two things make that survivable, and they shou
 
 ## The handoff file
 
-`.cavalry/pipeline.json` at the project root, **committed** — a project record, not scratch.
+`.vstack/pipeline.json` at the project root, **committed** — a project record, not scratch.
 
 ```json
 {
@@ -415,14 +415,14 @@ escape comes first, because that's the common case:
 ```markdown
 ## State & handoff
 
-**No `.cavalry/pipeline.json`?** You're standalone — everything above still applies. Take the brief
+**No `.vstack/pipeline.json`?** You're standalone — everything above still applies. Take the brief
 from the user, write where they ask, and stop when the page is right. Skip the rest of this section.
 
-- **Read** `.cavalry/pipeline.json` → `artifacts.requirements`. Present but the key is missing —
-  the previous stage hasn't run; offer `/cavalry:requirements` rather than guessing.
+- **Read** `.vstack/pipeline.json` → `artifacts.requirements`. Present but the key is missing —
+  the previous stage hasn't run; offer `/vstack:requirements` rather than guessing.
 - **Write** `design/<feature>.html`, the `design/README.md` inventory row, and
   `artifacts.wireframes[]` + `stage: "wireframe"`.
-- **Next** — `/cavalry:spec` turns this wireframe into a written spec. Offer to run it; don't ask
+- **Next** — `/vstack:spec` turns this wireframe into a written spec. Offer to run it; don't ask
   whether to continue.
 ```
 
@@ -436,7 +436,7 @@ ask *"shall I continue?"* in the abstract, and it doesn't run the next stage una
 
 | Was | Is | Cost |
 |---|---|---|
-| `ui-review` | **`wireframe`** | broke `/cavalry:ui-review` for anyone who had it; plugin went to 2.0.0 |
+| `ui-review` | **`wireframe`** | broke `/vstack:ui-review` for anyone who had it; plugin went to 2.0.0 |
 | `user-story-map` | *unchanged* | none — it keeps its name, and gains only the handoff footer when the chain lands |
 
 The engine moved **unchanged** — `review-server.mjs`, `workspace.html`, `bundle-artifact.mjs`. Its
