@@ -53,11 +53,9 @@ Scrub the timeline to watch a release take shape — **Highlight new** marks wha
 
 ## The thinking behind it
 
-Nothing here is a new methodology — it's established practice, made operable.
+A written spec gets skimmed, approved to be polite, and contradicted by the code three days later — the review that mattered never happened. Plans don't fail as ideas; they fail as documents.
 
-The story map is [Jeff Patton's user story mapping](https://www.jpattonassociates.com/story-mapping/), grid and release slices intact. The working style is Lean UX: shared understanding comes from artifacts a team can point at, not from deliverables handed over. And the premise is as old as the [Agile Manifesto](https://agilemanifesto.org/) — *working software over comprehensive documentation* — applied to the planning artifacts themselves.
-
-The contrast is with spec-driven development. A written spec gets skimmed, approved to be polite, and contradicted by the code three days later — the review that mattered never happened. So every stage here produces something you operate instead of something you read: change what's wrong, and the change *is* the feedback. Prose is the export, never the interface.
+So every stage here produces something you operate instead of something you read: change what's wrong, and the change *is* the feedback. Shared understanding comes from an artifact the whole team can point at. Prose is the export, never the interface.
 
 ---
 
