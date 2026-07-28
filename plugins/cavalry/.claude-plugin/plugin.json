@@ -1,6 +1,6 @@
 {
   "name": "cavalry",
-  "description": "A growing collection of Cavalry Collective skills for Claude Code, invoked as /cavalry:<skill>. Currently: init (start a project from the Cavalry template with a visual stack + add-on chooser), user-story-map (interactive drag-and-drop story mapping), wireframe (build a UI wireframe and comment directly on it), and phase-wireframe (cut one mockup into a mockup per release phase, subtraction only). The interactive ones link the open page back to the Claude session, so edits and feedback return without copy-paste.",
+  "description": "Visual Stack by Cavalry Collective — a visual software planning and execution workflow for Claude Code, invoked as /cavalry:<skill>. Currently: user-story-map (plan releases on an interactive drag-and-drop story map), wireframe (build a UI wireframe and comment directly on it), phase-wireframe (see a signed-off mockup at each release phase), and init (start a project from the Cavalry template with a stack + add-on chooser). The interactive ones link the open page back to the Claude session, so edits and feedback return without copy-paste.",
   "version": "2.0.0",
   "author": {
     "name": "Cavalry Collective",
