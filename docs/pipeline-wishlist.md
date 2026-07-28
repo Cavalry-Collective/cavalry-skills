@@ -1,4 +1,4 @@
-# Wishlist — the Visual Stack pipeline
+# Wishlist — the Cavalry Visual Stack pipeline
 
 **Status: proposal, with two stages built.** This repo ships four skills today — `wireframe`,
 `user-story-map`, `phase-wireframe` (stage 5) and `init` (stage 0). This document describes what it

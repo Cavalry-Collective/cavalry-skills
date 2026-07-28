@@ -1,6 +1,6 @@
 {
   "name": "vstack",
-  "description": "Visual Stack by Cavalry Collective — a visual software planning and execution workflow for Claude Code, invoked as /vstack:<skill>. Currently: init (start a project from the Cavalry template with a stack + add-on chooser), wireframe (build a UI wireframe and comment directly on it), user-story-map (plan releases on an interactive drag-and-drop story map), and phase-wireframe (see a signed-off mockup at each release phase). The interactive ones link the open page back to the Claude session, so edits and feedback return without copy-paste.",
+  "description": "Cavalry Visual Stack — a visual software planning and execution workflow for Claude Code, invoked as /vstack:<skill>. Currently: init (start a project from the Cavalry template with a stack + add-on chooser), wireframe (build a UI wireframe and comment directly on it), user-story-map (plan releases on an interactive drag-and-drop story map), and phase-wireframe (see a signed-off mockup at each release phase). The interactive ones link the open page back to the Claude session, so edits and feedback return without copy-paste.",
   "version": "3.0.0",
   "author": {
     "name": "Cavalry Collective",

@@ -1,9 +1,9 @@
-# Visual Stack
+# Cavalry Visual Stack
 
 **Plan, design, and build software visually — with Claude Code.**
 By [Cavalry Collective](https://cavalry.sg).
 
-Visual Stack is a set of [Claude Code](https://claude.com/claude-code) skills that put the work itself in front of you — a story map you rearrange, a design you comment on — and feed every change straight back to Claude. No screenshots, no copy/paste, no describing a layout in prose.
+Cavalry Visual Stack is a set of [Claude Code](https://claude.com/claude-code) skills that put the work itself in front of you — a story map you rearrange, a design you comment on — and feed every change straight back to Claude. No screenshots, no copy/paste, no describing a layout in prose.
 
 ---
 
