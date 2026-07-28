@@ -20,28 +20,28 @@ One install, every skill — including the ones we haven't shipped yet.
 
 ## The workflow
 
-Map the releases, design the screens, see each phase, start the build — one visual thread from plan to execution.
+Start the project, design the screens, map the releases, see each phase — one visual thread from plan to execution.
 
 | Skill | Why you'll want it |
 | --- | --- |
-| `/cavalry:user-story-map` | Drag stories between releases until the plan feels right. Claude replans around it. |
-| `/cavalry:wireframe` | Comment right on the design. Watch the next version appear. |
-| `/cavalry:phase-wireframe` | Everyone approved the mockup — now see what Phase 1 actually looks like. |
 | `/cavalry:init` | New project, one page of choices, done. Powered by [`cavalry-template-spa`](https://github.com/Cavalry-Collective/cavalry-template-spa). |
+| `/cavalry:wireframe` | Comment right on the design. Watch the next version appear. |
+| `/cavalry:user-story-map` | Drag stories between releases until the plan feels right. Claude replans around it. |
+| `/cavalry:phase-wireframe` | Everyone approved the mockup — now see what Phase 1 actually looks like. |
 
 More on the way — ⭐ watch the repo.
-
-### Release planning on a live story map
-
-![A checkout-flow story map linked to a Claude session](docs/story-map-example.png)
-
-See it for yourself: open [`examples/shopping-checkout.html`](examples/shopping-checkout.html) in a browser.
 
 ### Design review, directly on the page
 
 ![Commenting on a hiring queue in the review workspace](docs/wireframe-example.png)
 
 See it for yourself: open [`examples/wireframe.html`](examples/wireframe.html) in a browser.
+
+### Release planning on a live story map
+
+![A checkout-flow story map linked to a Claude session](docs/story-map-example.png)
+
+See it for yourself: open [`examples/shopping-checkout.html`](examples/shopping-checkout.html) in a browser.
 
 ### See each release phase before you build it
 

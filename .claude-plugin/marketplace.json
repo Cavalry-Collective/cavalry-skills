@@ -8,7 +8,7 @@
     {
       "name": "cavalry",
       "source": "./plugins/cavalry",
-      "description": "Visual Stack by Cavalry Collective — a visual software planning and execution workflow for Claude Code. user-story-map — plan releases on an interactive drag-and-drop story map. wireframe — build a UI wireframe and comment directly on it in a review workspace. phase-wireframe — see a signed-off mockup at each release phase. init — start a project from the Cavalry template, choosing stack and add-ons on a visual chooser."
+      "description": "Visual Stack by Cavalry Collective — a visual software planning and execution workflow for Claude Code. init — start a project from the Cavalry template, choosing stack and add-ons on a visual chooser. wireframe — build a UI wireframe and comment directly on it in a review workspace. user-story-map — plan releases on an interactive drag-and-drop story map. phase-wireframe — see a signed-off mockup at each release phase."
     }
   ]
 }
