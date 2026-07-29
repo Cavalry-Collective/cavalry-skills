@@ -2,18 +2,18 @@
 
 # Visual Stack
 
-**Visual-first planning, design and delivery for Claude Code.**
+**A modern interface for building software with Claude Code.**
 
-By [Cavalry Collective](https://cavalry.sg).
+Visual-first planning, design review and release delivery by [Cavalry Collective](https://cavalry.sg).
 
-Claude Code is extraordinarily capable. Working with it can still feel like operating the future
-through a terminal.
+Claude Code is extraordinarily capable. Its interface is still a terminal and a wall of scrolling
+text.
 
-Visual Stack gives Claude Code an interface from this decade. It turns each stage of delivery into an
-interactive page: comment directly on a design, prune a specification, rearrange a story map or
-explore what each release will contain.
+Visual Stack adds interactive pages you can see, edit and operate: comment directly on a design,
+rearrange a story map or scrub through the phases of a release. Every change flows back to Claude and
+becomes part of what gets built.
 
-Change the work directly, and Claude receives those changes automatically.
+No screenshots. No copy-paste. No describing "the button near the top-right" in prose.
 
 ---
 
@@ -26,37 +26,31 @@ Run these two commands in Claude Code:
 /plugin install vstack@cavalry-collective
 ```
 
-One installation gives you every currently available Visual Stack skill.
+One plugin gives you the complete Visual Stack workflow.
 
 ---
 
 ## The workflow
 
-Move from the first project decisions to a running build through one continuous visual workflow.
+Move from first decisions to a running build through one continuous visual thread.
 
 | Skill | What it gives you |
 | --- | --- |
-| `/vstack:go` | Reads the conversation, the repository and the current pipeline, then takes you to the right stage. |
-| `/vstack:start` | Start a project from one page of decisions — from a template, as a design-only workspace, or by connecting an existing codebase. Powered by [`vstack-template-base`](https://github.com/Cavalry-Collective/vstack-template-base). |
-| `/vstack:wireframe` | Review the design itself, comment on what should change and receive the next version. |
-| `/vstack:spec` | Explore epics, stories and acceptance criteria as a drill-down tree. Prune what you don't need. |
-| `/vstack:user-story-map` | Arrange the user journey, move stories between releases and let Claude replan around your decisions. |
-| `/vstack:phase-wireframe` | Turn an approved design into a visual definition of what each release phase will deliver. |
+| `/vstack:go` | Read the conversation, the repository and the current pipeline, then move to the right stage. |
+| `/vstack:start` | Start a project from one page of decisions. Powered by [`vstack-template-base`](https://github.com/Cavalry-Collective/vstack-template-base). |
+| `/vstack:wireframe` | Review the actual design, comment directly on what should change and receive the next version. |
+| `/vstack:spec` | Explore epics, stories and acceptance criteria as a drill-down tree, and prune what you don't need. |
+| `/vstack:user-story-map` | Arrange the journey, move stories between releases and let Claude replan around your decisions. |
+| `/vstack:phase-wireframe` | Turn an approved design into a visual definition of what each release phase delivers. |
 | `/vstack:phase-build` | Approve the build plan and follow each endpoint and component as it lands. |
 
 More of the delivery workflow is on the way. ⭐ Watch the repository to follow new releases.
-
-### Set up the project
-
-![The setup form: what you're building, the stack, and what lands in the repository](docs/screens/start.png)
-
-Decisions on a form instead of a questionnaire in the terminal.
 
 ### Review the design itself
 
 ![A comment opened directly on the page under review](docs/screens/wireframe.png)
 
-Comments stay attached to the page under review, so Claude knows exactly what you want changed.
+Comments stay attached to the page under review, so Claude knows exactly what you mean.
 
 Try it: open [`examples/wireframe.html`](examples/wireframe.html) in a browser.
 
@@ -64,13 +58,13 @@ Try it: open [`examples/wireframe.html`](examples/wireframe.html) in a browser.
 
 ![The spec as a drill-down tree of epics, stories and acceptance criteria](docs/screens/spec.png)
 
-Open at the headlines, drill into what matters, prune the rest.
+Open at the headlines, drill into what matters and prune the rest.
 
 ### Plan releases on a live story map
 
 ![The story map: activities across the journey, stories arranged by release](docs/screens/story-map.png)
 
-Move a story between releases and Claude replans around the decision.
+Move a story between releases and Claude replans around the change.
 
 Try it: open [`examples/shopping-checkout.html`](examples/shopping-checkout.html) in a browser.
 
@@ -85,8 +79,7 @@ phase adds.
 
 ![The build board: endpoints and components, marked new, changed or already built](docs/screens/phase-build.png)
 
-Approve the plan, then follow each endpoint and component as it lands — new, changed or already
-built, without a running commentary in the terminal.
+Approve the plan, then follow each endpoint and component as it lands.
 
 ---
 
@@ -95,60 +88,46 @@ built, without a running commentary in the terminal.
 **AI moved software forward. Its interface moved backward.**
 
 Spec-driven development got the principle right: agree on what you are building before you build it.
-
 Then it buried that agreement in text.
 
-A specification here. A plan there. A task list underneath. Soon the team is surrounded by documents
-that get skimmed, approved to be polite and contradicted by the code three days later.
+A spec here. A plan there. A task list underneath. Soon the team is surrounded by documents that get
+skimmed, approved to be polite and contradicted by the code three days later.
 
 The review that mattered never happened.
 
-Visual Stack changes the medium. Each stage becomes something you operate instead of something you
-merely read:
+Visual Stack makes each stage something you operate instead of something you merely read:
 
-- **Work on the artifact.** Review the screen, story map or release phase itself — not a written
-  description of it.
-- **Change what is wrong.** A comment, edit or move becomes the feedback.
-- **Keep Claude connected.** Changes made on the page flow back to the Claude Code session.
-- **Share one source of truth.** The interactive artifact defines the plan instead of illustrating a
+- **Work on the artifact.** Review the screen, story map or release phase itself — not a description
+  of it.
+- **Edit instead of approving.** Change what is wrong. The change becomes the feedback.
+- **Keep feedback connected.** What you change flows directly back to the Claude Code session.
+- **Build from one shared truth.** The visual artifact defines the plan instead of illustrating a
   separate document.
 
-It brings the oldest idea in the [Agile Manifesto](https://agilemanifesto.org/) — *working software
+It carries the oldest idea in the [Agile Manifesto](https://agilemanifesto.org/) — *working software
 over comprehensive documentation* — into the planning process itself.
 
-Prose still has a place. It just should not be the interface for everything.
+Prose remains useful for context, decisions and export. It just stops pretending to be the interface.
 
 ---
 
 ## Keep the tools that already work
 
-Visual Stack adds a visual operating layer to your existing workflow. It does not ask you to abandon
-the spec-driven tools, repositories or conventions your team already uses.
-
-Plain files in, plain files out — markdown specs, HTML mockups, and one state folder of its own
-(`.vstack/`). It installs no hooks, adds no config and claims no ownership of `specs/` or anything
-else. Use it with plain Claude Code, beside Spec Kit, under Superpowers; nothing here intercepts or
-interferes.
-
-**Want a bare `/vstack`?** Plugin skills are always namespaced, but a personal skill isn't:
-
-```bash
-mkdir -p ~/.claude/skills/vstack
-cp plugins/vstack/skills/go/SKILL.md ~/.claude/skills/vstack/SKILL.md
-sed -i '' 's/^name: go$/name: vstack/' ~/.claude/skills/vstack/SKILL.md
-```
+Visual Stack adds a visual operating layer to your existing workflow. It takes plain files in and puts
+plain files out, installs no hooks and claims no ownership of `specs/` — use it with plain Claude
+Code, beside Spec Kit, under Superpowers.
 
 ---
 
 ## Adding a skill
 
-Add a directory containing a `SKILL.md` file under:
+Add a directory containing `SKILL.md` under:
 
 ```text
 plugins/vstack/skills/<name>/
 ```
 
-It will be available in Claude Code as:
+It will be available as:
 
 ```text
 /vstack:<name>
@@ -163,13 +142,6 @@ cp -R visual-stack/plugins/vstack/skills/<skill-name> ~/.claude/skills/
 
 `spec` and `phase-build` also need the shared engine — copy `plugins/vstack/lib/` to `~/.claude/lib/`
 as well, or install the plugin instead.
-
----
-
-## Brand
-
-The mark and lockup live in [`docs/brand/`](docs/brand). Regenerate them with
-`node scripts/generate-brand-assets.mjs`.
 
 ---
 
