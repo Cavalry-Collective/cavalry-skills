@@ -65,7 +65,7 @@ at) containing:
 - **`CLAUDE.md`** (or equivalent) — the project's own design principles.
   **Read it and follow it; it outranks this skill's defaults.**
 
-Cavalry projects keep this at `cavalry-template-spa/design` — check for a
+Cavalry projects keep this at `vstack-template-base/design` — check for a
 sibling checkout before asking.
 
 ## 4 · Nothing found

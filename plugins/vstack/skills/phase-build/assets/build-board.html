@@ -1,0 +1,547 @@
+<title>Phase build · Visual Stack</title>
+<style>
+  :root{
+    --paper:#eef0f3; --surface:#fff; --surface-2:#f7f8fa; --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+    --line:#e2e4e9; --line-2:#d0d2d9; --brand:#d23b2e; --keep:#10876e;
+    --new:#d23b2e; --have:#71737c; --touch:#b0761a; --fail:#c22f4d;
+    --shadow:0 1px 2px rgba(16,17,22,.06);
+    --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;
+    --line:#282a31;--line-2:#363942;--brand:#f0685c;--keep:#2fb89b;
+    --new:#f0685c;--have:#8b8e97;--touch:#d29a3f;--fail:#e05575;
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+  }}
+  :root[data-theme="light"]{--paper:#eef0f3;--surface:#fff;--surface-2:#f7f8fa;--ink:#16171c;--ink-2:#43454d;--ink-3:#71737c;--line:#e2e4e9;--line-2:#d0d2d9;--brand:#d23b2e;--keep:#10876e;--new:#d23b2e;--have:#71737c;--touch:#b0761a;--fail:#c22f4d}
+  :root[data-theme="dark"]{--paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;--line:#282a31;--line-2:#363942;--brand:#f0685c;--keep:#2fb89b;--new:#f0685c;--have:#8b8e97;--touch:#d29a3f;--fail:#e05575}
+
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);font-family:var(--font);
+    font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+  #app{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;min-height:100vh}
+
+  /* ── the standard vstack top bar ── */
+  #top{display:flex;align-items:center;gap:10px;padding:0 14px;height:50px;background:var(--surface);
+    border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:baseline;gap:8px;min-width:0}
+  /* Visual Stack mark — geometry matches docs/brand/ */
+  .vsmark{width:15px;height:15px;flex:none;align-self:center;color:var(--ink)}
+  /* the mark links to the Visual Stack page */
+  .vslink{display:inline-flex;align-items:center;align-self:center;gap:0;
+    text-decoration:none;color:inherit}
+  .vslink:hover .vsmark{opacity:.8}
+  .brand b{font-size:13px;font-weight:650;white-space:nowrap}
+  .brand .eyebrow{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:700}
+  .spacer{flex:1}
+  .linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
+    letter-spacing:.03em;color:var(--ink-3);white-space:nowrap}
+  .linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
+  .linkdot.on{color:var(--keep)}
+  .linkdot.on::before{background:var(--keep);box-shadow:0 0 0 3px color-mix(in srgb,var(--keep) 22%,transparent)}
+  .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;background:var(--surface)}
+  .seg button{height:30px;padding:0 13px;font-weight:600;font-size:.8rem;color:var(--ink-3);
+    border-right:1px solid var(--line-2);display:inline-flex;align-items:center;gap:6px}
+  .seg button:last-child{border-right:0}
+  .seg button:hover{background:var(--surface-2);color:var(--ink)}
+  .seg button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+  .seg .c{font-family:var(--mono);font-size:.62rem;opacity:.7}
+  .seg.lang button{height:26px;padding:0 10px;font-size:11.5px}
+  .seg.lang button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+  .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+    border:1px solid var(--line-2);background:var(--surface);font-weight:600;font-size:.8rem}
+  .btn:hover{background:var(--surface-2)}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.primary:hover{background:color-mix(in srgb,var(--brand) 88%,#000)}
+  .btn.primary[disabled]{opacity:.45;pointer-events:none}
+
+  /* ── legend strip ── */
+  #legend{display:flex;align-items:center;gap:1.1rem;padding:.5rem 1rem;background:var(--surface-2);
+    border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .key{display:inline-flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--ink-2)}
+  .key .sw{width:11px;height:11px;border-radius:3px;flex:none}
+  .key.n .sw{background:var(--new)} .key.h .sw{background:var(--have);opacity:.45}
+  .key.t .sw{background:var(--touch)}
+  .key.d .sw{background:var(--keep)} .key.f .sw{background:var(--fail)}
+  .key b{font-weight:650;color:var(--ink)}
+  .src{margin-left:auto;font-family:var(--mono);font-size:.68rem;color:var(--ink-3);display:flex;align-items:center;gap:.4rem}
+
+  /* ── progress strip (visible once a build starts) ── */
+  #progress{display:flex;align-items:center;gap:1rem;padding:.45rem 1rem;background:var(--surface);
+    border-bottom:1px solid var(--line);font-size:.8rem}
+  #progress .pb{flex:1;height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+  #progress .pb i{display:block;height:100%;background:var(--keep);border-radius:99px;transition:width .4s}
+  #progress .pb i.active{background:repeating-linear-gradient(45deg,var(--keep),var(--keep) 8px,
+    color-mix(in srgb,var(--keep) 70%,var(--surface)) 8px,color-mix(in srgb,var(--keep) 70%,var(--surface)) 16px);
+    animation:vsmarch 1s linear infinite;background-size:23px 100%}
+  @keyframes vsmarch{to{background-position:23px 0}}
+  #progress .n{font-family:var(--mono);font-size:.72rem;color:var(--ink-2);white-space:nowrap}
+
+  /* ── canvas ── */
+  #stage{position:relative;overflow:auto;background:var(--surface-2);
+    background-image:radial-gradient(circle at 1px 1px,var(--line-2) 1px,transparent 0);background-size:22px 22px}
+  #plane{position:relative;min-width:100%;min-height:100%}
+  svg#edges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+  svg#edges path{fill:none;stroke:var(--line-2);stroke-width:1.5}
+  svg#edges path.have{stroke-dasharray:3 4;opacity:.6}
+
+  .node{position:absolute;background:var(--surface);border:1px solid var(--line-2);
+    border-left:3px solid var(--c);border-radius:8px;box-shadow:var(--shadow);padding:.42rem .6rem;
+    max-width:230px;display:grid;gap:.12rem;cursor:grab}
+  .node:hover{border-color:color-mix(in srgb,var(--c) 55%,var(--line-2))}
+  .node.new{--c:var(--new)}
+  .node.have{--c:var(--have);opacity:.55;background:var(--surface-2);box-shadow:none}
+  .node.have:hover{opacity:.9}
+  .node.touch{--c:var(--touch)}
+  .node .t{font-size:.83rem;font-weight:620;line-height:1.3;outline:0}
+  .node.mono .t{font-family:var(--mono);font-size:.76rem}
+  .node .k{font-family:var(--mono);font-size:.55rem;letter-spacing:.09em;text-transform:uppercase;
+    font-weight:700;color:var(--c);display:flex;align-items:center;gap:.35rem}
+  .node .k .st{margin-left:auto;font-size:.5rem;opacity:.85}
+  .node .ctrls{position:absolute;top:-9px;right:-6px;display:none;gap:2px}
+  .node:hover .ctrls{display:flex}
+  .node .ctrls button{width:19px;height:19px;border-radius:5px;border:1px solid var(--line-2);
+    background:var(--surface);font-size:.66rem;line-height:1;color:var(--ink-3);display:grid;place-items:center;
+    box-shadow:var(--shadow)}
+  .node .ctrls button:hover{background:var(--brand);border-color:var(--brand);color:#fff}
+  .node.drop{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,var(--surface))}
+
+  /* build status paints over the plan colours */
+  .node .badge{position:absolute;top:-8px;left:-8px;width:18px;height:18px;border-radius:50%;
+    display:grid;place-items:center;font-size:.6rem;font-weight:800;color:#fff;box-shadow:var(--shadow)}
+  .node.s-building{border-color:var(--keep);
+    animation:vspulse 1.2s ease-in-out infinite}
+  @keyframes vspulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--keep) 45%,transparent)}
+    50%{box-shadow:0 0 0 6px transparent}}
+  .node.s-building .badge{background:var(--keep)}
+  .node.s-done{opacity:1;background:color-mix(in srgb,var(--keep) 7%,var(--surface))}
+  .node.s-done .badge{background:var(--keep)}
+  .node.s-failed{border-color:var(--fail);background:color-mix(in srgb,var(--fail) 8%,var(--surface))}
+  .node.s-failed .badge{background:var(--fail)}
+
+  /* ── footer bar ── */
+  #go{position:sticky;bottom:0;display:flex;align-items:center;gap:.7rem;padding:.6rem 1rem;
+    background:var(--surface);border-top:1px solid var(--line)}
+  #go .sum{font-size:.82rem;color:var(--ink-2)}
+  #go .sum b{color:var(--ink);font-weight:700}
+  #go .spacer{flex:1}
+
+  /* refresh offer, only shown when the user has unsent edits */
+  #refreshBar{display:flex;align-items:center;gap:.7rem;padding:.45rem 1rem;
+    background:color-mix(in srgb,var(--keep) 10%,var(--surface));
+    border-bottom:1px solid color-mix(in srgb,var(--keep) 30%,var(--line));font-size:.82rem}
+  #refreshBar b{color:var(--keep)}
+  #refreshBar .btn{height:24px;padding:0 9px;font-size:.74rem}
+</style>
+
+<div id="app">
+  <div id="top">
+    <span class="brand">
+      <a class="vslink" href="https://cavalry.sg/visual-stack" target="_blank" rel="noopener"
+         title="Visual Stack">
+        <svg class="vsmark" viewBox="0 0 64 64" aria-hidden="true">
+          <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
+          <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
+        </svg>
+      </a>
+      <b id="tbTitle">Phase build</b>
+      <span class="eyebrow" id="tbEyebrow">Visual Stack · stages 6–8</span></span>
+    <span class="spacer"></span>
+    <span class="linkdot" id="linkDot"></span>
+    <div class="seg lang" id="langSwitch">
+      <button data-lang="en" aria-pressed="true">EN</button>
+      <button data-lang="zh" aria-pressed="false">中文</button>
+    </div>
+    <div class="seg" id="subjects">
+      <button aria-pressed="true"  data-s="api"><span id="tApi"></span> <span class="c" id="capi"></span></button>
+      <button aria-pressed="false" data-s="ui"><span id="tUi"></span> <span class="c" id="cui"></span></button>
+      <button aria-pressed="false" data-s="infra"><span id="tInfra"></span> <span class="c" id="cinfra"></span></button>
+    </div>
+    <button class="btn primary" id="send" disabled></button>
+  </div>
+
+  <div>
+    <div id="refreshBar" hidden>
+      <b id="rbText"></b>
+      <button class="btn" id="rbApply"></button>
+      <button class="btn" id="rbDismiss"></button>
+    </div>
+    <div id="legend">
+      <span class="key n"><span class="sw"></span><b id="kNew"></b></span>
+      <span class="key t"><span class="sw"></span><b id="kTouch"></b> <span id="kTouchD"></span></span>
+      <span class="key h"><span class="sw"></span><b id="kHave"></b></span>
+      <span class="key d" id="kDoneWrap" hidden><span class="sw"></span><b id="kDone"></b></span>
+      <span class="key f" id="kFailWrap" hidden><span class="sw"></span><b id="kFail"></b></span>
+      <span class="src" id="srcStamp"></span>
+    </div>
+    <div id="progress" hidden>
+      <span class="n" id="pLabel"></span>
+      <div class="pb"><i id="pFill" style="width:0%"></i></div>
+      <span class="n" id="pCount"></span>
+    </div>
+  </div>
+
+  <div id="stage">
+    <div id="plane">
+      <svg id="edges"></svg>
+      <div id="nodes"></div>
+    </div>
+  </div>
+
+  <div id="go">
+    <span class="sum" id="sum"></span>
+    <span class="spacer"></span>
+    <button class="btn" id="reset"></button>
+    <button class="btn primary" id="start"></button>
+  </div>
+</div>
+
+<script id="fallback" type="application/json">
+{
+  "phase": 2,
+  "readAt": "just now",
+  "subjects": {
+    "api": { "mono": true, "root": { "id":"api", "kind":"API", "text":"/v1", "state":"have", "children": [
+      { "id":"r2", "kind":"Resource", "text":"/candidates", "state":"have", "children": [
+        { "id":"e3", "kind":"PATCH", "text":"/candidates/:id/stage", "state":"have", "children": [] },
+        { "id":"e4", "kind":"POST", "text":"/candidates/bulk-move", "state":"new", "children": [] }
+      ]},
+      { "id":"r3", "kind":"Resource", "text":"/interviews", "state":"new", "children": [
+        { "id":"e6", "kind":"POST", "text":"/interviews/:token/scorecard", "state":"new", "children": [] }
+      ]}
+    ]}},
+    "ui": { "root": { "id":"ui", "kind":"Frontend", "text":"Candidate pipeline", "state":"have", "children": [
+      { "id":"o1", "kind":"Organism", "text":"Candidate table", "state":"touch", "note":"+ row selection", "children": [] },
+      { "id":"o2", "kind":"Organism", "text":"Bulk move dialog", "state":"new", "children": [] }
+    ]}},
+    "infra": { "root": { "id":"in", "kind":"Infra", "text":"staging + prod", "state":"have", "children": [
+      { "id":"n2", "kind":"Database", "text":"Postgres", "state":"touch", "note":"+ 2 tables", "children": [
+        { "id":"n2a", "kind":"Migration", "text":"bulk_move_jobs", "state":"new", "children": [] }
+      ]}
+    ]}}
+  }
+}
+</script>
+
+<script>
+/* The plan JSON is the artifact. Adjust it here, press Start, and watch the
+   build colour in — Claude reports per-node progress through json-bridge.mjs
+   patch, and every change lands here over SSE. Opened off disk this falls back
+   to the demo block above. */
+const BRIDGE = window.__VSTACK_BRIDGE__ || null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let LANG = 'en';
+try { LANG = localStorage.getItem('vstack-build:lang') === 'zh' ? 'zh' : 'en' } catch {}
+const STR = {
+  title: ['Phase %n build', '第 %n 期构建'],
+  api: ['Endpoints', '接口'], ui: ['Components', '组件'], infra: ['Resources', '资源'],
+  send: ['Send to Claude', '发送给 Claude'], sent: ['Sent ✓', '已发送 ✓'],
+  start: ['Start the phase %n build', '开始第 %n 期构建'],
+  building: ['Building…', '构建中…'],
+  reset: ['Reset changes', '还原修改'],
+  kNew: ['New', '新增'], kTouch: ['Changed', '修改'],
+  kTouchD: ['— exists, this phase extends it', '——已存在，本期扩展'],
+  kHave: ['Already built', '已存在'],
+  kDone: ['Built this run', '本次已建'], kFail: ['Failed', '失败'],
+  src: ['read from the codebase', '读取自代码库'],
+  sum: ['<b>%new</b> new · <b>%touch</b> changed · %have already built', '<b>%new</b> 新增 · <b>%touch</b> 修改 · %have 已存在'],
+  progress: ['Building', '构建中'],
+  linked: ['LINKED TO CLAUDE', '已连接 CLAUDE'], lost: ['LINK LOST', '连接断开'],
+  refreshed: ['Claude updated the plan', 'Claude 更新了计划'],
+  apply: ['Refresh', '刷新'], dismiss: ['Dismiss', '忽略'],
+};
+const t = k => STR[k][LANG === 'zh' ? 1 : 0];
+
+let doc = null;
+let subject = 'api';
+let dirtySinceSend = false;
+let pendingPush = null;
+
+const NODES = () => $('#nodes'), EDGES = () => $('#edges'), PLANE = () => $('#plane');
+const COL = 268, ROW = 52, PAD = 34;
+const tree = () => doc.subjects[subject].root;
+
+const dirty = () => { dirtySinceSend = true; syncButtons(); };
+const walkAll = (n, f) => { f(n); (n.children || []).forEach(k => walkAll(k, f)); };
+const counts = root => {
+  const c = { new: 0, touch: 0, have: 0, done: 0, failed: 0, building: 0, buildable: 0 };
+  walkAll(root, n => {
+    if (n === root) return;
+    c[n.state] = (c[n.state] || 0) + 1;
+    if (n.state !== 'have') {
+      c.buildable++;
+      if (n.status === 'done') c.done++;
+      if (n.status === 'failed') c.failed++;
+      if (n.status === 'building') c.building++;
+    }
+  });
+  return c;
+};
+const buildActive = () => {
+  let any = false;
+  for (const k in doc.subjects) walkAll(doc.subjects[k].root, n => { if (n.status) any = true; });
+  return any;
+};
+
+/* ── layout + render (the mockup's tree layout, kept) ── */
+function layout () {
+  const out = []; let row = 0;
+  (function w (n, d) {
+    const kids = n.children || [];
+    if (!kids.length) { n._y = PAD + row * ROW; row++; }
+    else { kids.forEach(k => w(k, d + 1)); n._y = (kids[0]._y + kids[kids.length - 1]._y) / 2; }
+    n._x = PAD + d * COL; out.push(n);
+  })(tree(), 0);
+  return out;
+}
+
+function render () {
+  const ph = doc.phase ?? '?';
+  $('#tbTitle').textContent = t('title').replace('%n', ph);
+  document.title = t('title').replace('%n', ph) + ' · Visual Stack';
+  $('#tApi').textContent = t('api'); $('#tUi').textContent = t('ui'); $('#tInfra').textContent = t('infra');
+  $('#kNew').textContent = t('kNew'); $('#kTouch').textContent = t('kTouch');
+  $('#kTouchD').textContent = t('kTouchD'); $('#kHave').textContent = t('kHave');
+  $('#kDone').textContent = t('kDone'); $('#kFail').textContent = t('kFail');
+  $('#srcStamp').textContent = `${t('src')} · ${doc.readAt || ''}`;
+  $('#reset').textContent = t('reset');
+  $('#rbText').textContent = t('refreshed');
+  $('#rbApply').textContent = t('apply'); $('#rbDismiss').textContent = t('dismiss');
+
+  const all = layout();
+  const mono = doc.subjects[subject].mono ? 'mono' : '';
+  NODES().innerHTML = all.map(n => `
+    <div class="node ${n.state} ${mono} ${n.status ? 's-' + n.status : ''}" data-id="${esc(n.id)}" draggable="true"
+         style="left:${n._x}px;top:${n._y}px">
+      ${n.status === 'done' ? '<span class="badge">✓</span>'
+        : n.status === 'failed' ? '<span class="badge">!</span>'
+        : n.status === 'building' ? '<span class="badge">…</span>' : ''}
+      <div class="k">${esc(n.kind || '')}${n.note ? `<span class="st">${esc(n.note)}</span>` : ''}</div>
+      <div class="t" contenteditable="plaintext-only">${esc(n.text)}</div>
+      <div class="ctrls">
+        <button data-act="cycle" title="New / changed / already built">◐</button>
+        <button data-act="add" title="Add below">+</button>
+        <button data-act="del" title="Remove from this phase">×</button>
+      </div>
+    </div>`).join('');
+
+  requestAnimationFrame(() => {
+    const box = {}; let w = 0, h = 0;
+    NODES().querySelectorAll('.node').forEach(el => {
+      box[el.dataset.id] = { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+      w = Math.max(w, el.offsetLeft + el.offsetWidth); h = Math.max(h, el.offsetTop + el.offsetHeight);
+    });
+    const paths = [];
+    (function e (n) {
+      for (const k of n.children || []) {
+        const a = box[n.id], b = box[k.id];
+        if (a && b) {
+          const x1 = a.x + a.w, y1 = a.y + a.h / 2, x2 = b.x, y2 = b.y + b.h / 2, mx = (x1 + x2) / 2;
+          paths.push(`<path class="${k.state === 'have' ? 'have' : ''}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}"/>`);
+        }
+        e(k);
+      }
+    })(tree());
+    EDGES().innerHTML = paths.join('');
+    PLANE().style.width = (w + PAD) + 'px'; PLANE().style.height = Math.max(h + PAD, 300) + 'px';
+  });
+
+  for (const k in doc.subjects) {
+    const c = counts(doc.subjects[k].root);
+    const el = $('#c' + k);
+    if (el) el.textContent = c.new + c.touch ? String(c.new + c.touch) : '';
+  }
+  const c = counts(tree());
+  $('#sum').innerHTML = t('sum').replace('%new', c.new).replace('%touch', c.touch).replace('%have', c.have);
+
+  /* progress strip + build-state legend */
+  const active = buildActive();
+  $('#progress').hidden = !active;
+  $('#kDoneWrap').hidden = !active;
+  $('#kFailWrap').hidden = !active;
+  if (active) {
+    let total = 0, done = 0, failed = 0, building = 0;
+    for (const k in doc.subjects) {
+      const cc = counts(doc.subjects[k].root);
+      total += cc.buildable; done += cc.done; failed += cc.failed; building += cc.building;
+    }
+    $('#pLabel').textContent = t('progress');
+    $('#pCount').textContent = `${done + failed}/${total}`;
+    const fill = $('#pFill');
+    fill.style.width = total ? ((done + failed) / total * 100) + '%' : '0%';
+    fill.classList.toggle('active', building > 0);
+  }
+  syncButtons();
+}
+
+function syncButtons () {
+  const active = buildActive();
+  $('#send').textContent = t('send');
+  $('#send').disabled = !BRIDGE || !dirtySinceSend;
+  $('#start').textContent = active ? t('building') : t('start').replace('%n', doc.phase ?? '?');
+  $('#start').disabled = !BRIDGE || active;
+  $('#start').classList.toggle('primary', !active);
+}
+
+/* ── find / edit (the mockup's) ── */
+const find = (id, n = tree(), p = null) => {
+  if (n.id === id) return { n, p };
+  for (const k of n.children || []) { const r = find(id, k, n); if (r) return r; }
+  return null;
+};
+
+$('#subjects').addEventListener('click', e => {
+  const b = e.target.closest('[data-s]'); if (!b) return;
+  subject = b.dataset.s;
+  for (const el of $('#subjects').children) el.setAttribute('aria-pressed', String(el === b));
+  render();
+});
+
+$('#nodes').addEventListener('click', e => {
+  const act = e.target.closest('[data-act]'); if (!act) return;
+  const node = e.target.closest('.node');
+  const { n, p } = find(node.dataset.id) || {};
+  if (!n) return;
+  if (act.dataset.act === 'cycle') {
+    n.state = { new: 'touch', touch: 'have', have: 'new' }[n.state];
+  } else if (act.dataset.act === 'add') {
+    (p ? p.children : n.children).push({ id: 'x' + Math.round(performance.now()), kind: n.kind, text: 'New', state: 'new', children: [] });
+  } else if (p) {
+    p.children = p.children.filter(k => k !== n);
+  }
+  dirty(); render();
+});
+
+$('#nodes').addEventListener('input', e => {
+  const el = e.target.closest('.t'); if (!el) return;
+  const r = find(el.closest('.node').dataset.id); if (r) { r.n.text = el.textContent.trim(); dirty(); }
+});
+
+let dragId = null;
+$('#nodes').addEventListener('dragstart', e => { const n = e.target.closest('.node'); if (n) dragId = n.dataset.id; });
+$('#nodes').addEventListener('dragover', e => {
+  const n = e.target.closest('.node'); if (!n || n.dataset.id === dragId) return;
+  e.preventDefault();
+  NODES().querySelectorAll('.drop').forEach(x => x.classList.remove('drop'));
+  n.classList.add('drop');
+});
+$('#nodes').addEventListener('drop', e => {
+  const n = e.target.closest('.node'); if (!n || !dragId) return;
+  e.preventDefault();
+  const from = find(dragId), to = find(n.dataset.id);
+  if (from && to && from.p && !find(n.dataset.id, from.n)) {
+    from.p.children = from.p.children.filter(k => k !== from.n);
+    (to.n.children ||= []).push(from.n);
+  }
+  dragId = null; dirty(); render();
+});
+$('#nodes').addEventListener('dragend', () => {
+  NODES().querySelectorAll('.drop').forEach(x => x.classList.remove('drop')); dragId = null;
+});
+
+/* ── language ── */
+$('#langSwitch').addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]'); if (!b) return;
+  LANG = b.dataset.lang === 'zh' ? 'zh' : 'en';
+  try { localStorage.setItem('vstack-build:lang', LANG) } catch {}
+  document.documentElement.lang = LANG;
+  $('#langSwitch button[data-lang=en]').setAttribute('aria-pressed', String(LANG === 'en'));
+  $('#langSwitch button[data-lang=zh]').setAttribute('aria-pressed', String(LANG === 'zh'));
+  renderLink(linkUp); render();
+});
+
+/* ── live link ── */
+let linkUp = false;
+function renderLink (up) {
+  linkUp = up;
+  $('#linkDot').classList.toggle('on', up);
+  $('#linkDot').textContent = up ? t('linked') : t('lost');
+}
+
+async function save (extra) {
+  if (!BRIDGE) return false;
+  const body = { ...doc, ...(extra || {}) };
+  try {
+    const r = await fetch(BRIDGE.save, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-VSTACK-Token': BRIDGE.token },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error(r.status);
+    doc = body;
+    dirtySinceSend = false;
+    return true;
+  } catch { return false; }
+}
+
+$('#send').addEventListener('click', async () => {
+  $('#send').disabled = true;
+  if (await save()) {
+    $('#send').textContent = t('sent');
+    setTimeout(syncButtons, 1600);
+  } else syncButtons();
+});
+
+$('#start').addEventListener('click', async () => {
+  $('#start').disabled = true;
+  await save({ action: 'start' });
+  syncButtons();
+});
+
+$('#reset').addEventListener('click', async () => {
+  if (BRIDGE) {
+    try { doc = await (await fetch(`${BRIDGE.doc}?t=${BRIDGE.token}`)).json() } catch {}
+  } else {
+    doc = JSON.parse($('#fallback').textContent);
+  }
+  dirtySinceSend = false; pendingPush = null; $('#refreshBar').hidden = true;
+  render();
+});
+
+/* push: auto-apply while the board is clean (a build in flight), offer when the
+   user has unsent plan edits — never clobber those silently */
+function onPush (next) {
+  if (!dirtySinceSend) {
+    doc = next; pendingPush = null; $('#refreshBar').hidden = true;
+    render();
+  } else {
+    pendingPush = next;
+    $('#refreshBar').hidden = false;
+  }
+}
+$('#rbApply').addEventListener('click', () => {
+  if (pendingPush) { doc = pendingPush; pendingPush = null; dirtySinceSend = false; }
+  $('#refreshBar').hidden = true; render();
+});
+$('#rbDismiss').addEventListener('click', () => { $('#refreshBar').hidden = true; });
+
+/* ── boot ── */
+(async function boot () {
+  document.documentElement.lang = LANG;
+  $('#langSwitch button[data-lang=en]').setAttribute('aria-pressed', String(LANG === 'en'));
+  $('#langSwitch button[data-lang=zh]').setAttribute('aria-pressed', String(LANG === 'zh'));
+  renderLink(false);
+  if (BRIDGE) {
+    try { doc = await (await fetch(`${BRIDGE.doc}?t=${BRIDGE.token}`)).json() }
+    catch { doc = JSON.parse($('#fallback').textContent); }
+    const es = new EventSource(`${BRIDGE.events}?t=${BRIDGE.token}`);
+    es.onopen = () => renderLink(true);
+    es.onerror = () => renderLink(false);
+    es.addEventListener('push', ev => {
+      try { onPush(JSON.parse(ev.data)) } catch {}
+    });
+  } else {
+    doc = JSON.parse($('#fallback').textContent);
+  }
+  render();
+})();
+</script>

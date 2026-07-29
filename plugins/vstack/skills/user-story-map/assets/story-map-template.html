@@ -1,4 +1,4 @@
-<title>User Story Map</title>
+<title>User Story Map · Visual Stack</title>
 <!--
   Interactive user story map. Drag story cards between cells to re-slice work
   across phases. Self-contained (no external resources) so it works as an Artifact.
@@ -40,7 +40,14 @@
 
   header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
   header .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);font-weight:600;margin:0 0 .5rem;display:inline-flex;align-items:center;gap:.5rem}
-  .eyebrow::before{content:"";width:1.5rem;height:2px;background:var(--brand);border-radius:2px}
+  /* Visual Stack mark — geometry matches docs/brand/ */
+  .vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
+  /* the mark links to the Visual Stack page */
+  .vslink{display:inline-flex;align-items:center;align-self:center;gap:.5rem;
+    text-decoration:none;color:inherit}
+  .vslink:hover .vsmark{opacity:.8}
+  .vslink:hover .ws{color:var(--ink)}
+  .eyebrow .ws{color:var(--ink-3)}
   h1{font-size:clamp(1.5rem,3.5vw,2.3rem);line-height:1.05;letter-spacing:-.03em;font-weight:800;margin:0 0 .5rem;text-wrap:balance}
   .controls{display:flex;flex-direction:column;align-items:flex-end;gap:.45rem;flex:none;margin-top:.2rem}
   .crow{display:flex;gap:.4rem}
@@ -181,7 +188,17 @@
 <div class="wrap">
   <header>
     <div>
-      <p class="eyebrow" id="eyebrow">User story map</p>
+      <p class="eyebrow">
+        <a class="vslink" href="https://cavalry.sg/visual-stack" target="_blank" rel="noopener"
+           title="Visual Stack">
+          <svg class="vsmark" viewBox="0 0 64 64" aria-hidden="true">
+            <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
+            <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
+          </svg>
+          <span class="ws">Visual Stack</span>
+        </a>
+        · <span id="eyebrow">User story map</span>
+      </p>
       <div class="trow">
         <h1 id="title" contenteditable spellcheck="false"></h1>
         <div class="legend" id="legend"></div>
@@ -209,6 +226,7 @@
   </header>
 
   <div class="scroll"><div class="map" id="map" role="grid" aria-label="User story map"></div></div>
+
 </div>
 
 <dialog id="io"><h3 id="io-title">Import map JSON</h3>

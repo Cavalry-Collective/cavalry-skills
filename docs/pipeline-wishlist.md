@@ -1,13 +1,14 @@
-# Wishlist — the Cavalry Visual Stack pipeline
+# Wishlist — the Visual Stack pipeline
 
-**Status: proposal, with two stages built.** This repo ships four skills today — `wireframe`,
-`user-story-map`, `phase-wireframe` (stage 5) and `init` (stage 0). This document describes what it
-would take to turn them into links in a chain that runs from a raw idea to shipped code, and records
-the design decisions already made so they don't have to be re-argued.
+**Status: mostly built.** This repo ships seven skills today — `go` (the "what now?" entry, planned
+below as `next`), `start` (stage 0, né `init`), `wireframe`, `spec` (stage 3), `user-story-map`,
+`phase-wireframe` (stage 5) and `phase-build` (stages 6–8, merged into one skill). Only
+`requirements` (stage 1) and the visual layers noted below remain. This document records the chain's
+design and the decisions already made so they don't have to be re-argued.
 
 **Mockups for the unbuilt stages live in [`mockups/`](mockups/)** — `requirements`, `spec`, the phase
-slider and the build maps. They are reviewed designs, not implementations; `init`'s chooser was one of
-them until it became `plugins/vstack/skills/init/assets/chooser.html`.
+slider and the build maps. They are reviewed designs, not implementations; `start`'s chooser was one of
+them until it became `plugins/vstack/skills/start/assets/chooser.html`.
 
 ## The problem
 
@@ -36,7 +37,7 @@ with the actual thing on it — draggable, drillable, editable — and a live li
 what you change is what gets built. Prose is the *export*, never the interface.
 
 Three already work this way, which is why they're the ones that get used: the story map is a grid you
-drag cards around, the wireframe is a page you comment on directly, and `init` is a chooser you tick.
+drag cards around, the wireframe is a page you comment on directly, and `start` is a form you tick.
 `phase-wireframe` is built but not yet visual. This section is the plan for the rest.
 
 Three rules fall out of it:
@@ -53,23 +54,23 @@ Three rules fall out of it:
 ## The stages
 
 ```
-  /vstack:next  ←  always answers "what now?"
+  ◆ /vstack:go  ←  always answers "what now?"  (planned here as `next`)
 
-  ◆ 0  init               clone the template, choose the stack + add-ons, delete the rest
+  ◆ 0  start              multi-step form: what you're building → stack → confirm
+                          (or skip development, or record an existing app untouched)
     1  requirements       specs/requirements.md
   ◆ 2  wireframe          design/<feature>.html            ──┐ review loop
-    3  spec               specs/YYYY-MM-DD-<feature>.md      │
+  ◆ 3  spec               .vstack/specs/<feature>.json       │
+                          → specs/YYYY-MM-DD-<feature>.md    │
   ◆ 4  user-story-map     specs/story-map.json               │
   ◆ 5  phase-wireframe    design/phase-<n>/<feature>.html  ──┘ review loop
-    6  phase-build-api    apps/backend, db/migrations  ┐
-    7  phase-build-ui     apps/frontend                ├ repeat per phase
-    8  phase-build-infra  infra/                       ┘
+  ◆ 6–8 phase-build       one skill, three tabs — api, ui, infra — repeat per phase
 
   ◆ = shipped
 ```
 
 `wireframe` and `user-story-map` also **work standalone** — no pipeline, no template, nothing to set
-up; see *Standalone stays first-class*. `init` and `phase-wireframe` are pipeline-shaped but neither
+up; see *Standalone stays first-class*. `start` and `phase-wireframe` are pipeline-shaped but neither
 needs the chain to exist yet.
 
 Everything from stage 5 on is named `phase-*`, because everything from stage 5 on happens **once per
@@ -77,21 +78,21 @@ release phase**. That's the part of the chain people lose track of, so the names
 
 | # | Skill | Would read | Would write |
 |---|---|---|---|
-| — | `next` | `.vstack/pipeline.json` | nothing — reports where you are, offers to run the next stage |
-| 0 | ◆ `init` | the cwd, `stacks/`, `add-ons/` | a fully instantiated repo — template cloned, one pack kept, add-ons chosen, toolchain filled, design guide confirmed (the whole Day-1 checklist) + `.vstack/pipeline.json` |
+| — | ◆ `go` | `.vstack/pipeline.json`; failing that, the conversation and the dir | nothing — reports where you are, offers the next stage |
+| 0 | ◆ `start` | the cwd, `stacks/`, `add-ons/` (or its catalog snapshot pre-clone) | `specs/product.md` + `.vstack/pipeline.json`, and — full path only — a fully instantiated repo: template cloned, one pack kept, add-ons chosen, toolchain filled, design guide confirmed (the whole Day-1 checklist) |
 | 1 | `requirements` | the conversation, any brief or notes | `specs/requirements.md` |
 | 2 | ◆ `wireframe` | `specs/requirements.md`, `design/tokens.css`, `design/CLAUDE.md` | `design/<feature>.html`, an inventory row in `design/README.md` |
-| 3 | `spec` | `design/<feature>.html`, `specs/requirements.md` | `specs/YYYY-MM-DD-<feature>.md`, fills that row's *owning spec* |
+| 3 | ◆ `spec` | `design/<feature>.html`, `specs/product.md`, the conversation | `.vstack/specs/<feature>.json` (source of truth) → `specs/YYYY-MM-DD-<feature>.md` (generated), fills that row's *owning spec* |
 | 4 | ◆ `user-story-map` | `specs/*.md` | `specs/story-map.json` + `specs/story-map.html` |
 | 5 | ◆ `phase-wireframe` | `specs/story-map.json`, `design/<feature>.html` | `design/phase-<n>/<feature>.html` |
-| 6 | `phase-build-api` | the phase-N slice of each spec | `apps/backend/`, `db/migrations/` |
-| 7 | `phase-build-ui` | the phase-N slice, `design/phase-<n>/` | `apps/frontend/` |
-| 8 | `phase-build-infra` | the phase-N slice | `infra/` |
+| 6–8 | ◆ `phase-build` | the phase-N slice, `design/phase-<n>/`, **the codebase itself** | `.vstack/build/phase-<n>.json` (the plan + build record), then the code — api → ui → infra |
 
-`init` and `next` are additions to the original sketch. `init` is what makes "the chain always starts
-from the template" true without dead-ending someone in a bare directory; `next` is the entire answer
-to the problem at the top of this page. **`stack` is no longer a separate stage** — it folded into
-`init`, which is where the whole Day-1 checklist now lives (see below).
+`start` and `go` are additions to the original sketch. `start` is what makes "the chain always starts
+from the template" true without dead-ending someone in a bare directory — and since the multi-step
+form landed it no longer *requires* the template: it can set up a specs-and-design-only workspace, or
+record an existing codebase without touching it. `go` is the entire answer to the problem at the top
+of this page. **`stack` is no longer a separate stage** — it folded into `start`, which is where the
+whole Day-1 checklist now lives (see below).
 
 ### The phase loop
 
@@ -102,18 +103,19 @@ it as that path rather than copying the file.)
 Stages 6 → 7 → 8 then run **in that order within a phase**, and the trio repeats per phase:
 
 ```
-once ──  init → requirements → wireframe → spec → user-story-map → phase-wireframe
+once ──  start → requirements → wireframe → spec → user-story-map → phase-wireframe
                                                                           │
 per phase ────────────────────────────────────────────────────────────────┤
                                                                           ▼
-            ┌──────► phase-build-api ──► phase-build-ui ──► phase-build-infra ──┐
-            │                                                                   │
-            └────────────────── phase += 1, while phases remain ◄───────────────┘
+            ┌──────► phase-build — api, then ui, then infra, one skill ──┐
+            │                                                            │
+            └───────────── phase += 1, while phases remain ◄─────────────┘
 ```
 
-**`phase-build-infra` would own the phase counter** — on completing phase N it sets `phase: N + 1`,
-or `stage: "done"` if N was the last phase. No other stage touches it after `user-story-map` sets it
-to `1`. Without this rule nobody advances the phase and the loop stalls silently.
+**`phase-build` owns the phase counter** (the rule was written for `phase-build-infra`; the merge
+moved it to the one skill) — on completing phase N it sets `phase: N + 1`, or `stage: "done"` if N
+was the last phase. No other stage touches it after `user-story-map` sets it to `1`. Without this
+rule nobody advances the phase and the loop stalls silently.
 
 ### Stage 5 — built
 
@@ -145,31 +147,37 @@ correct output, wrong shape for the question people ask. The phase slider is the
 
 | # | Stage | What you see | What you do to it |
 |---|---|---|---|
-| 0 | `init` ✓ | a **stack & add-on chooser** — cards in a cart | pick one pack, tick add-ons, watch what gets deleted |
+| 0 | `start` ✓ | a **multi-step setup form** — what → details → stack → confirm | answer in cards, take the recommended stack or override it, skip development entirely, watch what gets deleted |
 | 1 | `requirements` | a **live concept map**, built as you write | drag cards anywhere; link them; label the links |
 | 2 | `wireframe` ✓ | the page itself, in a review workspace | comment straight on it |
-| 3 | `spec` | a **drill-down tree**, collapsed to headlines | expand, annotate, delete, add — no approve/reject |
+| 3 | `spec` ✓ | a **drill-down tree**, collapsed to headlines | expand, annotate, delete, add — no approve/reject |
 | 4 | `user-story-map` ✓ | the grid of activities × phases | drag cards to re-slice |
 | 5 | `phase-wireframe` | the page, with a **phase slider** under it | drag the slider to watch phases appear |
-| 6 | `phase-build-api` | a **mind map of the endpoints** | adjust before the build starts |
-| 7 | `phase-build-ui` | a **mind map of the atomic-design tree** | adjust before the build starts |
-| 8 | `phase-build-infra` | a **mind map of the resources** | adjust before the build starts |
+| 6–8 | `phase-build` ✓ | **one board, three tabs** — endpoints, atomic-design tree, resources | adjust before the build starts, then watch nodes light up as they're built |
 
 ✓ = already built and already visual.
 
-### 0 · `init` — the chooser · **built**
+### 0 · `start` — the setup form · **built**
 
-*Shipped as `plugins/vstack/skills/init/`. What the stage does is under
-[Stage 0](#stage-0--init-which-is-the-whole-day-1-checklist); this is what it looks like while doing it.*
+*Shipped as `plugins/vstack/skills/start/` (né `init`). What the stage does is under
+[Stage 0](#stage-0--start-which-is-the-whole-day-1-checklist); this is what it looks like while doing it.*
 
-The two interviews become one page instead of a wall of questions. Stack packs as cards (pick one),
-add-ons as cards (pick any) — **shopping-cart style**, with a running panel showing what the project
-will contain and, just as important, **what is about to be deleted**. Since deleting *is* the
-adoption mechanism, seeing the delete list before confirming is the whole safety mechanism.
+A four-step form with a progress header — **what** are you building → **details** (kind, name,
+one-liner) → **stack & add-ons** → **confirm** — with a shopping-basket cart alongside throughout,
+holding everything picked so far. **The delete list moved out of the UI** after review (*"no need
+what gets deleted"*): since deleting *is* the adoption mechanism, the skill still shows the delete
+list in chat and gets a yes before removing anything — the safety moved to the apply step rather
+than disappearing.
 
-Each card leads with its product-shaped question, not its name — *"several organisations sharing one
-deployment, with strictly separated data?"* rather than *"multi-tenancy"*. The name is the small
-print. Confirm once, and `init` performs every deletion and fills the toolchain.
+The first two steps ask in product terms (*"a product people sign in to"*, *"organisations subscribe,
+teams sign in"*) and their answers **pre-select a recommended stack** on step 3 — badged, not forced.
+Step 3 also carries the escape hatch: *skip development setup* for people who only want UI and specs.
+Step 4 confirms everything with edit links back into any step. The answers outlive the form as
+`specs/product.md`, the product's constitution. Confirm once, and `start` performs every deletion and
+fills the toolchain — or, on the skip path, just creates `specs/` + `design/` and writes the records.
+
+Run in an **existing codebase**, the form opens straight on the confirm step, pre-filled from what
+`start` inferred out of the repo — final tweaks, then submit, and nothing in the code is touched.
 
 ### 1 · `requirements` — the live concept map
 
@@ -200,7 +208,12 @@ properly.
 **Still not right.** Parked after v6 rather than shipped, so whatever gets built here starts from
 another round, not from this text.
 
-### 3 · `spec` — the drill-down
+### 3 · `spec` — the drill-down · **built**
+
+*Shipped as `plugins/vstack/skills/spec/` on the shared `lib/json-bridge.mjs` engine. The tree JSON
+at `.vstack/specs/<feature>.json` is the source of truth; the dated markdown under `specs/` is
+generated every round with a "this file is an export" header. Notes are the conversation — the user
+annotates, Claude answers by fixing the spec or replying in a note.*
 
 The complaint this fixes: a spec today is a long document nobody reads.
 
@@ -240,39 +253,44 @@ feature into a later phase here is really a re-slice there. Nobody has designed 
 like. Until someone does, this stage shows and does not edit; a viewer that can't lie is worth more
 than an editor that edits the wrong file.
 
-### 6–8 · `phase-build-*` — the mind maps
+### 6–8 · `phase-build` — the board · **built, as one skill**
 
-The same shape three times, over three different subjects:
+*Shipped as `plugins/vstack/skills/phase-build/` — the trio merged into one skill with three tabs,
+as the reviewed mockup already had it. The same board is the pre-build plan and the live build view.*
 
-| Stage | The map is |
+The same shape three times, over three different subjects, as tabs on one board:
+
+| Tab | The map is |
 |---|---|
-| `phase-build-api` | the endpoints — resources, routes, and what they return |
-| `phase-build-ui` | the atomic-design tree — atoms → molecules → organisms → pages |
-| `phase-build-infra` | the resources to be provisioned, and what depends on what |
+| Endpoints | the API — resources, routes, and what they return |
+| Components | the atomic-design tree — atoms → molecules → organisms → pages |
+| Resources | what gets provisioned, and what depends on what |
 
-In every case you see it **before the build begins** and adjust it — this is the cheapest possible
-moment to move an endpoint or collapse two components, and the last moment before it costs code.
+You see it **before the build begins** and adjust it — this is the cheapest possible moment to move
+an endpoint or collapse two components, and the last moment before it costs code. Then Start turns
+the same board into the progress view: Claude reports each node over the bridge
+(`json-bridge.mjs patch --id <n> --set status=building|done|failed`) and the map colours in live —
+the new-wishes live build view, delivered here.
 
-**From phase 2 on, the map is colour-coded: what already exists vs what this phase adds.** That's the
-feature that makes the later phases legible — you're never looking at the whole system wondering
-which part is this week's work.
-
-That colouring is also the hard part, and worth being honest about: *existing* has to mean **what is
-actually in the codebase**, read from it, not what a previous phase's plan said would be built. A map
-that colours from the plan will confidently lie the first time a phase ships late or partial.
+**The map is colour-coded: what already exists vs what this phase adds.** That's the feature that
+makes the later phases legible — and the colouring is honest by construction: *existing* means
+**what is actually in the codebase**, read from it at plan time (the board stamps when), never what
+a previous phase's plan said would be built. A map that colours from the plan would confidently lie
+the first time a phase shipped late or partial.
 
 ## One engine, not eight
 
 Six stages above want the same three components. Building them per-skill would be six copies of the
 hard parts and six places for them to drift.
 
-**The live link.** This repo already has two implementations of it — `wireframe`'s SSE server
+**The live link.** This repo had two implementations — `wireframe`'s SSE server
 (`review-server.mjs`) and the story map's `bridge.py`. They do the same job: serve a self-contained
 page on `127.0.0.1`, wake the session when the user sends, push updates back as an offered refresh
-rather than a silent overwrite, and shut down cleanly when the tab closes. **Writing a third and
-fourth is the mistake to avoid.** One shared engine, taught to serve any of these pages, is the
-single highest-leverage thing to build in this whole plan — and it should probably happen before any
-new visual stage, not after two more copies exist.
+rather than a silent overwrite, and shut down cleanly when the tab closes. **The shared engine now
+exists**: `plugins/vstack/lib/json-bridge.mjs`, generalized from `bridge.py` when `spec` and
+`phase-build` were built — both run on it, so the third and fourth copies never happened. The two
+original skills deliberately keep their own engines for now; migrating them is optional cleanup,
+not a debt that grows.
 
 **The mind map.** Three stages (6–8) plus `requirements` want a directed graph with inline editing,
 drag-to-reparent, and a two-state colour scheme. That is one component fed four datasets, not four
@@ -293,8 +311,8 @@ it halfway through building `requirements`.
 One rule would decide the mode:
 
 > **`.vstack/pipeline.json` exists → pipeline mode. It doesn't → standalone.**
-> `wireframe` and `user-story-map` never create it. Only `init`, `requirements` and `next` bring the
-> pipeline into being.
+> `wireframe` and `user-story-map` never create it. Only `start` and `requirements` bring the
+> pipeline into being — `go` reads it but never writes it.
 
 | | Pipeline mode | Standalone |
 |---|---|---|
@@ -304,21 +322,25 @@ One rule would decide the mode:
 | State | rewrites `.vstack/pipeline.json` | writes none |
 | Ending | *"Next: `/vstack:spec` — shall I run it?"* | just the result. **One** closing line may mention the chain exists; it never proposes the next stage |
 
-The other six stages would be pipeline-only: run one cold and it offers `/vstack:init` rather than
+The other six stages would be pipeline-only: run one cold and it offers `/vstack:start` rather than
 improvising a project structure.
 
-## Stage 0 — `init`, which is the whole Day-1 checklist
+## Stage 0 — `start`, which is the whole Day-1 checklist
 
-The chain would run on a repo instantiated from
-[`cavalry-template-spa`](https://github.com/Cavalry-Collective/cavalry-template-spa) — always. Its
+The chain's **full path** runs on a repo instantiated from
+[`vstack-template-base`](https://github.com/Cavalry-Collective/vstack-template-base). Its
 `design/`, `specs/`, `stacks/`, `add-ons/` and `CLAUDE.md` contracts are what the later stages read
-and write; without them stages 6–8 have no architecture to build against.
+and write; without them stages 6–8 have no architecture to build against. Since the multi-step form
+landed, two lighter paths sit beside it — **skip development** (no clone; just `specs/` + `design/` +
+the records) and **existing app** (record only, code untouched) — and every path writes
+`specs/product.md`, the constitution the later stages read first.
 
-`init` clones it and then **interviews you until the template is a project**. There is no separate
+On the full path, `start` clones the template and then **interviews you until it is a project** —
+the form having already captured most of the answers. There is no separate
 `stack` stage: choosing the stack was never a thing you could do halfway through, and splitting the
 13-step Day-1 checklist across two skills only created a seam where steps could fall through.
 
-1. **Clone** `cavalry-template-spa` and open the workspace *(Day-1 1–3)*.
+1. **Clone** `vstack-template-base` and open the workspace *(Day-1 1–3)*.
 2. **Read the contracts** — root, backend, frontend, db, infra `CLAUDE.md` *(4)*.
 3. **Interview for the stack.** One pack survives; the rest are deleted. Today's packs are
    `nextjs-nestjs-postgres`, `taro-fastify-mysql-tencent`, `vercel` (client-rendered SPA) and
@@ -344,19 +366,19 @@ and write; without them stages 6–8 have no architecture to build against.
 
 **Deleting is the adoption mechanism**, not cleanup. The template is explicit about this: exactly one
 directory under `stacks/`, and only the wanted directories under `add-ons/`. Every area's `CLAUDE.md`
-then picks up the survivor automatically, with no generated file to drift. So `init` really does end
+then picks up the survivor automatically, with no generated file to drift. So `start` really does end
 by removing most of what it just cloned — that's the design, and it's worth saying out loud before
 someone stops it mid-delete.
 
 **The cost of merging, stated plainly.** `stack` used to sit at position 6, *after* specs existed —
-so the choice was informed by what was actually being built. Asking at `init` means choosing before
+so the choice was informed by what was actually being built. Asking at `start` means choosing before
 anyone has written a requirement. Two things make that survivable, and they should be built in:
 
 - Ask **product-shaped questions** when interviewing in conversation. Someone can answer "do several
   companies share one deployment?" on day zero; they can't answer "do you want the multi-tenancy
   add-on?". (The chooser page shows names and tags instead — see step 4.)
 - **Adoption stays reversible.** An add-on is a directory — a later stage that discovers a missed
-  capability can restore it from the template, and `init` should say so rather than implying the
+  capability can restore it from the template, and `start` should say so rather than implying the
   interview is one-shot. The stack pack is the genuinely expensive one to change late; weight the
   questioning accordingly.
 
@@ -370,7 +392,9 @@ anyone has written a requirement. Two things make that survivable, and they shou
   "project": "cavalry-hiring",
   "stage": "spec",
   "phase": 1,
+  "specsOnly": false,
   "artifacts": {
+    "product": "specs/product.md",
     "requirements": "specs/requirements.md",
     "specs": ["specs/2026-07-28-candidate-pipeline.md"],
     "storyMap": "specs/story-map.json",
@@ -392,9 +416,10 @@ anyone has written a requirement. Two things make that survivable, and they shou
 
 | Field | Meaning |
 |---|---|
-| `stage` | the **last completed** stage id. `next` proposes its successor. `"done"` is terminal |
-| `phase` | the phase in flight. `null` until `user-story-map` sets it to `1`; `phase-build-infra` advances it |
-| `artifacts.*` | repo-relative paths, always. A stage writes only the keys it produced |
+| `stage` | the **last completed** stage id. `go` proposes its successor. `"done"` is terminal |
+| `phase` | the phase in flight. `null` until `user-story-map` sets it to `1`; `phase-build` advances it |
+| `specsOnly` | `true` when `start` skipped development setup — `phase-build` doesn't apply until `start` runs again |
+| `artifacts.*` | repo-relative paths, always. A stage writes only the keys it produced. `product` is `start`'s constitution file |
 | `history[]` | append-only, one entry per completed stage |
 
 Rules worth pinning now:
@@ -405,7 +430,7 @@ Rules worth pinning now:
 - **Append vs. replace.** For the per-feature stages (`wireframe`, `spec`), re-running on a *new*
   feature appends to `artifacts.wireframes[]`; re-running on an *existing* one replaces that entry in
   place. Match on `feature`, never on array position.
-- Stages stay **re-runnable and skippable**. `next` proposes the successor; it never refuses a jump.
+- Stages stay **re-runnable and skippable**. `go` proposes the successor; it never refuses a jump.
 
 ## The footer every SKILL.md would end with
 
@@ -437,6 +462,8 @@ ask *"shall I continue?"* in the abstract, and it doesn't run the next stage una
 | Was | Is | Cost |
 |---|---|---|
 | `ui-review` | **`wireframe`** | broke `/vstack:ui-review` for anyone who had it; plugin went to 2.0.0 |
+| `init` | **`start`** | broke `/vstack:init` for anyone who had it; plugin went to 4.0.0. Internal paths (`.vstack/`, `choice.json`) kept — same principle as `.ui-review/` below |
+| `next` (planned) | **`go`** | none — it shipped under the new name, nothing to break |
 | `user-story-map` | *unchanged* | none — it keeps its name, and gains only the handoff footer when the chain lands |
 
 The engine moved **unchanged** — `review-server.mjs`, `workspace.html`, `bundle-artifact.mjs`. Its
@@ -462,39 +489,95 @@ the **human** index; `artifacts.wireframes[]` is the **machine** one.
   screen; its path is `design/phase-<n>/<feature>.html` by convention, recorded under
   `wireframes[].phases`.
 
+## New wishes — 2026-07-29
+
+Where a wish touches an existing section, the overlap is noted so the two don't get designed twice.
+Items 1–3 shipped on 2026-07-29 with plugin 4.0.0.
+
+1. ~~**`init` becomes a multi-step form.**~~ — **built**, as part of the `start` rename. Four steps
+   (what → details → stack → confirm) with a recommended pack pre-selected from the answers, a
+   **skip development setup** path that creates a specs-and-design-only workspace with no clone, the
+   answers saved as `specs/product.md` (the constitution — `product.md`, not `constitution.md`, was
+   the naming call), and an **existing-app mode** that infers from the repo and opens the form on a
+   pre-filled confirm step, recording the project without touching code. See
+   [Stage 0](#0--start--the-setup-form--built).
+
+2. ~~**`/vstack` bare, in any chat.**~~ — **built**, as `/vstack:go`, absorbing the planned `next`
+   (one skill: pipeline mode when `.vstack/pipeline.json` exists, chat + directory inference when it
+   doesn't). A truly bare `/vstack` turned out to be **impossible from a plugin** — plugin skills are
+   always namespaced — so the README documents a one-line copy to `~/.claude/skills/vstack/` for
+   anyone who wants it.
+
+3. ~~**Drop the `/cavalry` prefix.**~~ — **done.** The repo was already clean; the prefix came from a
+   stale `cavalry@cavalry-collective` 1.1.0 plugin installed before the vstack rename. Fixed by
+   refreshing the marketplace and swapping the installed plugin to `vstack@cavalry-collective`.
+
+4. ~~**The `phase-build-*` stages get a live build view.**~~ — **built**, with `phase-build`
+   itself: the same board is the pre-build plan and the progress surface, nodes pulsing while built
+   and filling in as they land, reported per node over the bridge.
+
+5. **The visual screens link into one flow.** Someone using the stack end-to-end should transition
+   smoothly from one stage's screen to the next, not open a fresh page per skill — plus a
+   **multi-step progress bar** showing where in the pipeline they are. *(This leans hard on
+   [One engine, not eight](#one-engine-not-eight): a shared shell with a pipeline progress bar is the
+   natural home for stage-to-stage transitions, and another reason to build the shared engine before
+   more standalone pages exist.)*
+
+6. **A README section on coexistence: "can I use this with Superpowers / gstack / speckit / …?"**
+   People will arrive already using another skill stack, and the README should answer whether these
+   compose, conflict, or overlap. **The principle landed** with `spec`/`phase-build`: vstack is
+   tool-agnostic — plain files in and out, only `.vstack/` owned, no hooks, no interception — and
+   the README now says so ("Plays well with other tools"). That also answers the *Spec Kit* bullet:
+   nobody owns `specs/`; vstack owns only the files it wrote. **Still open**: the per-tool
+   comparison (what overlaps with speckit's flow, what Superpowers changes) deserves the deep think
+   before it becomes a detailed README section.
+
+7. **A product showcase section** — highlight products actually made with the stack. Nothing sells a
+   visual-first pipeline like the things it shipped.
+
 ## Still open
 
 - **`specs/requirements.md` is an extension** to the template's convention, which describes only
   dated per-feature files. The template's `design/CLAUDE.md` already refers to *"the requirements
   spec under `specs/`"*, so the name is defensible — but it wants a line in
-  `cavalry-template-spa`'s `specs/README.md`, which is a change to a different repo.
-- **The `phase-build-*` trio is the least specified part of this.** "Build the phase-N slice of the
-  specs" is a sentence, not a contract. What does `phase-build-api` do that the template's
-  `CLAUDE.md` contracts don't already say? If the answer is "not much", these three might be one
-  `phase-build` skill that takes the area as an argument, or might not need to exist at all.
+  `vstack-template-base`'s `specs/README.md`, which is a change to a different repo.
+- ~~**The `phase-build-*` trio is the least specified part of this.**~~ Resolved by building it: the
+  trio **is one `phase-build` skill** with three tabs. What it adds over the template's `CLAUDE.md`
+  contracts is the visible, adjustable plan and the live build record — the contracts still govern
+  *how* each node is built (and in a non-template repo, the codebase's own conventions do).
 - **Wireframe or mockup?** The template's `design/` folder, its `CLAUDE.md`, and its inventory table
   all say *prototype* and *mockup*, and the deliverable described there is a fully interactive,
   token-styled page — closer to a mockup than a wireframe. The skill name and the template's
   vocabulary would disagree. Either is fine, but they should be reconciled deliberately rather than
   left to drift.
-- **How far `init` should go on its own.** Day-1 steps 11–13 — protect `main`, stand up staging,
+- **How far `start` should go on its own.** Day-1 steps 11–13 — protect `main`, stand up staging,
   confirm CI green — are GitHub settings and a live push, not file edits. A skill probably shouldn't
-  do those unasked, so `init` may have to end by *handing back a checklist* rather than claiming the
+  do those unasked, so `start` may have to end by *handing back a checklist* rather than claiming the
   repo is finished. That's the seam to watch now that everything else is merged into one stage.
-- **`init` is now a long stage.** Clone, two interviews, a rebrand, and thirteen checklist steps is a
-  lot to hold in one skill. If it needs splitting later, the honest seam is *before* vs *after* the
-  first green CI run — not stack-vs-everything-else, which is the split that just got removed.
-- **How `next` handles a dirty or half-run stage.** `stage` records the last *completed* stage, but
-  nothing records "started and abandoned".
-- **Spec Kit.** The template ships `speckit-*` skills. This chain deliberately ignores them and uses
-  the plain `specs/` convention. If both live in one repo, which one owns `specs/`?
-- **What "existing" means for the `phase-build-*` colouring.** Read from the codebase (true, harder,
-  and the only version that survives a phase shipping partially) or from the previous phase's plan
-  (easy, and wrong the first time reality diverges). This is the single biggest unanswered question
-  in the visual layer.
-- **The graph layout dependency.** Self-contained pages can't fetch a library, so the mind map needs
-  a hand-rolled layout or an inlined one. Hand-rolling is fine for a tree and gets hard fast for a
-  general graph — which is exactly what `phase-build-infra`'s dependencies are.
+- **`start` is now a long stage.** Clone, the form, a rebrand, and thirteen checklist steps is a
+  lot to hold in one skill — and it now carries three modes besides. If it needs splitting later, the
+  honest seam is *before* vs *after* the first green CI run — not stack-vs-everything-else, which is
+  the split that just got removed.
+- **How `go` handles a dirty or half-run stage.** `stage` records the last *completed* stage, but
+  nothing records "started and abandoned". The shipped `go` mentions a dirty tree when it sees one,
+  but the state file still can't represent it.
+- **The snapshot catalog can drift.** Fresh-mode `start` now fetches the template's live `stacks/` +
+  `add-ons/` listing from GitHub before falling back to the table inside `chooser-server.mjs`, so
+  drift only bites offline or rate-limited. When it does bite, a pack added upstream isn't offered
+  until the table is updated; the reconcile step after cloning catches the mismatch, but catching is
+  not the same as offering. Blurbs for unknown packs are also thinner from the listing than from a
+  clone — the README fallback needs the files on disk.
+- ~~**Spec Kit.**~~ Answered by the tool-agnostic principle: **nobody owns `specs/`.** vstack writes
+  plain markdown and its own `.vstack/` state, reads anything, and touches only the files it wrote —
+  the template's `speckit-*` skills and this chain can live in one repo without either yielding.
+  (The per-tool coexistence comparison for the README is still on the wishlist, item 6.)
+- ~~**What "existing" means for the `phase-build` colouring.**~~ Resolved, the honest way: **read
+  from the codebase**, at plan time, with the read stamped on the board. Never from a previous
+  phase's plan.
+- **The graph layout dependency.** Partially settled: the build board ships the mockup's hand-rolled
+  layered **tree** layout, which is enough for endpoints, the atomic tree, and infra as shipped. A
+  general dependency *graph* (infra nodes with multiple parents) still has no answer, and neither
+  does `requirements`' free-form concept map.
 - **Where prose still belongs.** If the artifact is the source of truth and the markdown is
   generated, then `specs/requirements.md` and the feature specs become outputs, not inputs. That's
   probably right, but it means a human editing the markdown directly is editing a generated file —
@@ -509,18 +592,23 @@ Rough order, each step independently useful:
 
 1. ~~**`phase-wireframe`**~~ — **built**, ahead of the rest, because it needs nothing from the chain.
    Not yet visual; the slider is still to come.
-2. ~~**`init`**~~ — **built**, chooser and all. It **did not need the shared live-link engine**: the
-   chooser asks one question once, so it owns a ~150-line one-shot server instead of a third of a
+2. ~~**`init`**~~ — **built**, chooser and all, and later grown into the multi-step `start` (four
+   steps, three modes, `specs/product.md`). It **did not need the shared live-link engine**: the
+   form asks one question once, so it owns a ~250-line one-shot server instead of a third of a
    300-line sync engine. That is a real limit on the "one engine" argument below — it applies to
    stages that hold a conversation, not to stages that ask a question.
-3. **The shared live-link engine**, extracted from `review-server.mjs` and `bridge.py` rather than
-   designed fresh. Nothing user-visible ships, and every stage after this gets cheaper. Doing it
-   later means porting however many copies exist by then.
-4. **`next`** — small, and it proves the state file that everything after depends on.
+3. ~~**The shared live-link engine**~~ — **built**, as `plugins/vstack/lib/json-bridge.mjs`,
+   generalized from `bridge.py` (seq waiter, SSE push with echo suppression, token, injection,
+   idle-close) plus a `patch` subcommand for per-node progress. `spec` and `phase-build` both run on
+   it. `wireframe` and `user-story-map` keep their own engines for now — migration is optional
+   cleanup, not growing debt.
+4. ~~**`next`**~~ — **built**, as `/vstack:go`, with inference mode on top of the planned
+   state-file reading. It proves the `pipeline.json` schema everything after depends on.
 5. **`requirements`**, from another round of design — the v6 mockup was parked, not approved. It is
    also the first mind map, so the graph-layout question gets settled here.
 6. ~~**The `ui-review` → `wireframe` rename**~~ — **done**. Footers still to come, once the state file has stopped moving.
-7. **`spec`** — the drill-down. Note it must consume whatever `requirements` ends up emitting; the
-   current mockup still assumes a feature list rather than a concept graph.
-8. **`phase-build-*`**, last, and only once *existing vs new* has an answer. Three stages sharing one
-   mind map by then, so the marginal cost of the third is small.
+7. ~~**`spec`**~~ — **built**, the drill-down on the shared engine. Note for when `requirements`
+   lands: `spec` currently consumes the wireframe + `product.md` + conversation; wiring it to a
+   concept graph is a change to its §1 draft step, not to its page.
+8. ~~**`phase-build`**~~ — **built**, as one skill, with *existing vs new* answered (read from the
+   codebase at plan time) and the live build view from the new wishes delivered on the same board.

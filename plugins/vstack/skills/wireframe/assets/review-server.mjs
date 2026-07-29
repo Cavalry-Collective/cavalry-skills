@@ -465,6 +465,12 @@ function cmdServe () {
   // Replies written by `reply` have to reach an open workspace too.
   try { fs.mkdirSync(path.join(STORE, 'reviews'), { recursive: true }) } catch {}
   try { fs.watch(path.join(STORE, 'reviews'), { recursive: true }, () => touch()) } catch {}
+  /* `share --url` and `publish` run as their own process, so the touch() they
+     call reaches no clients — this one is holding them. The store is the only
+     thing both sides share, so watch the two files that carry news: the state
+     (version, share url) and the sentinel that says a link is still wanted.
+     Without this the menu sits on "Claude is publishing the link…" forever. */
+  try { fs.watch(STORE, (_e, name) => { if (name === 'state.json' || name === 'share') touch() }) } catch {}
 
   server.on('error', e => {
     if (e.code === 'EADDRINUSE') {

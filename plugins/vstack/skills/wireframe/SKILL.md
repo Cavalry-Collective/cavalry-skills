@@ -109,10 +109,12 @@ The page opens in **its own browser window** on the canvas — own viewport, own
 | **Click** | a comment pin at that spot |
 | **Drag** | an area comment over that region |
 | Either way | the note opens **on the canvas** where the mark is. A comment with nothing typed in it is discarded on dismiss |
+| **Target** | in Annotate the element under the cursor is outlined and named before the click, and the note says what it attached to |
+| **Attached to an element** | a comment belongs to the thing it was made on, not to a coordinate. The mark rides it when the layout moves, and **goes off the page with it** — a comment made inside a modal, tab or step is not drawn while that thing is closed. It stays in the list tagged *not on screen*, and it still reaches you |
 | Captions | stay hidden — a mark shows its note when it's open, or on hover in Annotate |
 | **Screen size** | ultrawide · desktop · tablet · phone. A comment belongs to the size it was made at and only shows there |
-| **Thread** | your replies appear on the comment itself; they answer underneath |
-| **Save** (⌘⏎) | on the comment — the same commit ⌘⏎ has always done, now visible |
+| **Thread** | your replies appear on the comment itself and in the comment list, where they can be answered without going back to the mark. A question opens its thread on sight |
+| **Save** (⏎) | on the comment — Enter commits it, Shift+Enter is a new line |
 | **Timeline** (bottom) | drag the handle to scrub through published versions; history is read-only |
 | **EN / 中文** | workspace chrome only — comments stay in whatever words they were written in |
 | **Delete** | on the comment, once it has words in it |
@@ -121,14 +123,16 @@ The page opens in **its own browser window** on the canvas — own viewport, own
 | **Send to Claude** (⌘⏎) | sends straight through — no preview step — and wakes you up. It greys out until something actually changes |
 | **In flight** | every comment you were sent keeps an indeterminate progress bar until you publish or reply. No banner covers the page any more — the progress is on the comments it belongs to |
 | **Addressed** | comments you closed stay in the list in their own section, each offering **Revert** or **Refine** |
-| **Publish a shareable link** (the ▾ beside Send) | asks you to publish **the wireframe** as an Artifact they can send to someone else — the design, not the review workspace. The link comes back into that same menu, tagged with the version it was published from |
+| **Publish a link to this wireframe** (the ▾ beside Send) | asks you to publish **the wireframe** as an Artifact they can send to someone else — the design, not the review workspace. The link comes back into that same menu, tagged with the version it was published from, and announces itself in a banner the way a new version does |
 | **Approve & finish** (the ▾ beside Send) | sign-off. Ends the review, closes the server, and tells you the design is settled — behind a confirm that warns how many comments are being left unapplied |
 | **Cancel** | stops the round you're working on. Not a kill: finish what you were mid-way through, then say what you'd already changed |
 
 There is no per-comment resolve button: **you** close comments out by addressing them. Approve is the
 whole-page verdict, not an item-by-item one — one click that means *the design is done*, which is the
-only way the review ends deliberately rather than by the tab closing. Comments are located by where
-they are and the words they sit on — never by CSS selectors, and the user never sees markup.
+only way the review ends deliberately rather than by the tab closing. Comments arrive naming the
+element they were made on and the region it sits in; the user never sees markup, and the selector that
+comes with them is how the mark stays attached, not a promise about your HTML — **keep ids and
+distinctive classes stable across versions** and open comments keep their grip.
 
 **Addressed is your word for it, not the last word.** A comment you closed can come back:
 
@@ -169,9 +173,9 @@ away. Five outcomes:
 On a review landing:
 
 1. Delete the `pending` file — or the next waiter returns instantly.
-2. Read `feedback.md` (its path is inside `pending`). It carries a markdown brief plus a JSON block with every comment's place, anchor text, screen size and thread.
-3. **Apply every comment that isn't addressed.** There are no priorities to sort by — if the reviewer wrote it down, it needs doing. Locate each from its **anchor text plus coordinates** at the screen size it was made at.
-4. **Ask instead of guessing.** If a comment is ambiguous, reply to it — the question appears on the mark itself and the user answers there:
+2. Read `feedback.md` (its path is inside `pending`). It carries a markdown brief plus a JSON block with every comment's element, place, screen size and thread.
+3. **Apply every comment that isn't addressed.** There are no priorities to sort by — if the reviewer wrote it down, it needs doing. Locate each from its **anchor** — the element and the region it sits in — at the screen size it was made at, using the coordinates only to break a tie.
+4. **Ask instead of guessing.** If a comment is ambiguous, reply to it — the question appears on the mark and in the comment list, where the user answers it:
    ```bash
    node "$SKILL/assets/review-server.mjs" reply --file "$FILE" \
      --comment c7f2a1 --text "Every overdue row, or only the ones assigned to you?"
@@ -205,7 +209,7 @@ user will meet it. Not the review workspace: someone you send a link to is looki
 screen, not at your comment threads.
 
 Do this when the reviewer asks in chat, or when the waiter returns **`SHARE`** — they
-pressed *Publish a shareable link* under the ▾ and the menu is showing a spinner until the
+pressed *Publish a link to this wireframe* under the ▾ and the menu is showing a spinner until the
 URL arrives.
 
 Publish **`$FILE` itself** with the **Artifact** tool (favicon `🎨`), then hand the URL back

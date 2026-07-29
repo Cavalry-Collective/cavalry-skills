@@ -1,0 +1,833 @@
+<title>Spec · Visual Stack</title>
+<style>
+/* ══════════════════════════ spec chrome ══════════════════════════
+   The chrome is the wireframe workspace's — same tokens, same topbar, same
+   panel, same timeline — serving a different artifact: the spec tree. */
+:root{
+  --bg:#f4f3f6; --panel:#ffffff; --sunken:#eceaf0; --ink:#171320; --ink-2:#665e72;
+  --ink-3:#8f889c; --line:#e2dfe8; --line-2:#cfc9d8;
+  --accent:#e02b20; --accent-soft:#fff1f0; --accent-line:#ffb3ad;
+  --ok:#12805c; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(23,19,32,.06),0 8px 24px rgba(23,19,32,.08);
+  --panelw:320px;
+  --font:ui-sans-serif,-apple-system,"Segoe UI",Inter,system-ui,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+  color-scheme:light;
+  /* the spec's own hues, on top of the workspace palette */
+  --p1:#e02b20; --p2:#b0761a; --p3:#4a5fce; --note:#8a53c0; --th:#0e7f8a;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.5 var(--font);
+  -webkit-font-smoothing:antialiased;overflow:hidden}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+[contenteditable]{outline:0}
+/* the workspace's shell: topbar / content / timeline, always all visible */
+#app{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100%}
+#mid{display:flex;min-height:0}
+
+/* ── topbar — the workspace's ── */
+#top{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
+  background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40}
+.brand{display:flex;align-items:center;gap:8px;min-width:0}
+.vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
+.vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
+.vslink:hover .vsmark{opacity:.8}
+.brand .ws{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
+.brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+.spacer{flex:1}
+.sep{width:1px;height:20px;background:var(--line);flex:none}
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+  border:1px solid var(--line-2);background:var(--panel);color:var(--ink);font-weight:550;white-space:nowrap}
+.btn:hover{background:var(--sunken)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.primary[disabled]{opacity:.45;cursor:default;filter:none;pointer-events:none}
+.btn.sm{height:25px;padding:0 9px;font-size:11.5px}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;background:var(--panel)}
+.seg button{height:30px;padding:0 12px;font-weight:550;color:var(--ink-2);display:inline-flex;
+  align-items:center;gap:6px;border-right:1px solid var(--line-2)}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--sunken)}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+#langSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
+.linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
+  letter-spacing:.03em;color:var(--ink-3);white-space:nowrap}
+.linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
+.linkdot.on{color:var(--ok)}
+.linkdot.on::before{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+
+/* ── floating banners — the workspace's ── */
+.banner{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:38;display:none;
+  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow);
+  font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
+.banner.on{display:flex}
+#histBanner{background:var(--ink);color:#fff}
+#histBanner .btn{background:rgba(255,255,255,.14);border-color:transparent;color:#fff}
+#histBanner .btn:hover{background:rgba(255,255,255,.26)}
+#workBanner{background:var(--ok-soft);border:1px solid var(--ok)}
+#workBanner .tick{color:var(--ok);font-weight:700}
+
+/* ── the spec fills the whole content area ── */
+#sheet{flex:1;min-width:0;overflow:auto;background:var(--panel);
+  padding:clamp(1.2rem,3vw,2.2rem) clamp(1.4rem,4vw,3rem) 3rem}
+
+/* ── initiative header ── */
+.eyebrow2{font:700 10.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);margin:0 0 .55rem;display:inline-flex;align-items:center;gap:.5rem}
+.eyebrow2::before{content:"";width:1.4rem;height:2px;background:var(--accent);border-radius:2px}
+h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;font-weight:750;margin:0 0 .3rem}
+.goal{color:var(--ink-2);margin:0;max-width:64ch;font-size:13.5px}
+.meta{margin-top:.55rem;font:500 10.5px/1.5 var(--mono);color:var(--ink-3);display:flex;gap:.6rem;flex-wrap:wrap}
+#themesRow{display:flex;align-items:baseline;gap:.4rem;margin-top:.8rem;flex-wrap:wrap}
+#themesRow .lbl{font:700 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.tpill{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;color:var(--th);
+  background:color-mix(in srgb,var(--th) 9%,var(--panel));
+  border:1px solid color-mix(in srgb,var(--th) 26%,transparent)}
+
+/* ── epics: headings with a rule ── */
+.epic{margin-top:2rem}
+.ehead{display:flex;align-items:baseline;gap:.6rem;cursor:pointer;position:relative;padding-right:1.6rem}
+.ehead .tw{align-self:center}
+.ehead .elbl{font:800 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.ehead .ttl{font-size:15px;font-weight:700;letter-spacing:-.01em;min-width:0}
+.ehead .rule{flex:1;height:1px;background:var(--line);align-self:center;min-width:2rem}
+.ehead .count{font:600 10.5px/1 var(--mono);color:var(--ink-3);white-space:nowrap}
+.tw{width:13px;flex:none;color:var(--ink-3);font-size:9px;transition:transform .14s;
+  display:inline-grid;place-items:center}
+[aria-expanded=true] > .tw,[aria-expanded=true] .tw:first-child{transform:rotate(90deg)}
+
+/* ── stories: hairline rows ── */
+.slist{margin:.35rem 0 0}
+.srow + .srow .shead{border-top:1px solid var(--line)}
+.shead{display:flex;align-items:center;gap:.55rem;padding:.5rem .1rem;cursor:pointer;
+  position:relative;padding-right:1.7rem}
+.shead:hover{background:color-mix(in srgb,var(--sunken) 55%,transparent)}
+.shead .ttl{font-weight:600;font-size:13px;min-width:0;flex:1}
+.stag{font-size:10.5px;font-weight:600;color:var(--th);flex:none;opacity:.85}
+.qmark{font:700 10px/1 var(--mono);color:var(--note);flex:none}
+.shead .count{font:600 10px/1 var(--mono);color:var(--ink-3);flex:none}
+
+/* the one destructive control, far right, on hover, two-step */
+.del{position:absolute;right:.1rem;top:50%;transform:translateY(-50%);color:var(--ink-3);
+  font-size:12px;line-height:1;padding:3px 5px;border-radius:5px;opacity:0;white-space:nowrap}
+.ehead:hover .del,.shead:hover .del,.crow:hover .del,.del.armed{opacity:1}
+.del:hover{color:var(--accent);background:var(--sunken)}
+.del.armed{font:700 10px/1 var(--mono);color:#fff;background:var(--accent)}
+
+/* ── expanded story ── */
+.sbody{margin:0 0 .7rem 2.25rem}
+.crow{position:relative;padding:.35rem 1.7rem .35rem 0}
+.crow + .crow{border-top:1px dashed var(--line)}
+.chead{display:flex;align-items:flex-start;gap:.5rem;cursor:pointer}
+.chead .tw{margin-top:.3rem}
+.ctext{flex:1;min-width:0;font-size:12.5px;color:var(--ink-2)}
+.verify{margin:.15rem 0 .1rem 1.15rem;font:500 10.5px/1.5 var(--mono);color:var(--ink-3)}
+.verify .lbl{font:700 8.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ok);margin-right:.4rem}
+
+/* clarifications — one kind of thing: a question on the spec, and its answer */
+.note{margin:.45rem 0;padding:.4rem .6rem;border-left:3px solid var(--note);border-radius:0 7px 7px 0;
+  background:color-mix(in srgb,var(--note) 6%,var(--panel));font-size:12px;color:var(--ink-2);
+  display:flex;gap:.55rem;align-items:flex-start}
+.note .who{font:800 8.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--note);flex:none;margin-top:.25rem}
+.note .bodycol{flex:1;min-width:0;display:grid;gap:.3rem}
+.note .kill{color:var(--ink-3);font-size:11px;flex:none;opacity:0}
+.note:hover .kill{opacity:1}
+.note .kill:hover{color:var(--accent)}
+/* options are choices, not tags — radios, stacked */
+.opts{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.opt{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-2);text-align:left;
+  padding:3px 8px 3px 6px;border:1px solid var(--line);border-radius:7px;background:var(--panel)}
+.opt .rad{width:12px;height:12px;border-radius:50%;border:2px solid var(--line-2);flex:none}
+.opt:hover{border-color:var(--ok);color:var(--ink)}
+.opt:hover .rad{border-color:var(--ok)}
+.opt.picked{border-color:var(--ok);background:var(--ok-soft);color:var(--ink);font-weight:600}
+.opt.picked .rad{border-color:var(--ok);background:var(--ok)}
+.note.hilite{outline:2px solid var(--note);outline-offset:2px}
+
+/* theme toggles + quiet actions */
+.tagrow{display:flex;align-items:center;gap:.35rem;margin:.5rem 0 0;flex-wrap:wrap}
+.tagrow .lbl{font:700 8.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.tagtog{font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:999px;color:var(--ink-3);
+  border:1px solid var(--line-2)}
+.tagtog:hover{border-color:var(--th);color:var(--th)}
+.tagtog.on{color:var(--th);background:color-mix(in srgb,var(--th) 9%,var(--panel));
+  border-color:color-mix(in srgb,var(--th) 30%,transparent)}
+.acts{display:flex;gap:1rem;margin:.45rem 0 0}
+.act{font-size:11.5px;font-weight:600;color:var(--ink-3)}
+.act:hover{color:var(--accent)}
+.act.n:hover{color:var(--note)}
+.eacts{margin:.4rem 0 0 2.25rem}
+#addEpic{margin-top:1.6rem}
+/* viewing history: the sheet is a record, not an editor */
+body.history .del,body.history .acts,body.history .eacts,body.history #addEpic,
+body.history .tagrow,body.history .kill{display:none!important}
+
+/* ── the clarifications panel — the workspace's comment panel ── */
+#panel{width:var(--panelw);flex:none;background:var(--panel);border-left:1px solid var(--line);
+  display:flex;flex-direction:column;min-height:0}
+#phead{display:flex;align-items:center;gap:8px;padding:10px 12px 8px;border-bottom:1px solid var(--line);flex:none}
+#phead b{font-size:13px}
+#phead .scope{margin-left:auto;font-size:11px;color:var(--ink-3)}
+#pbody{flex:1;overflow:auto;padding:8px 10px 14px;min-height:0}
+.item{position:relative;border:1px solid var(--line);border-radius:8px;padding:7px 9px;
+  margin-bottom:6px;cursor:pointer;transition:border-color .12s;background:var(--panel)}
+.item:hover{border-color:var(--line-2)}
+.item .ih{display:flex;align-items:center;gap:6px}
+.item .n{font:700 10px/1 var(--mono);color:#fff;background:var(--note);padding:3px 5px;border-radius:4px}
+.item .kind{font-size:11px;color:var(--ink-3);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .note2{font-size:12.5px;line-height:1.4;margin-top:4px;color:var(--ink-2)}
+.item .opts{margin-top:5px}
+.qans{display:block;margin-top:5px;padding:4px 7px;border-radius:6px;
+  border:1px dashed var(--line-2);font-size:11.5px;color:var(--ink-2);min-height:1.3em}
+.qans:focus{border-color:var(--ok);border-style:solid}
+.qans:empty::before{content:attr(data-ph);color:var(--ink-3);font-style:italic}
+
+/* ── timeline scrubber — the workspace's, its own always-visible row ── */
+#timeline{border-top:1px solid var(--line);
+  background:var(--panel);padding:9px 16px 12px;display:flex;align-items:center;gap:12px}
+#timeline .step{width:24px;height:24px;border-radius:6px;color:var(--ink-2);display:grid;place-items:center;flex:none}
+#timeline .step:hover{background:var(--sunken);color:var(--ink)}
+#timeline .step[disabled]{opacity:.3;cursor:default}
+#timeline .step[disabled]:hover{background:none}
+#tlTrack{flex:1;position:relative;height:26px;min-width:120px;cursor:pointer}
+#tlTrack::before{content:"";position:absolute;left:0;right:0;top:11px;height:3px;border-radius:2px;background:var(--line)}
+#tlFill{position:absolute;left:0;top:11px;height:3px;border-radius:2px;background:var(--accent-line)}
+#tlTrack .tick{position:absolute;top:7px;width:11px;height:11px;border-radius:50%;background:var(--panel);
+  border:2px solid var(--line-2);transform:translateX(-50%)}
+#tlTrack .tick.past{border-color:var(--accent-line)}
+#tlTrack .tick:hover{border-color:var(--accent)}
+#tlTrack .tick .cap{position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  font:600 9.5px/1 var(--mono);color:var(--ink-3)}
+#tlHandle{position:absolute;top:4px;width:17px;height:17px;border-radius:50%;background:var(--accent);
+  border:3px solid var(--panel);box-shadow:0 1px 4px rgba(23,19,32,.3);transform:translateX(-50%);
+  cursor:grab;z-index:3}
+#tlHandle:active{cursor:grabbing}
+#tlMeta{flex:none;max-width:330px;min-width:0;font-size:11.5px;color:var(--ink-3);line-height:1.35}
+#tlMeta b{color:var(--ink);font-weight:650;font-family:var(--mono);font-size:11px}
+#tlMeta .lab{color:var(--ink-2)}
+#tlMeta .row{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+
+<div id="app">
+<div id="top">
+  <div class="brand">
+    <a class="vslink" href="https://cavalry.sg/visual-stack" target="_blank" rel="noopener"
+       title="Visual Stack">
+      <svg class="vsmark" viewBox="0 0 64 64" aria-hidden="true">
+        <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
+        <rect x="46" y="4" width="12" height="16" fill="var(--accent)"/>
+      </svg>
+      <span class="ws">Visual Stack</span>
+    </a>
+    <b id="pageName">Spec</b>
+  </div>
+  <div class="spacer"></div>
+  <div class="seg" id="langSwitch">
+    <button data-lang="en" aria-pressed="true">EN</button>
+    <button data-lang="zh" aria-pressed="false">中文</button>
+  </div>
+  <button class="btn" id="collapse"></button>
+  <div class="sep"></div>
+  <span class="linkdot" id="linkDot"></span>
+  <button class="btn primary" id="send" disabled></button>
+</div>
+
+<div class="banner" id="histBanner">
+  <span id="histText"></span>
+  <button class="btn sm" id="btnNow"></button>
+</div>
+<div class="banner" id="workBanner">
+  <span class="tick">✓</span><span id="workText"></span>
+  <button class="btn sm primary" id="rbApply"></button>
+  <button class="btn sm" id="rbDismiss"></button>
+</div>
+
+<div id="mid">
+  <main id="sheet">
+    <p class="eyebrow2" id="hEyebrow"></p>
+    <h1 id="hTitle" contenteditable="plaintext-only"></h1>
+    <p class="goal" id="hGoal" contenteditable="plaintext-only"></p>
+    <div class="meta" id="hMeta"></div>
+    <div id="themesRow"></div>
+    <div id="tree"></div>
+    <button class="act" id="addEpic"></button>
+  </main>
+
+  <div id="panel" hidden>
+    <div id="phead"><b id="qpTitle"></b><span class="scope" id="qpCount"></span></div>
+    <div id="pbody"></div>
+  </div>
+</div>
+
+<div id="timeline">
+  <button class="step" id="tlPrev">‹</button>
+  <div id="tlTrack"><div id="tlFill"></div><div id="tlHandle"></div></div>
+  <button class="step" id="tlNext">›</button>
+  <div id="tlMeta"></div>
+</div>
+</div>
+
+<script id="fallback" type="application/json">
+{
+  "feature": "candidate-pipeline",
+  "title": "Candidate pipeline",
+  "goal": "Hiring managers work a role's applicants end to end — see them, move them, and collect interview feedback — without leaving the pipeline.",
+  "source": ["design/candidate-pipeline.html", "specs/product.md"],
+  "themes": ["Auditability", "Reporting"],
+  "epics": [
+    { "id":"e1", "title":"Pipeline operations", "open": true, "stories": [
+      { "id":"s1", "title":"See everyone who applied to a role", "themes":["Reporting"], "notes":[], "crit":[
+        { "id":"c1", "text":"The list opens newest-first and shows name, stage and days waiting.",
+          "verify":"Open /roles/42 — top row is the most recent application.", "notes":[] },
+        { "id":"c2", "text":"Searching by name narrows the list as you type.",
+          "verify":"Type \"ama\" — only Amara Osei remains, in under 200ms.", "notes":[] }
+      ]},
+      { "id":"s2", "title":"Move a candidate forward, or reject them", "themes":["Auditability"],
+        "notes":[{ "who":"Note", "text":"Rejection reasons need to be a fixed list — free text makes this unreportable later." },
+                 { "who":"Claude", "text":"Agreed — c5 now requires a reason from a fixed list; the list itself lives in settings. Who should be able to edit it?",
+                   "options":["HR owns the list","Admins only","Either, behind a permission"] }],
+        "crit":[
+        { "id":"c4", "text":"Advancing moves the candidate to the next stage and stamps the timeline.",
+          "verify":"Advance Wei Zhang → Interview. Timeline gains \"Moved to Interview\" with today's date.", "notes":[] },
+        { "id":"c5", "text":"Rejecting requires a reason chosen from the configured list before it will submit.",
+          "verify":"Reject with no reason selected — the button stays disabled.", "notes":[] }
+      ]}
+    ]},
+    { "id":"e2", "title":"Interview feedback", "open": true, "stories": [
+      { "id":"s4", "title":"Collect a scorecard from an interviewer", "themes":["Auditability"], "notes":[], "crit":[
+        { "id":"c8", "text":"The link opens one candidate and nothing else.",
+          "verify":"Open the token URL signed out — only that candidate is reachable.", "notes":[] },
+        { "id":"c9", "text":"Other scorecards stay hidden until yours is submitted.",
+          "verify":"Two interviewers, one submitted — the second sees no feedback until they submit.", "notes":[] }
+      ]}
+    ]}
+  ]
+}
+</script>
+
+<script>
+/* The tree IS the spec — one initiative, its epics, their user stories, and
+   themes as the labels that span them. specs/…md is generated from this, never
+   the other way. Served through json-bridge.mjs the document comes from /doc
+   and Send posts it back; opened off disk it falls back to the demo above. */
+const BRIDGE = window.__VSTACK_BRIDGE__ || null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let LANG = 'en';
+try { LANG = localStorage.getItem('vstack-spec:lang') === 'zh' ? 'zh' : 'en' } catch {}
+const STR = {
+  eyebrow: ['Initiative', '举措'],
+  themesLbl: ['Themes', '主题'],
+  epicLbl: ['Epic', '史诗'],
+  stories: ['stories', '个故事'], criteria: ['criteria', '条标准'],
+  collapse: ['Collapse all', '全部收起'], expand: ['Expand all', '全部展开'],
+  send: ['Send to Claude', '发送给 Claude'], sent: ['Sent ✓', '已发送 ✓'],
+  linked: ['LINKED TO CLAUDE', '已连接 CLAUDE'], lost: ['LINK LOST', '连接断开'],
+  verifiedBy: ['Verified by', '验证方式'],
+  addC: ['+ criterion', '+ 标准'],
+  addS: ['+ story', '+ 故事'], addE: ['+ epic', '+ 史诗'],
+  newCrit: ['New criterion', '新的验收标准'], newVerify: ['How this gets checked', '如何验证'],
+  newStory: ['New user story', '新的用户故事'], newEpic: ['New epic', '新的史诗'],
+  clarLbl: ['Clarification', '澄清'],
+  confirmDel: ['delete?', '删除？'],
+  refreshed: ['Claude updated the spec', 'Claude 更新了规格'],
+  apply: ['Review changes', '查看更新'], dismiss: ['Later', '稍后'],
+  qpTitle: ['Clarifications', '澄清事项'],
+  qpAnswerPh: ['Type an answer…', '输入回答…'],
+  vOpened: ['Opened', '打开'],
+  vSent: ['Sent to Claude', '发送给 Claude'],
+  vClaude: ['Claude’s update', 'Claude 的更新'],
+  current: ['current', '当前'],
+  viewingOld: [n => `Viewing v${n} — read only`, n => `正在查看 v${n}——只读`],
+  backToNow: ['Back to current', '回到当前'],
+};
+const t = k => STR[k][LANG === 'zh' ? 1 : 0];
+
+let doc = null;   // { feature, title, goal, source[], themes:[name], epics:[{id,title,open,stories[]}] }
+let pendingPush = null;
+let dirtySinceSend = false;
+
+/* an older flat document (top-level stories) wraps into a single epic */
+function migrate (d) {
+  if (!d.epics) d.epics = d.stories ? [{ id: 'e1', title: d.title || 'Epic', open: true, stories: d.stories }] : [];
+  delete d.stories;
+  d.themes ||= [];
+  d.epics.forEach(ep => { ep.open ??= true; ep.stories ||= []; ep.stories.forEach(s => { s.notes ||= []; s.crit ||= []; }); });
+  return d;
+}
+const allStories = () => doc.epics.flatMap(ep => ep.stories);
+
+/* ── versions — a freeze on every send and every applied update ── */
+let versions = [];        // [{n, label, date, json}]
+let viewing = 1;          // the version on screen; latest == live and editable
+const latest = () => versions.length ? versions[versions.length - 1].n : 1;
+const isHistory = () => viewing !== latest();
+const RO = () => isHistory();
+function freeze (label) {
+  versions.push({ n: latest() + (versions.length ? 1 : 0), label, date: new Date().toISOString(), json: JSON.stringify(doc) });
+  viewing = latest();
+  buildTimeline();
+}
+
+const dirty = () => {
+  if (RO()) return;
+  dirtySinceSend = true; syncSend();
+};
+function syncSend () {
+  $('#send').disabled = !BRIDGE || !dirtySinceSend || RO();
+  $('#send').textContent = t('send');
+}
+
+/* ── render ── */
+/* a clarification is one thing: a question, and its answer — pick an option,
+   or write your own; typing your own un-picks the radios */
+function noteHtml (n, path) {
+  const ce = RO() ? 'false' : 'plaintext-only';
+  const hasOpts = (n.options || []).length > 0;
+  const opts = (n.options || []).map((o, oi) =>
+    `<button class="opt ${n.answer === o ? 'picked' : ''}" data-oi="${oi}"><span class="rad"></span>${esc(o)}</button>`).join('');
+  const freeVal = n.answer && (!hasOpts || !n.options.includes(n.answer)) ? n.answer : '';
+  const freeAns = RO() ? '' :
+    `<span class="qans" contenteditable="plaintext-only" data-ph="${esc(t('qpAnswerPh'))}">${esc(freeVal)}</span>`;
+  return `<div class="note" data-note="${path}">
+      <span class="who">${esc(t('clarLbl'))}</span>
+      <span class="bodycol">
+        <span class="txt" contenteditable="${ce}">${esc(n.text)}</span>
+        ${opts ? `<span class="opts">${opts}</span>` : ''}
+        ${freeAns}
+      </span>
+      <button class="kill" data-act="unnote" title="Remove">×</button>
+    </div>`;
+}
+
+function storyHtml (s, ei, si) {
+  const base = `${ei}.${si}`;
+  const ce = RO() ? 'false' : 'plaintext-only';
+  const qn = (s.notes || []).length + s.crit.reduce((m, c) => m + (c.notes || []).length, 0);
+  const tags = (s.themes || []).filter(th => doc.themes.includes(th));
+  return `
+  <article class="srow" data-i="${si}">
+    <div class="shead" role="button" tabindex="0" aria-expanded="${!!s.open}" data-act="tog">
+      <span class="tw">▶</span>
+      <span class="ttl" contenteditable="${ce}" data-act="edit-title">${esc(s.title)}</span>
+      ${tags.map(th => `<span class="stag">${esc(th)}</span>`).join('')}
+      ${qn ? `<span class="qmark">✎${qn}</span>` : ''}
+      <span class="count">${s.crit.length} ${t('criteria')}</span>
+      <button class="del" data-act="del">×</button>
+    </div>
+    <div class="sbody" ${s.open ? '' : 'hidden'}>
+      ${(s.notes || []).map((n, ni) => noteHtml(n, `${base}.${ni}`)).join('')}
+      ${s.crit.map((c, ci) => `
+        <div class="crow" data-c="${ci}">
+          <div class="chead" role="button" tabindex="0" aria-expanded="${!!c.open}" data-act="togc">
+            <span class="tw">▶</span>
+            <span class="ctext" contenteditable="${ce}" data-act="edit-crit">${esc(c.text)}</span>
+          </div>
+          <div class="verify" ${c.open ? '' : 'hidden'}><span class="lbl">${t('verifiedBy')}</span><span
+            contenteditable="${ce}" data-act="edit-verify">${esc(c.verify || '')}</span></div>
+          ${(c.notes || []).map((n, ni) => noteHtml(n, `${base}.${ci}.${ni}`)).join('')}
+          <button class="del" data-act="delc">×</button>
+        </div>`).join('')}
+      <div class="acts">
+        <button class="act" data-act="addc">${t('addC')}</button>
+      </div>
+      ${doc.themes.length ? `
+      <div class="tagrow"><span class="lbl">${esc(t('themesLbl'))}</span>
+        ${doc.themes.map((th, ti) => `
+          <button class="tagtog ${(s.themes || []).includes(th) ? 'on' : ''}" data-thi="${ti}">${esc(th)}</button>`).join('')}
+      </div>` : ''}
+    </div>
+  </article>`;
+}
+
+function epicHtml (ep, ei) {
+  const ce = RO() ? 'false' : 'plaintext-only';
+  return `
+  <section class="epic" data-e="${ei}">
+    <div class="ehead" role="button" tabindex="0" aria-expanded="${!!ep.open}" data-act="etog">
+      <span class="tw">▶</span>
+      <span class="elbl">${t('epicLbl')}</span>
+      <span class="ttl" contenteditable="${ce}" data-act="edit-etitle">${esc(ep.title)}</span>
+      <span class="rule"></span>
+      <span class="count">${ep.stories.length} ${t('stories')}</span>
+      <button class="del" data-act="edel">×</button>
+    </div>
+    <div class="slist" ${ep.open ? '' : 'hidden'}>
+      ${ep.stories.map((s, si) => storyHtml(s, ei, si)).join('')}
+      <div class="eacts"><button class="act" data-act="eaddstory">${t('addS')}</button></div>
+    </div>
+  </section>`;
+}
+
+/* the catalog is read-only here — Claude manages it from the conversation */
+function renderThemesRow () {
+  $('#themesRow').innerHTML = doc.themes.length
+    ? `<span class="lbl">${esc(t('themesLbl'))}</span>` +
+      doc.themes.map(th => `<span class="tpill">${esc(th)}</span>`).join('')
+    : '';
+}
+
+function render () {
+  document.title = (doc.title || doc.feature || 'Spec') + ' — spec · Visual Stack';
+  document.body.classList.toggle('history', isHistory());
+  $('#hEyebrow').textContent = t('eyebrow');
+  $('#hTitle').textContent = doc.title || doc.feature || '';
+  $('#hTitle').contentEditable = RO() ? 'false' : 'plaintext-only';
+  $('#hGoal').textContent = doc.goal || '';
+  $('#hGoal').contentEditable = RO() ? 'false' : 'plaintext-only';
+  $('#hMeta').innerHTML = (doc.source || []).map(s => `<span>${esc(s)}</span>`).join(' · ');
+  $('#addEpic').textContent = t('addE');
+  const anyOpen = allStories().some(s => s.open);
+  $('#collapse').textContent = anyOpen ? t('collapse') : t('expand');
+
+  /* open questions live in an always-open panel — no toggle to remember */
+  const qn = allStories().reduce((n, s) =>
+    n + (s.notes || []).length + s.crit.reduce((m, c) => m + (c.notes || []).length, 0), 0);
+  $('#panel').hidden = !qn;
+  if (qn) renderQPanel();
+
+  renderThemesRow();
+  $('#tree').innerHTML = doc.epics.map((ep, ei) => epicHtml(ep, ei)).join('');
+  syncSend();
+  syncTimeline();
+}
+
+/* ── locate a note from its path "ei.si.ni" | "ei.si.ci.ni" ── */
+function noteAt (path) {
+  const p = path.split('.').map(Number);
+  const s = doc.epics[p[0]].stories[p[1]];
+  return p.length === 3 ? s.notes[p[2]] : s.crit[p[2]].notes[p[3]];
+}
+function spliceNote (path) {
+  const p = path.split('.').map(Number);
+  const s = doc.epics[p[0]].stories[p[1]];
+  p.length === 3 ? s.notes.splice(p[2], 1) : s.crit[p[2]].notes.splice(p[3], 1);
+}
+
+/* ── tree events ── */
+$('#tree').addEventListener('click', e => {
+  const epicEl = e.target.closest('.epic');
+  if (!epicEl) return;
+  const ei = +epicEl.dataset.e;
+  const ep = doc.epics[ei];
+
+  /* MCQ answer on a Claude question — tap picks, tap again unpicks */
+  const opt = e.target.closest('.opt');
+  if (opt) {
+    if (RO()) return;
+    const note = noteAt(opt.closest('[data-note]').dataset.note);
+    const picked = note.options[+opt.dataset.oi];
+    note.answer = note.answer === picked ? null : picked;
+    dirty(); e.stopPropagation(); render();
+    return;
+  }
+
+  /* theme toggle on a story */
+  const tog = e.target.closest('.tagtog');
+  if (tog) {
+    if (RO()) return;
+    const s = ep.stories[+tog.closest('.srow').dataset.i];
+    const name = doc.themes[+tog.dataset.thi];
+    s.themes ||= [];
+    s.themes = s.themes.includes(name) ? s.themes.filter(x => x !== name) : [...s.themes, name];
+    dirty(); e.stopPropagation(); render();
+    return;
+  }
+
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const act = btn.dataset.act;
+  if (act.startsWith('edit-')) return;
+  const expandOnly = act === 'tog' || act === 'togc' || act === 'etog';
+  if (RO() && !expandOnly) return;
+  const card = e.target.closest('.srow');
+  const si = card ? +card.dataset.i : null;
+  const crow = e.target.closest('.crow');
+  const ci = crow ? +crow.dataset.c : null;
+
+  /* deleting anything is two-step — the first click only arms */
+  if ((act === 'del' || act === 'delc' || act === 'edel') && !btn.classList.contains('armed')) {
+    btn.classList.add('armed');
+    btn.textContent = t('confirmDel');
+    setTimeout(() => { btn.classList.remove('armed'); btn.textContent = '×'; }, 2600);
+    e.stopPropagation();
+    return;
+  }
+
+  if (act === 'etog') ep.open = !ep.open;
+  if (act === 'edel') doc.epics.splice(ei, 1);
+  if (act === 'eaddstory') {
+    ep.stories.push({ id:'s'+Date.now(), title:t('newStory'), open:true, themes:[], notes:[], crit:[] });
+    ep.open = true;
+  }
+  if (card) {
+    const s = ep.stories[si];
+    if (act === 'tog')  s.open = !s.open;
+    if (act === 'togc') s.crit[ci].open = !s.crit[ci].open;
+    if (act === 'del')  ep.stories.splice(si, 1);
+    if (act === 'delc') s.crit.splice(ci, 1);
+    if (act === 'addc') s.crit.push({ id:'c'+Date.now(), text:t('newCrit'), verify:t('newVerify'), open:true, notes:[] });
+    if (act === 'unnote') spliceNote(e.target.closest('[data-note]').dataset.note);
+  }
+  if (!expandOnly) dirty();
+  e.stopPropagation();
+  render();
+});
+
+$('#tree').addEventListener('input', e => {
+  if (RO()) return;
+  const el = e.target;
+  const epicEl = el.closest('.epic'); if (!epicEl) return;
+  const ep = doc.epics[+epicEl.dataset.e];
+  if (el.dataset.act === 'edit-etitle') { ep.title = el.textContent.trim(); dirty(); return; }
+  const card = el.closest('.srow'); if (!card) return;
+  const s = ep.stories[+card.dataset.i];
+  const crow = el.closest('.crow');
+  if (el.dataset.act === 'edit-title') s.title = el.textContent.trim();
+  else if (el.dataset.act === 'edit-crit' && crow) s.crit[+crow.dataset.c].text = el.textContent.trim();
+  else if (el.dataset.act === 'edit-verify' && crow) s.crit[+crow.dataset.c].verify = el.textContent.trim();
+  else if (el.classList.contains('txt')) noteAt(el.closest('[data-note]').dataset.note).text = el.textContent.trim();
+  else if (el.classList.contains('qans')) noteAt(el.closest('[data-note]').dataset.note).answer = el.textContent.trim() || null;
+  dirty();
+});
+
+$('#hTitle').addEventListener('input', () => { if (!RO()) { doc.title = $('#hTitle').textContent.trim(); dirty(); } });
+$('#hGoal').addEventListener('input', () => { if (!RO()) { doc.goal = $('#hGoal').textContent.trim(); dirty(); } });
+
+$('#addEpic').addEventListener('click', () => {
+  if (RO()) return;
+  doc.epics.push({ id:'e'+Date.now(), title:t('newEpic'), open:true, stories:[] });
+  dirty(); render();
+  const titles = $('#tree').querySelectorAll('.ehead .ttl');
+  titles[titles.length - 1]?.focus();
+});
+
+$('#collapse').addEventListener('click', () => {
+  const anyOpen = allStories().some(s => s.open);
+  allStories().forEach(s => { s.open = !anyOpen; s.crit.forEach(c => c.open = false); });
+  if (anyOpen) doc.epics.forEach(ep => ep.open = true);   // epics stay open; only stories fold
+  render();
+});
+
+/* ── the questions panel — every note, answer in place or click to jump ── */
+function allNotes () {
+  const out = [];
+  doc.epics.forEach((ep, ei) => ep.stories.forEach((s, si) => {
+    (s.notes || []).forEach((n, ni) => out.push({ n, path: `${ei}.${si}.${ni}`, ctx: `${ep.title} · ${s.title}` }));
+    s.crit.forEach((c, ci) => (c.notes || []).forEach((n, ni) =>
+      out.push({ n, path: `${ei}.${si}.${ci}.${ni}`, ctx: `${ep.title} · ${s.title} · ${c.text}` })));
+  }));
+  return out;
+}
+
+function renderQPanel () {
+  const items = allNotes();
+  $('#qpTitle').textContent = t('qpTitle');
+  $('#qpCount').textContent = items.length;
+  $('#pbody').innerHTML = items.map(({ n, path, ctx }) => {
+    const hasOpts = (n.options || []).length > 0;
+    const opts = hasOpts && !RO()
+      ? `<span class="opts">${n.options.map((o, oi) =>
+          `<button class="opt ${n.answer === o ? 'picked' : ''}" data-oi="${oi}"><span class="rad"></span>${esc(o)}</button>`).join('')}</span>`
+      : '';
+    const freeVal = n.answer && (!hasOpts || !n.options.includes(n.answer)) ? n.answer : '';
+    const freeAns = RO() ? '' :
+      `<span class="qans" contenteditable="plaintext-only" data-ph="${esc(t('qpAnswerPh'))}">${esc(freeVal)}</span>`;
+    return `<div class="item" data-jump="${esc(path)}">
+        <div class="ih"><span class="n">?</span>
+          <span class="kind">${esc(ctx)}</span></div>
+        <div class="note2">${esc(n.text || '—')}</div>
+        ${opts}${freeAns}
+      </div>`;
+  }).join('');
+}
+
+$('#pbody').addEventListener('click', e => {
+  const item = e.target.closest('[data-jump]'); if (!item) return;
+  const opt = e.target.closest('.opt');
+  if (opt) {
+    if (RO()) return;
+    const note = noteAt(item.dataset.jump);
+    const picked = note.options[+opt.dataset.oi];
+    note.answer = note.answer === picked ? null : picked;
+    dirty(); render();
+    return;
+  }
+  if (e.target.closest('.qans')) return;   // typing an answer, not jumping
+  const p = item.dataset.jump.split('.').map(Number);
+  const ep = doc.epics[p[0]], s = ep.stories[p[1]];
+  ep.open = true; s.open = true;
+  if (p.length === 4) s.crit[p[2]].open = true;
+  render();
+  requestAnimationFrame(() => {
+    const el = $('#tree').querySelector(`[data-note="${CSS.escape(item.dataset.jump)}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('hilite');
+      setTimeout(() => el.classList.remove('hilite'), 1800);
+    }
+  });
+});
+
+$('#pbody').addEventListener('input', e => {
+  if (RO()) return;
+  const ans = e.target.closest('.qans'); if (!ans) return;
+  noteAt(ans.closest('[data-jump]').dataset.jump).answer = ans.textContent.trim() || null;
+  dirty();
+});
+
+/* ── version timeline — the workspace's, over spec snapshots ── */
+const pctFor = (i, len) => len < 2 ? 100 : (i / (len - 1)) * 100;
+const vAt = n => versions.find(v => v.n === n);
+function buildTimeline () {
+  const track = $('#tlTrack');
+  track.querySelectorAll('.tick').forEach(el => el.remove());
+  versions.forEach((v, i) => {
+    const tick = document.createElement('div');
+    tick.className = 'tick';
+    tick.style.left = pctFor(i, versions.length) + '%';
+    tick.innerHTML = `<span class="cap">v${v.n}</span>`;
+    tick.title = v.label;
+    tick.onclick = e => { e.stopPropagation(); gotoVersion(v.n); };
+    track.appendChild(tick);
+  });
+  syncTimeline();
+}
+function syncTimeline () {
+  const i = Math.max(0, versions.findIndex(v => v.n === viewing));
+  const pct = pctFor(i, versions.length);
+  $('#tlHandle').style.left = pct + '%';
+  $('#tlFill').style.width = pct + '%';
+  $('#tlTrack').querySelectorAll('.tick').forEach((el, k) => el.classList.toggle('past', k <= i));
+  const v = vAt(viewing);
+  const dt = v ? new Date(v.date) : null;
+  const when = dt ? dt.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' ' +
+    dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
+  $('#tlMeta').innerHTML =
+    `<div class="row"><b>v${viewing}</b> <span class="lab">${esc(v?.label || '')}</span></div>` +
+    `<div class="row">${esc(when)}${viewing === latest() ? ' · ' + esc(t('current')) : ''}</div>`;
+  $('#tlPrev').disabled = i === 0;
+  $('#tlNext').disabled = i === versions.length - 1;
+  $('#histBanner').classList.toggle('on', isHistory());
+  $('#histText').textContent = t('viewingOld')(viewing);
+  $('#btnNow').textContent = t('backToNow');
+}
+function gotoVersion (n) {
+  if (!vAt(n) || n === viewing) { syncTimeline(); return; }
+  if (!isHistory()) {           // leaving the live doc — keep its state in the latest slot
+    versions[versions.length - 1].json = JSON.stringify(doc);
+  }
+  viewing = n;
+  doc = migrate(JSON.parse(vAt(n).json));
+  render();
+}
+$('#btnNow').addEventListener('click', () => gotoVersion(latest()));
+$('#tlPrev').addEventListener('click', () => { const i = versions.findIndex(v => v.n === viewing); if (versions[i - 1]) gotoVersion(versions[i - 1].n); });
+$('#tlNext').addEventListener('click', () => { const i = versions.findIndex(v => v.n === viewing); if (versions[i + 1]) gotoVersion(versions[i + 1].n); });
+const trackPick = clientX => {
+  const r = $('#tlTrack').getBoundingClientRect();
+  const i = Math.round(Math.min(1, Math.max(0, (clientX - r.left) / r.width)) * (versions.length - 1));
+  return versions[i]?.n;
+};
+$('#tlHandle').addEventListener('pointerdown', e => {
+  e.preventDefault();
+  const mv = ev => { const n = trackPick(ev.clientX); if (n) gotoVersion(n); };
+  const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); };
+  addEventListener('pointermove', mv); addEventListener('pointerup', up);
+});
+$('#tlTrack').addEventListener('pointerdown', e => {
+  if (e.target.closest('#tlHandle, .tick')) return;
+  const n = trackPick(e.clientX); if (n) gotoVersion(n);
+});
+
+/* ── language ── */
+$('#langSwitch').addEventListener('click', e => {
+  const b = e.target.closest('[data-lang]'); if (!b) return;
+  LANG = b.dataset.lang === 'zh' ? 'zh' : 'en';
+  try { localStorage.setItem('vstack-spec:lang', LANG) } catch {}
+  document.documentElement.lang = LANG;
+  $('#langSwitch button[data-lang=en]').setAttribute('aria-pressed', String(LANG === 'en'));
+  $('#langSwitch button[data-lang=zh]').setAttribute('aria-pressed', String(LANG === 'zh'));
+  renderLink(linkUp);
+  if (pendingPush) offerRefresh();
+  render();
+});
+
+/* ── live link ── */
+let linkUp = false;
+function renderLink (up) {
+  linkUp = up;
+  $('#linkDot').classList.toggle('on', up);
+  $('#linkDot').textContent = up ? t('linked') : t('lost');
+}
+
+function offerRefresh () {
+  $('#workText').textContent = t('refreshed');
+  $('#rbApply').textContent = t('apply');
+  $('#rbDismiss').textContent = t('dismiss');
+  $('#workBanner').classList.add('on');
+}
+$('#rbApply').addEventListener('click', () => {
+  if (pendingPush) {
+    if (!isHistory()) versions[versions.length - 1].json = JSON.stringify(doc);
+    doc = migrate(pendingPush); pendingPush = null; dirtySinceSend = false;
+    freeze(t('vClaude'));
+  }
+  $('#workBanner').classList.remove('on');
+  render();
+});
+$('#rbDismiss').addEventListener('click', () => { $('#workBanner').classList.remove('on'); });
+
+$('#send').addEventListener('click', async () => {
+  if (!BRIDGE || RO()) return;
+  $('#send').disabled = true;
+  try {
+    const r = await fetch(BRIDGE.save, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-VSTACK-Token': BRIDGE.token },
+      body: JSON.stringify(doc),
+    });
+    if (!r.ok) throw new Error(r.status);
+    dirtySinceSend = false;
+    freeze(t('vSent'));
+    $('#send').textContent = t('sent');
+    setTimeout(syncSend, 1600);
+    syncTimeline();
+  } catch { $('#send').disabled = false; }
+});
+
+/* ── boot ── */
+(async function boot () {
+  document.documentElement.lang = LANG;
+  $('#langSwitch button[data-lang=en]').setAttribute('aria-pressed', String(LANG === 'en'));
+  $('#langSwitch button[data-lang=zh]').setAttribute('aria-pressed', String(LANG === 'zh'));
+  renderLink(false);
+  if (BRIDGE) {
+    try {
+      doc = migrate(await (await fetch(`${BRIDGE.doc}?t=${BRIDGE.token}`)).json());
+    } catch { doc = migrate(JSON.parse($('#fallback').textContent)); }
+    const es = new EventSource(`${BRIDGE.events}?t=${BRIDGE.token}`);
+    es.onopen = () => renderLink(true);
+    es.onerror = () => renderLink(false);
+    es.addEventListener('push', ev => {
+      try { pendingPush = JSON.parse(ev.data) } catch { return }
+      offerRefresh();
+    });
+  } else {
+    doc = migrate(JSON.parse($('#fallback').textContent));
+  }
+  versions = [{ n: 1, label: t('vOpened'), date: new Date().toISOString(), json: JSON.stringify(doc) }];
+  viewing = 1;
+  buildTimeline();
+  render();
+})();
+</script>

@@ -82,7 +82,7 @@ else echo "review closed"; fi
 ```
 
 Run with `run_in_background: true`. It ends when the user hits **Send to
-Claude**, **Approve**, **Cancel** or **Publish a shareable link**, or when they close the tab and the server
+Claude**, **Approve**, **Cancel** or **Publish a link to this wireframe**, or when they close the tab and the server
 shuts itself down — the `url` file exists only while the server is listening, so
 the loop can never outlive the review. Test the sentinels before falling through
 to `review closed`: approve closes the server too, so a waiter that only watches
@@ -107,7 +107,8 @@ bottom is the same data structured. Each comment:
 | `id` | pass back via `--addressed` once handled |
 | `kind` | `comment` (a point) or `area` (a region) |
 | `note` | the reviewer's words — the actual requirement. **Every comment is a must**; there is no severity to triage by |
-| `anchorText` | the words on screen under the mark — how you locate it |
+| `anchor` | the element the comment was made on: `tag`, `id`, `classes`, `role`, `text`, `label`, the `region` it sits in, and the `selector` that found it |
+| `anchorText` | the words on screen under the mark — the short form of `anchor.text` |
 | `screenSize` | `ultrawide` / `desktop` / `tablet` / `phone` — the layout it was made at |
 | `point` / `rect` | where, in the page's own coordinates at that size |
 | `status` | `open` (yours to act on) · `question` (you asked, waiting on them) · `addressed` |
@@ -116,11 +117,23 @@ bottom is the same data structured. Each comment:
 | `wantsRevert` | undo what you did here first; the note stands only if it still makes sense afterwards |
 | `fromVersion` | earlier than the current version = it was already asked once |
 
-There are deliberately **no CSS selectors** anywhere. A comment is a place, some
-words, and what it is sitting on — locate it from `anchorText` plus the
-coordinates, the way a person reading a marked-up screenshot would. If
-`anchorText` is empty the mark landed on blank space, which is usually itself
-the point ("this gap is too big").
+A comment is attached to an element, not to a coordinate. `anchor` is what it
+was made on and where that sits — read it first, and use the coordinates only to
+break a tie. `anchor.region` is the part of the page it lives in, which is often
+the whole answer: a comment `inside dialog “Add a role”` is about that modal,
+whatever the numbers say. When `anchor` is null the mark landed on blank space,
+which is usually itself the point ("this gap is too big").
+
+`anchor.selector` is how the workspace finds the element again to keep the mark
+on it — a hint, not a contract. **Keep ids and distinctive classes stable when
+you rewrite the page.** Change them and open comments lose their grip: they fall
+back to the coordinates they were drawn at and the reviewer sees a faded mark
+instead of one sitting on the thing they meant.
+
+The workspace only draws a mark when its element is actually on screen. A
+comment made inside a modal, a tab or a step is not shown while that thing is
+closed — it is still in the list, tagged *not on screen*, and it still reaches
+you. So do not read "no mark visible" as "withdrawn".
 
 `screenSize` matters: a comment made at `phone` is about the phone layout, not
 the desktop one.

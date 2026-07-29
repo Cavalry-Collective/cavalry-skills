@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Review</title>
+<title>Review · Visual Stack</title>
 <style>
 /* ══════════════════════════ workspace chrome ══════════════════════════
    Opens one HTML file in its own browser window and lets you comment on it.
@@ -37,8 +37,16 @@ button{cursor:pointer;background:none;border:0;padding:0}
 
 /* ── topbar ── */
 .brand{display:flex;align-items:center;gap:8px;min-width:0}
-.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none}
+/* Visual Stack mark — geometry matches docs/brand/ */
+.vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
+/* the mark links to the Visual Stack page */
+.vslink{display:inline-flex;align-items:center;align-self:center;gap:8px;
+  text-decoration:none;color:inherit}
+.vslink:hover .vsmark{opacity:.8}
+.vslink:hover .ws{color:var(--ink)}
 .brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+.brand .ws{font:700 10px/1 var(--mono);letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3);white-space:nowrap}
 .sep{width:1px;height:20px;background:var(--line);flex:none}
 .spacer{flex:1}
 .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
@@ -88,6 +96,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
 #sendMenu button:hover{background:var(--sunken)}
 #sendMenu .t{display:block;font-weight:600;font-size:12.5px}
 #sendMenu .d{display:block;font-size:11.5px;color:var(--ink-3);line-height:1.35;margin-top:3px}
+#sendMenu .d:empty{display:none}
 #sendMenu button.armed{background:var(--accent-soft)}
 #sendMenu button.armed .t{color:var(--accent)}
 #sendMenu button[disabled]{cursor:default}
@@ -174,6 +183,20 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .mark.sel{outline:2px dashed var(--ink);outline-offset:3px}
 .mark.ghost{opacity:.4;filter:saturate(.4)}
 .mark.done{opacity:.32}
+/* A comment belongs to the thing it was made on. When that thing is not on the
+   page right now — a closed modal, a screen that is not showing — the mark goes
+   with it rather than floating over whatever took its place. */
+.mark.gone{display:none}
+/* The page was rebuilt and the element could not be found again: the mark falls
+   back to where it was drawn, and says so by looking unsure of itself. */
+.mark.loose{opacity:.5;filter:saturate(.5)}
+/* What the next click will attach to, shown before it is clicked. */
+#hover{position:absolute;display:none;pointer-events:none;z-index:4;border:1px dashed var(--accent);
+  border-radius:3px;background:color-mix(in srgb,var(--accent) 5%,transparent)}
+#hover .htag{position:absolute;left:0;top:-17px;max-width:280px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;background:var(--ink);color:#fff;font:600 10px/1.4 var(--mono);padding:2px 5px;
+  border-radius:3px}
+#hover.low .htag{top:100%;margin-top:3px}
 #drag{position:absolute;border:2px dashed var(--accent);border-radius:3px;display:none;
   background:color-mix(in srgb,var(--accent) 8%,transparent);pointer-events:none}
 
@@ -193,6 +216,12 @@ button{cursor:pointer;background:none;border:0;padding:0}
 #composer .cstatus.addressed{background:var(--ok-soft);color:var(--ok)}
 #composer .cstatus.question{background:var(--accent-soft);color:var(--accent)}
 #composer .cstatus:empty{display:none}
+/* What this comment is attached to, said back to the reviewer as they type it. */
+#composer .canchor{display:none;margin:0 9px 6px;font:500 11px/1.4 var(--mono);color:var(--ink-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#composer .canchor.on{display:block}
+#composer .canchor b{color:var(--ink-2);font-weight:650}
+#composer .canchor.gone{color:var(--accent)}
 #composer textarea{width:calc(100% - 18px);margin:0 9px;border:1px solid var(--line-2);border-radius:7px;
   padding:6px 7px;font-size:12.5px;line-height:1.45;resize:vertical;min-height:58px;background:var(--panel)}
 #composer textarea:focus{outline:none;border-color:var(--accent);
@@ -268,8 +297,30 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .item .note{font-size:12.5px;line-height:1.4;margin-top:4px;overflow:hidden;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
 .item .note.blank{color:var(--ink-3);font-style:italic}
+.item.off{opacity:.68}
+.item.off:hover{opacity:1}
+.item .kind .offtag{color:var(--ink-3);font-style:italic}
 .item .thread{font-size:11px;color:var(--ink-3);margin-top:4px;display:flex;align-items:center;gap:5px}
 .item .thread.asked{color:var(--accent);font-weight:600}
+/* The conversation lives where the comment is listed, not only on the mark —
+   answering Claude should not mean hunting for a pin on the page. */
+.item .thread.tog{width:100%;text-align:left}
+.item .thread .caret{margin-left:auto;font-size:9px;opacity:.6}
+.item .tbox{margin-top:7px;padding-top:7px;border-top:1px solid var(--line);
+  display:flex;flex-direction:column;gap:7px;cursor:default}
+.item .tmsg{font-size:11.5px;line-height:1.4;border-left:2px solid var(--line-2);padding-left:7px}
+.item .tmsg.claude{border-left-color:var(--accent)}
+.item .tmsg .who{display:block;font:600 9.5px/1 var(--font);letter-spacing:.04em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:3px}
+.item .tmsg.claude .who{color:var(--accent)}
+.item .tmsg .body{display:block;white-space:pre-wrap;word-break:break-word}
+.item .treply{width:100%;border:1px solid var(--line-2);border-radius:6px;padding:5px 6px;
+  font-size:12px;line-height:1.4;resize:vertical;min-height:40px;background:var(--panel)}
+.item .treply:focus{outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+.item .trow{display:flex;justify-content:flex-end}
+.item .tsend{font:600 10.5px/1 var(--font);padding:5px 9px;border-radius:5px;background:var(--ink);color:#fff}
+.item .tsend:hover{filter:brightness(1.25)}
 /* Indeterminate on purpose: Claude gives no percentage, and a fake one would be
    a lie. It says "this one, right now" and nothing more. */
 .item.working{border-color:var(--accent-line)}
@@ -324,6 +375,10 @@ button{cursor:pointer;background:none;border:0;padding:0}
   align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow);
   font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
 .banner.on{display:flex}
+/* Two pieces of news can land at once — a version and a link. Stack them
+   rather than let the later one hide the earlier. */
+.banner.on ~ .banner.on{top:58px}
+.banner.on ~ .banner.on ~ .banner.on{top:104px}
 .banner .btn{height:25px;font-size:11.5px}
 #histBanner{background:var(--ink);color:#fff}
 #histBanner .btn{background:rgba(255,255,255,.14);border-color:transparent;color:#fff}
@@ -332,9 +387,10 @@ button{cursor:pointer;background:none;border:0;padding:0}
 #workBanner .spin{width:13px;height:13px;border-radius:50%;border:2px solid var(--line-2);
   border-top-color:var(--accent);animation:spin .7s linear infinite;flex:none}
 @keyframes spin{to{transform:rotate(360deg)}}
-#workBanner.ready{border-color:var(--ok);background:var(--ok-soft)}
-#workBanner .tick{color:var(--ok);font-weight:700}
-#workBanner .txt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#workBanner.ready,#shareBanner{border-color:var(--ok);background:var(--ok-soft)}
+#shareBanner{border:1px solid var(--ok)}
+#workBanner .tick,#shareBanner .tick{color:var(--ok);font-weight:700}
+#workBanner .txt,#shareBanner .txt{min-width:0;overflow:hidden;text-overflow:ellipsis}
 
 #zoombar{position:absolute;left:12px;bottom:12px;display:flex;gap:2px;align-items:center;background:var(--panel);
   border:1px solid var(--line-2);border-radius:8px;padding:3px;box-shadow:var(--shadow);z-index:20}
@@ -351,7 +407,17 @@ button{cursor:pointer;background:none;border:0;padding:0}
 <body>
 <div id="app">
   <div id="top">
-    <div class="brand"><span class="dot"></span><b id="pageName">Review</b></div>
+    <div class="brand">
+      <a class="vslink" href="https://cavalry.sg/visual-stack" target="_blank" rel="noopener"
+         title="Visual Stack">
+        <svg class="vsmark" viewBox="0 0 64 64" aria-hidden="true">
+          <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
+          <rect x="46" y="4" width="12" height="16" fill="var(--accent)"/>
+        </svg>
+        <span class="ws">Visual Stack</span>
+      </a>
+      <b id="pageName">Review</b>
+    </div>
     <div class="spacer"></div>
 
     <div class="seg" id="modeSwitch">
@@ -395,7 +461,10 @@ button{cursor:pointer;background:none;border:0;padding:0}
               <div id="viewportBox">
                 <div id="scroller">
                   <iframe id="frame" title="Mockup under review"></iframe>
-                  <div id="overlay"><div id="drag"></div></div>
+                  <div id="overlay">
+                    <div id="hover"><span class="htag"></span></div>
+                    <div id="drag"></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -413,6 +482,13 @@ button{cursor:pointer;background:none;border:0;padding:0}
           <button class="btn sm primary" id="btnRefresh">Review changes</button>
           <button class="btn sm" id="btnDismissWork">Later</button>
         </div>
+        <!-- The link is asked for here and lands minutes later, long after the
+             reviewer stopped watching the ▾. Say so where the news goes. -->
+        <div class="banner" id="shareBanner">
+          <span class="txt" id="shareBannerText"></span>
+          <button class="btn sm primary" id="btnCopyShare">Copy link</button>
+          <button class="btn sm" id="btnDismissShare">Later</button>
+        </div>
 
         <div id="composer">
           <div class="chead">
@@ -421,6 +497,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
             <button class="cdel" title="Delete comment">🗑</button>
             <button class="cclose" title="Close">✕</button>
           </div>
+          <div class="canchor"></div>
           <textarea class="cnote" placeholder="What needs to change?"></textarea>
           <div class="cthread"></div>
           <textarea class="creply" placeholder="Reply…"></textarea>
@@ -533,7 +610,8 @@ const STR = {
     raised: v => `Raised on v${v} — still unanswered`, onlyOne: 'Only one version so far',
     ultrawide: 'Ultrawide', desktop: 'Desktop', tablet: 'Tablet', phone: 'Phone',
     noServer: 'Could not reach the review server.',
-    save: 'Save', linkOn: 'Linked', linkOff: 'Link lost',
+    save: 'Save', newlineHint: 'Shift+Enter for a new line',
+    linkOn: 'Linked', linkOff: 'Link lost',
     linkOffTitle: 'The Claude session is no longer serving this review — anything you write is kept in this tab only.',
     workingOn: n => `Claude is working on ${n} comment${n > 1 ? 's' : ''}`,
     cancel: 'Cancel', cancelled: 'Asked Claude to pause', cancelFail: 'Could not ask Claude to stop',
@@ -551,14 +629,18 @@ const STR = {
     approvedTitle: 'Approved — the review is closed',
     approvedBody: 'Claude has been told the design is signed off and can carry on. You can close this tab.',
     approveFail: 'Could not reach the server to approve',
-    share: 'Publish a shareable link',
-    shareHint: 'Claude flattens this review into one file and publishes it as an Artifact — comments and all — for anyone not at this machine.',
+    share: 'Publish a link to this wireframe',
     shareWorking: 'Claude is publishing the link…', shareWait: 'It appears here when it is ready.',
-    shareReady: 'Shareable link — click to copy',
-    shareStale: 'Republish the shareable link',
-    shareStaleHint: v => `The published copy is v${v} — this review has moved on since.`,
-    shareAsked: 'Asked Claude for a shareable link', shareGot: 'Shareable link ready — under the ▾',
+    shareReady: 'Wireframe link — click to copy',
+    shareStale: 'Republish the wireframe link',
+    shareStaleHint: v => `The published link shows v${v} — the wireframe has moved on since.`,
+    shareAsked: 'Asked Claude for a link to the wireframe',
+    shareBannerReady: '<b>The wireframe link is ready</b>', copyLink: 'Copy link',
     shareFail: 'Could not ask for a link',
+    sendReply: 'Reply', addReply: 'Reply',
+    offscreen: 'not on screen', offscreenToast: 'Not on the page right now',
+    anchorGone: 'not on screen', anchorLoose: 'moved since this version',
+    inRegion: (k, l) => k === 'region' ? (l ? `in “${l}”` : '') : (l ? `in ${k} “${l}”` : `in ${k}`),
   },
   zh: {
     viewLabel: '查看', annotateLabel: '批注',
@@ -590,7 +672,8 @@ const STR = {
     raised: v => `在 v${v} 提出 — 仍未解决`, onlyOne: '目前只有一个版本',
     ultrawide: '超宽屏', desktop: '桌面', tablet: '平板', phone: '手机',
     noServer: '无法连接评审服务器。',
-    save: '保存', linkOn: '已连接', linkOff: '连接已断开',
+    save: '保存', newlineHint: 'Shift+Enter 换行',
+    linkOn: '已连接', linkOff: '连接已断开',
     linkOffTitle: 'Claude 会话不再提供此评审——你写的内容只保存在这个标签页里。',
     workingOn: n => `Claude 正在处理 ${n} 条批注`,
     cancel: '取消', cancelled: '已请求 Claude 暂停', cancelFail: '无法通知 Claude 停止',
@@ -608,14 +691,18 @@ const STR = {
     approvedTitle: '已批准 — 评审已关闭',
     approvedBody: 'Claude 已收到定稿通知，可以继续下一步。你可以关闭此标签页。',
     approveFail: '无法连接服务器，批准失败',
-    share: '发布分享链接',
-    shareHint: 'Claude 会把整个评审打包成一个文件，发布为 Artifact——连同批注一起，方便不在这台机器上的人查看。',
+    share: '发布原型链接',
     shareWorking: 'Claude 正在发布链接…', shareWait: '完成后会显示在这里。',
-    shareReady: '分享链接 — 点击复制',
-    shareStale: '重新发布分享链接',
-    shareStaleHint: v => `已发布的是 v${v}，之后评审又有更新。`,
-    shareAsked: '已请求 Claude 生成分享链接', shareGot: '分享链接已就绪 — 在 ▾ 里',
+    shareReady: '原型链接 — 点击复制',
+    shareStale: '重新发布原型链接',
+    shareStaleHint: v => `已发布的链接是 v${v}，之后原型又有更新。`,
+    shareAsked: '已请求 Claude 生成原型链接',
+    shareBannerReady: '<b>原型链接已就绪</b>', copyLink: '复制链接',
     shareFail: '无法请求分享链接',
+    sendReply: '发送', addReply: '回复',
+    offscreen: '当前不可见', offscreenToast: '页面上当前看不到这个元素',
+    anchorGone: '当前不可见', anchorLoose: '页面已改动，位置为大致位置',
+    inRegion: (k, l) => k === 'region' ? (l ? `位于「${l}」` : '') : (l ? `位于 ${k}「${l}」` : `位于 ${k}`),
   },
 };
 let LANG = 'en';
@@ -644,6 +731,10 @@ const S = {
   zoom: 1,
   ann: [], carried: [],
   sel: null,
+  // Comments whose element is not on the page as it stands right now.
+  offscreen: new Set(),
+  // Threads opened in the panel, and which reply box the cursor is in.
+  threadOpen: new Set(), focusReply: null,
   awaiting: false, pendingUpdate: null, sentSig: null,
   // Which comments went out with the last send and have not come back yet.
   working: new Set(),
@@ -677,7 +768,7 @@ async function boot () {
 
   loadAnnotations();
   $('#pageName').textContent = S.name;
-  document.title = S.name + ' — Review';
+  document.title = S.name + ' — Review · Visual Stack';
   $('#urlBar').textContent = S.fileName;
   LANG = (localStorage.getItem('ui-review:lang') === 'zh') ? 'zh' : 'en';
   buildSizes(); wireChrome(); wireComposer(); buildTimeline(); applyLang();
@@ -688,6 +779,9 @@ async function boot () {
 function loadAnnotations () {
   const local = S.runtime === 'artifact' ? lsGet() : null;
   S.ann = (local ?? S.reviews[S.version]?.annotations ?? []).map(normalise);
+  // A question is waiting on an answer — open its thread so the box to type it
+  // in is already there.
+  for (const a of S.ann) if (a.status === 'question') S.threadOpen.add(a.id);
   S.carried = [];
   for (const [v, rev] of Object.entries(S.reviews)) {
     if (Number(v) >= S.version) continue;
@@ -820,9 +914,12 @@ function mergeThreads (serverAnn) {
     const local = S.ann.find(a => a.id === sa.id);
     if (!local) { S.ann.push(normalise(sa)); changed = true; continue }
     const sr = (sa.replies || []).length, lr = (local.replies || []).length;
-    if (sr !== lr) { local.replies = sa.replies || []; changed = true }
+    // Claude has said something — open that thread in the list, where the
+    // answer is going to be typed.
+    if (sr !== lr) { local.replies = sa.replies || []; S.threadOpen.add(local.id); changed = true }
     if (sa.status !== local.status) {
       local.status = sa.status;
+      if (sa.status === 'question') S.threadOpen.add(local.id);
       // A comment that has been addressed again starts clean: whatever was
       // asked for on the way here has now been answered.
       if (sa.status === 'addressed') { delete local.revert; delete local.reopenedAt }
@@ -881,9 +978,13 @@ function applyLang () {
   $('#btnNow').textContent = T('backToCurrent');
   $('#btnRefresh').textContent = T('reviewChanges');
   $('#btnDismissWork').textContent = T('later');
+  $('#btnCopyShare').textContent = T('copyLink');
+  $('#btnDismissShare').textContent = T('later');
+  if ($('#shareBanner').classList.contains('on')) showShareReady();
   $('#btnCancel').textContent = T('cancel');
   renderApprove(); renderShare();
-  composer.querySelector('.csave').innerHTML = esc(T('save')) + ' <span class="kbd">⌘⏎</span>';
+  composer.querySelector('.csave').innerHTML = esc(T('save')) + ' <span class="kbd">⏎</span>';
+  composer.querySelector('.hint').textContent = T('newlineHint');
   setLink(S.linked);
   renderWork();
   $('#phead').querySelector('b').textContent = T('comments');
@@ -927,6 +1028,8 @@ function wireChrome () {
   $('#btnNow').onclick = () => gotoVersion(S.version);
   $('#btnRefresh').onclick = adoptUpdate;
   $('#btnDismissWork').onclick = hideWork;
+  $('#btnCopyShare').onclick = () => { if (S.share.url) copy(S.share.url); hideShare() };
+  $('#btnDismissShare').onclick = hideShare;
   $('#btnCancel').onclick = cancelWork;
   $('#canvasWrap').addEventListener('scroll', reposition);
   $('#viewportBox').addEventListener('scroll', reposition);
@@ -969,7 +1072,9 @@ function loadFrame (keepScroll) {
   $('#winVersion').classList.toggle('hist', isHistory());
   frame.onload = () => {
     fdoc = frame.contentDocument;
-    bindFrameKeys();
+    // Every element reference belongs to the document that just went away.
+    forgetAnchors();
+    bindFrameKeys(); watchFrame();
     sizeFrame(); drawMarks();
     vpBox.scrollTop = sc;
     if (!keepScroll) fitZoom();
@@ -1053,7 +1158,10 @@ function setMode (m) {
   });
   overlay.classList.toggle('view', m === 'view');
   overlay.style.cursor = m === 'annotate' ? 'crosshair' : 'default';
-  if (m === 'view') closeComposer();
+  hideHover();
+  // View mode is where the page gets driven — modals opened, tabs switched.
+  // Coming back to Annotate, the marks answer to whatever is on screen now.
+  if (m === 'view') closeComposer(); else scheduleSync();
 }
 const toggleMode = () => setMode(S.mode === 'annotate' ? 'view' : 'annotate');
 
@@ -1083,18 +1191,252 @@ const pt = e => {
   const r = overlayRect || overlay.getBoundingClientRect();
   return { x: (e.clientX - r.left) / S.zoom, y: (e.clientY - r.top) / S.zoom };
 };
+/* ════════════════════ what a comment is attached to ════════════════════
+   A comment is a place *on something*. Recording only x,y makes the mark a
+   sticker on the glass: it survives the modal it was talking about closing, and
+   lands on whatever moved in underneath. So every comment also captures the
+   element under it — enough of a description to find that element again, and to
+   tell Claude what was being pointed at without making it guess from numbers.
+
+   Two consequences, both wanted:
+     · the mark rides the element when the layout moves under it;
+     · when the element is not on the page — modal closed, screen switched,
+       row filtered away — the mark is not on the page either.  */
+
+const fwin = () => frame.contentWindow;
+const frameScroll = () => { const w = fwin(); return { x: w?.scrollX || 0, y: w?.scrollY || 0 } };
+/** An element's box in the page's own coordinates — the space marks live in. */
+function docRect (el) {
+  const r = el.getBoundingClientRect(), s = frameScroll();
+  return { x: r.left + s.x, y: r.top + s.y, w: r.width, h: r.height };
+}
+function elAt (p) {
+  if (!fdoc) return null;
+  const s = frameScroll();
+  try { return fdoc.elementFromPoint(p.x - s.x, p.y - s.y) } catch { return null }
+}
+const boxContains = (o, i) =>
+  i.x >= o.x - 1 && i.y >= o.y - 1 && i.x + i.w <= o.x + o.w + 1 && i.y + i.h <= o.y + o.h + 1;
+const trim = (s, n) => {
+  const t = String(s ?? '').trim().replace(/\s+/g, ' ');
+  return t.length > n ? t.slice(0, n - 1) + '…' : t;
+};
+const classesOf = el => [...(el.classList || [])];
+const attr = (el, ...names) => { for (const n of names) { const v = el.getAttribute(n); if (v) return v } return '' };
+
+/** A CSS path good enough to find this element again — a hint, never a contract. */
+function selectorFor (el) {
+  const parts = [];
+  for (let n = el; n && n.nodeType === 1 && n !== fdoc.documentElement && n !== fdoc.body; n = n.parentElement) {
+    const tag = n.tagName.toLowerCase();
+    if (n.id && /^[A-Za-z][\w-]*$/.test(n.id) && fdoc.querySelectorAll('#' + n.id).length === 1) {
+      parts.unshift('#' + n.id);
+      break;
+    }
+    const cls = classesOf(n).filter(c => /^[A-Za-z][\w-]*$/.test(c)).slice(0, 2);
+    let part = tag + (cls.length ? '.' + cls.join('.') : '');
+    const sibs = n.parentElement ? [...n.parentElement.children].filter(c => c.tagName === n.tagName) : [];
+    if (sibs.length > 1) part += `:nth-of-type(${sibs.indexOf(n) + 1})`;
+    parts.unshift(part);
+    if (parts.length >= 8) break;
+  }
+  return parts.join(' > ');
+}
+/** The part of the page this sits in — a dialog, a nav, a card. What a person
+    would say first when telling someone else where to look. */
+const REGION_TAG = /^(dialog|nav|header|footer|aside|main|section|form|table|fieldset)$/;
+const REGION_CLASS = /(sidebar|panel|toolbar|card|menu|dropdown|tooltip|screen|step|tab)/i;
+const DIALOG_CLASS = /(modal|dialog|drawer|sheet|popover|lightbox)/i;
+function regionOf (el) {
+  let dialog = null, plain = null;
+  for (let n = el.parentElement; n && n !== fdoc.body && n !== fdoc.documentElement; n = n.parentElement) {
+    const tag = n.tagName.toLowerCase(), cls = classesOf(n).join(' ');
+    const role = (n.getAttribute('role') || '').toLowerCase();
+    // A modal is usually two or three nested boxes. The one worth naming is the
+    // outermost, so keep walking rather than stopping at the inner sheet.
+    if (tag === 'dialog' || role === 'dialog' || role === 'alertdialog' ||
+        n.hasAttribute('aria-modal') || DIALOG_CLASS.test(cls)) { dialog = n; continue }
+    if (!plain && (REGION_TAG.test(tag) || REGION_CLASS.test(cls))) plain = n;
+  }
+  const n = dialog || plain;
+  if (!n) return null;
+  const tag = n.tagName.toLowerCase();
+  const h = n.querySelector('h1,h2,h3,h4,h5,h6');
+  return {
+    kind: dialog ? 'dialog' : (REGION_TAG.test(tag) ? tag : (n.getAttribute('role') || 'region')),
+    label: attr(n, 'aria-label', 'title') || trim(h?.textContent, 48) || classesOf(n)[0] || '',
+  };
+}
+/** The words on the thing itself. A container's full text is a paragraph, not a
+    name — anything that long says nothing, so it is dropped. */
+function ownText (el) {
+  const t = trim(el.textContent, 200);
+  return t.length <= 70 ? t : '';
+}
+
 /**
- * The words directly under the mark, so the brief can say where without naming
- * markup. Only a leaf's own label counts — walking up to a container yields
- * "Cavalry Today Roles Candidates Reports Settings", which anchors nothing.
- * Never shown in the UI; it exists so Claude can find the spot.
+ * Capture what the reviewer just pointed at. A point takes the element under it;
+ * an area takes the smallest element that holds the whole region — draw a box
+ * round a modal and the box belongs to the modal.
  */
-function anchorTextAt (p) {
-  if (!fdoc) return '';
-  const el = fdoc.elementFromPoint(p.x, p.y);
-  if (!el || el.children.length) return '';
-  const t = (el.textContent || '').trim().replace(/\s+/g, ' ');
-  return t && t.length <= 60 ? t : '';
+function captureAnchor (p, rect) {
+  if (!fdoc) return null;
+  let el = elAt(rect ? { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 } : p);
+  if (!el || el.nodeType !== 1) return null;
+  if (rect) while (el && el !== fdoc.body && !boxContains(docRect(el), rect)) el = el.parentElement;
+  // Anchoring to the page itself anchors nothing — leave those on coordinates,
+  // where they are always shown.
+  if (!el || el === fdoc.body || el === fdoc.documentElement) return null;
+  const r = docRect(el);
+  if (!(r.w > 0 && r.h > 0)) return null;
+  const base = rect || { x: p.x, y: p.y, w: 0, h: 0 };
+  return {
+    sel: selectorFor(el),
+    tag: el.tagName.toLowerCase(),
+    id: el.id || '',
+    cls: classesOf(el).slice(0, 3).join(' '),
+    role: el.getAttribute('role') || '',
+    label: trim(attr(el, 'aria-label', 'placeholder', 'alt', 'title'), 60),
+    text: ownText(el),
+    region: regionOf(el),
+    rel: { x: base.x - r.x, y: base.y - r.y },
+    size: { w: r.w, h: r.h },
+  };
+}
+function anchorFor (p, rect) {
+  const anchor = captureAnchor(p, rect);
+  return {
+    anchor,
+    // Kept for reviews written before comments knew what they were on.
+    anchorText: anchor ? (anchor.text || anchor.label) : '',
+    anchorVersion: S.version,
+  };
+}
+
+/** How much a candidate element looks like the one that was annotated. */
+function scoreMatch (el, an) {
+  let s = 0;
+  if (an.id && el.id === an.id) s += 3;
+  if (an.text && ownText(el) === an.text) s += 2;
+  if (an.label && trim(attr(el, 'aria-label', 'placeholder', 'alt', 'title'), 60) === an.label) s += 2;
+  if (an.role && el.getAttribute('role') === an.role) s += 1;
+  if (an.cls) {
+    const want = an.cls.split(' ').filter(Boolean), have = classesOf(el);
+    if (want.length && want.every(c => have.includes(c))) s += 1;
+  }
+  return s;
+}
+/** Nothing distinctive to check against — take the selector's word for it. */
+const anchorIsThin = an => !an.id && !an.text && !an.label && !an.role;
+
+/* Resolved elements are kept beside the annotations, never on them: an
+   annotation is JSON on its way to disk, and a DOM node is not. */
+let domEpoch = 0;
+const elCache = new Map(), missCache = new Map();
+function forgetAnchors () { domEpoch++; elCache.clear(); missCache.clear() }
+function findAnchor (a) {
+  const an = a.anchor;
+  if (!an || !fdoc) return null;
+  const cached = elCache.get(a.id);
+  if (cached && cached.isConnected) return cached;
+  if (missCache.get(a.id) === domEpoch) return null;
+  elCache.delete(a.id);
+  const keep = el => { elCache.set(a.id, el); return el };
+  let hit = null;
+  try { hit = an.sel ? fdoc.querySelector(an.sel) : null } catch {}
+  if (hit && (anchorIsThin(an) || scoreMatch(hit, an) >= 1)) return keep(hit);
+  // The page was rebuilt and the path moved. Look for the same thing elsewhere.
+  let best = null, bestScore = 0, pool = [];
+  try { pool = [...fdoc.querySelectorAll(an.tag || '*')] } catch {}
+  if (pool.length <= 600) {
+    for (const c of pool) {
+      const s = scoreMatch(c, an);
+      if (s > bestScore) { best = c; bestScore = s }
+    }
+  }
+  if (bestScore >= 3) return keep(best);
+  if (hit) return keep(hit);
+  missCache.set(a.id, domEpoch);
+  return null;
+}
+/** On the page as it stands — not merely present in the markup. */
+function isShown (el) {
+  if (!el.isConnected) return false;
+  try {
+    if (el.checkVisibility && !el.checkVisibility(
+      { contentVisibilityAuto: true, opacityProperty: true, visibilityProperty: true })) return false;
+  } catch {}
+  const r = el.getBoundingClientRect();
+  if (r.width < 1 || r.height < 1) return false;
+  for (let n = el; n && n !== fdoc.documentElement; n = n.parentElement) {
+    if (n.hasAttribute('hidden') || n.getAttribute('aria-hidden') === 'true') return false;
+  }
+  return true;
+}
+
+/**
+ * Where a comment's mark goes right now, and whether it goes anywhere at all.
+ *   show:false  the element is not on the page — neither is the mark
+ *   loose:true  the page has been rebuilt since and the element is gone with it;
+ *               the mark falls back to where it was drawn rather than vanishing,
+ *               because a comment nobody can see is a comment nobody answers
+ */
+function anchorState (a) {
+  const drawn = a.rect || (a.point ? { x: a.point.x, y: a.point.y, w: 1, h: 1 } : { x: 20, y: 20, w: 1, h: 1 });
+  if (!a.anchor || !fdoc) return { rect: drawn, show: true };
+  const el = findAnchor(a);
+  if (!el) {
+    const madeHere = (a.anchorVersion ?? a.fromVersion ?? S.viewing) === S.viewing;
+    return madeHere ? { show: false } : { rect: drawn, show: true, loose: true };
+  }
+  if (!isShown(el)) return { show: false, el };
+  const r = docRect(el), an = a.anchor;
+  const sx = an.size?.w > 4 ? clamp(r.w / an.size.w, .25, 4) : 1;
+  const sy = an.size?.h > 4 ? clamp(r.h / an.size.h, .25, 4) : 1;
+  const x = r.x + (an.rel?.x || 0) * sx, y = r.y + (an.rel?.y || 0) * sy;
+  return {
+    show: true, el,
+    rect: a.kind === 'area' && a.rect
+      ? { x, y, w: drawn.w * sx, h: drawn.h * sy }
+      : { x, y, w: 1, h: 1 },
+  };
+}
+/** What this comment is on, in words. */
+function anchorLabel (an) {
+  if (!an) return '';
+  const words = an.text || an.label;
+  const el = an.tag + (an.role ? `[${an.role}]` : '');
+  const reg = an.region ? T('inRegion')(an.region.kind, trim(an.region.label, 32)) : '';
+  return (words ? `${el} “${trim(words, 42)}”` : el) + (reg ? ' · ' + reg : '');
+}
+
+/* The page changes under the marks — a modal opens, a tab switches, a pane
+   scrolls. Nothing tells us but the DOM itself, so watch it and re-place. */
+let syncQueued = false;
+const syncSoon = [null, null];
+function scheduleSync () {
+  if (!syncQueued) {
+    syncQueued = true;
+    requestAnimationFrame(() => { syncQueued = false; positionMarks() });
+  }
+  // Transitions land after the mutation that started them; look again once they have.
+  clearTimeout(syncSoon[0]); syncSoon[0] = setTimeout(positionMarks, 180);
+  clearTimeout(syncSoon[1]); syncSoon[1] = setTimeout(positionMarks, 560);
+}
+function watchFrame () {
+  if (!fdoc) return;
+  try { frame._mo?.disconnect() } catch {}
+  // The page moved: anything we failed to find last time is worth another look.
+  const mo = frame._mo = new MutationObserver(() => { domEpoch++; scheduleSync() });
+  try {
+    mo.observe(fdoc.documentElement, {
+      childList: true, subtree: true, attributes: true,
+      attributeFilter: ['class', 'style', 'hidden', 'open', 'aria-hidden', 'aria-expanded', 'data-state'],
+    });
+  } catch {}
+  fdoc.addEventListener('scroll', scheduleSync, { capture: true, passive: true });
+  fdoc.addEventListener('transitionend', scheduleSync, true);
+  fdoc.addEventListener('animationend', scheduleSync, true);
 }
 
 let drag = null;
@@ -1123,14 +1465,46 @@ overlay.addEventListener('pointerup', e => {
   const p = pt(e), d = drag; drag = null;
   overlayRect = null;
   $('#drag').style.display = 'none';
-  if (!d.moved) return addComment({ kind: 'comment', point: d.start, anchorText: anchorTextAt(d.start) });
+  if (!d.moved) return addComment({ kind: 'comment', point: d.start, ...anchorFor(d.start) });
   const rect = {
     x: Math.min(d.start.x, p.x), y: Math.min(d.start.y, p.y),
     w: Math.abs(p.x - d.start.x), h: Math.abs(p.y - d.start.y),
   };
   if (rect.w < 8 || rect.h < 8) return;
-  addComment({ kind: 'area', rect, anchorText: anchorTextAt({ x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 }) });
+  addComment({ kind: 'area', rect, ...anchorFor(null, rect) });
 });
+
+/* ── what the next click will land on ──
+   The tool decides what a comment is about the moment it is made. Showing that
+   decision *before* the click is the difference between "it knows what I meant"
+   and "it guessed". */
+let hoverPt = null, hoverEvent = null, hoverQueued = false;
+const hoverBox = $('#hover');
+function hideHover () { hoverBox.style.display = 'none' }
+function drawHover () {
+  if (S.mode !== 'annotate' || drag || isHistory() || !hoverPt) return hideHover();
+  const el = elAt(hoverPt);
+  if (!el || el === fdoc.body || el === fdoc.documentElement) return hideHover();
+  const r = docRect(el);
+  if (!(r.w > 0 && r.h > 0)) return hideHover();
+  Object.assign(hoverBox.style,
+    { display: 'block', left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
+  hoverBox.classList.toggle('low', r.y < 20);
+  hoverBox.querySelector('.htag').textContent =
+    trim(ownText(el) || attr(el, 'aria-label', 'placeholder', 'alt', 'title') ||
+      el.tagName.toLowerCase() + (classesOf(el)[0] ? '.' + classesOf(el)[0] : ''), 46);
+}
+overlay.addEventListener('pointermove', e => {
+  // Measure in the frame, not on every pointer event — reading the overlay's box
+  // per move is a forced layout for something the eye only sees once a frame.
+  const c = { clientX: e.clientX, clientY: e.clientY };
+  if (hoverQueued) { hoverEvent = c; return }
+  hoverEvent = c;
+  hoverQueued = true;
+  requestAnimationFrame(() => { hoverQueued = false; hoverPt = pt(hoverEvent); drawHover() });
+});
+overlay.addEventListener('pointerleave', () => { hoverPt = null; hideHover() });
+overlay.addEventListener('pointerdown', hideHover);
 
 function addComment (a) {
   const c = normalise({ id: uid(), size: S.size.id, ...a });
@@ -1156,13 +1530,19 @@ const num = a => { const i = S.ann.indexOf(a); return i >= 0 ? i + 1 : '·' };
 
 const composer = $('#composer');
 const composerOpen = () => composer.classList.contains('on');
-const anchorRect = a => a.rect || (a.point ? { x: a.point.x, y: a.point.y, w: 1, h: 1 } : { x: 20, y: 20, w: 1, h: 1 });
-
 function placeComposer () {
   const a = annById(S.sel);
   if (!a || !composerOpen()) return;
-  const r = anchorRect(a);
-  const or = overlay.getBoundingClientRect(), ar = $('#stageArea').getBoundingClientRect();
+  const st = anchorState(a);
+  const ar = $('#stageArea').getBoundingClientRect();
+  // Nothing to sit beside — the comment is still editable, so it takes the
+  // middle of the stage rather than hovering over whatever replaced its element.
+  if (!st.show) {
+    composer.style.left = Math.max(8, (ar.width - 280) / 2) + 'px';
+    composer.style.top = Math.max(8, (ar.height - 240) / 2) + 'px';
+    return;
+  }
+  const r = st.rect, or = overlay.getBoundingClientRect();
   composer.style.left = clamp(or.left - ar.left + r.x * S.zoom, 8, Math.max(8, ar.width - 294)) + 'px';
   composer.style.top = clamp(or.top - ar.top + (r.y + r.h) * S.zoom + 8, 8, Math.max(8, ar.height - 250)) + 'px';
 }
@@ -1179,6 +1559,18 @@ function openComposer (id, focus) {
   const st = composer.querySelector('.cstatus');
   st.className = 'cstatus' + (a.status === 'open' ? '' : ' ' + a.status);
   st.textContent = a.status === 'addressed' ? T('statusAddressed') : a.status === 'question' ? T('statusAsked') : '';
+
+  // Say what this is attached to, so "it did not know what I meant" is answered
+  // while the note is being written rather than after the next round.
+  const anc = composer.querySelector('.canchor');
+  const desc = anchorLabel(a.anchor);
+  const shown = anchorState(a).show;
+  anc.classList.toggle('on', !!desc || !shown);
+  anc.classList.toggle('gone', !shown);
+  anc.innerHTML = desc
+    ? `<b>${esc(desc)}</b>` + (shown ? '' : ' · ' + esc(T('anchorGone')))
+    : esc(T('anchorGone'));
+  anc.title = desc;
 
   const note = composer.querySelector('.cnote');
   note.value = a.note || '';
@@ -1274,13 +1666,18 @@ function wireComposer () {
     clearTimeout(note._t);
     note._t = setTimeout(() => { drawMarks(); renderPanel() }, 400);
   });
+  /* Enter saves, the way every comment box the reviewer already uses behaves.
+     Shift+Enter is the newline. An IME sends Enter to accept its candidates —
+     committing on that would eat the first word of every Chinese comment. */
   const submit = e => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); closeComposer() }
+    if (e.key !== 'Enter' || e.shiftKey || e.isComposing || e.keyCode === 229) return;
+    e.preventDefault();
+    closeComposer();
   };
   note.addEventListener('keydown', submit);
   composer.querySelector('.creply').addEventListener('keydown', submit);
-  // ⌘⏎ has always saved; the button says so out loud, for anyone who would
-  // otherwise wonder whether closing the note threw it away.
+  // The button says the shortcut out loud, for anyone who would otherwise
+  // wonder whether closing the note threw it away.
   composer.querySelector('.csave').onclick = closeComposer;
   composer.querySelector('.cclose').onclick = closeComposer;
   composer.querySelector('.cdel').onclick = () => {
@@ -1298,12 +1695,47 @@ function wireComposer () {
     closeComposer();
   });
 }
-function threadNote (a) {
+/** The one line the list shows about a comment's conversation — and the way in. */
+function threadNote (a, open) {
   const n = (a.replies || []).length;
-  if (a.revert && a.status !== 'addressed') return `<div class="thread asked">${esc(T('wantsRevert'))}</div>`;
-  if (a.status === 'question') return `<div class="thread asked">${esc(T('claudeAsked'))}</div>`;
-  if (a.status === 'addressed') return `<div class="thread">${esc(T('addressedBy'))}</div>`;
-  return n ? `<div class="thread">${n} ${esc(T(n > 1 ? 'replies' : 'reply'))}</div>` : '';
+  const asked = a.status === 'question' || (a.revert && a.status !== 'addressed');
+  const txt = a.revert && a.status !== 'addressed' ? T('wantsRevert')
+    : a.status === 'question' ? T('claudeAsked')
+    : a.status === 'addressed' ? T('addressedBy')
+    : n ? `${n} ${T(n > 1 ? 'replies' : 'reply')}`
+    : T('addReply');
+  if (isHistory()) return `<div class="thread${asked ? ' asked' : ''}">${esc(txt)}</div>`;
+  return `<button class="thread tog${asked ? ' asked' : ''}">${esc(txt)}` +
+    `<span class="caret">${open ? '▾' : '▸'}</span></button>`;
+}
+/** The whole exchange, and the box to answer it in, without leaving the list. */
+function threadBox (a) {
+  const msgs = (a.replies || []).map(m =>
+    `<div class="tmsg${m.by === 'claude' ? ' claude' : ''}">
+       <span class="who">${esc(who(m.by))}</span>
+       <span class="body">${esc(m.text)}</span>
+     </div>`).join('');
+  return `<div class="tbox">${msgs}
+    <textarea class="treply" placeholder="${esc(T(a.status === 'question' ? 'answerPlaceholder' : 'replyPlaceholder'))}"></textarea>
+    <div class="trow"><button class="tsend">${esc(T('sendReply'))}</button></div>
+  </div>`;
+}
+const replyDrafts = new Map();
+function toggleThread (id) {
+  S.threadOpen.has(id) ? S.threadOpen.delete(id) : S.threadOpen.add(id);
+  renderPanel();
+}
+function sendPanelReply (a, text) {
+  const t = (text || '').trim();
+  if (!t) return;
+  postReply(a, t);
+  replyDrafts.delete(a.id);
+  S.threadOpen.add(a.id);
+  S.focusReply = a.id;
+  // Answering Claude is new information — the review can go back out.
+  S.sentSig = null;
+  render();
+  if (S.sel === a.id) openComposer(a.id, false);
 }
 
 /* ─────────────────────── drawing marks ────────────────────── */
@@ -1314,45 +1746,57 @@ function visibleAnn () {
     : S.ann.concat(S.carried);
   return list.filter(a => (a.size || 'desktop') === S.size.id);
 }
+/* Drawing a mark and placing it are two different jobs on two different clocks:
+   the node is built when the review changes, and placed every time the page
+   underneath it moves. */
+let drawnMarks = new Map();
 function drawMarks () {
   $$('.mark', overlay).forEach(n => n.remove());
-  for (const a of visibleAnn()) drawMark(a);
+  drawnMarks = new Map();
+  for (const a of visibleAnn()) { drawMark(a); drawnMarks.set(a.id, a) }
+  positionMarks();
 }
 function drawMark (a) {
-  const col = MARK;
   const ghost = !!a.fromVersion, done = a.status !== 'open', n = num(a);
   const cls = (S.sel === a.id ? ' sel' : '') + (ghost ? ' ghost' : '') + (done ? ' done' : '');
-
-  if (a.kind === 'area' && a.rect) {
-    const frameH = parseFloat(frame.style.height) || 0;
-    const r = a.rect;
-    const d = document.createElement('div');
-    d.className = 'mark area' + cls + (frameH && r.y + r.h + 64 > frameH && r.y > 64 ? ' flip' : '');
-    d.dataset.id = a.id;
-    d.style.setProperty('--mk', col);
-    Object.assign(d.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
-    d.innerHTML = `<span class="num">${n}</span>` + (a.note ? `<span class="lbl">${esc(a.note)}</span>` : '');
-    d.onclick = ev => { ev.stopPropagation(); openComposer(a.id) };
-    overlay.appendChild(d);
-    return;
-  }
-  if (!a.point) return;
+  const area = a.kind === 'area' && a.rect;
+  if (!area && !a.point) return;
   const d = document.createElement('div');
-  d.className = 'mark pin' + cls;
+  d.className = 'mark ' + (area ? 'area' : 'pin') + cls;
   d.dataset.id = a.id;
-  d.style.setProperty('--mk', col);
-  d.style.left = a.point.x + 'px'; d.style.top = a.point.y + 'px';
-  d.innerHTML = esc(String(n)) + (a.note ? `<span class="lbl">${esc(a.note)}</span>` : '');
-  d.title = a.note || T('comment');
+  d.style.setProperty('--mk', MARK);
+  d.innerHTML = area
+    ? `<span class="num">${n}</span>` + (a.note ? `<span class="lbl">${esc(a.note)}</span>` : '')
+    : esc(String(n)) + (a.note ? `<span class="lbl">${esc(a.note)}</span>` : '');
+  if (!area) d.title = a.note || T('comment');
   d.onclick = ev => { ev.stopPropagation(); openComposer(a.id) };
   overlay.appendChild(d);
 }
-/**
- * Notes cluster around the same part of a page and land on top of each other.
- * Push each colliding note down until it has its own space — all rects are read
- * up front and the shifts are tracked in JS, so the loop never forces a layout
- * between a write and the next read.
- */
+/** Put every mark where its element is now — or take it off the page with it. */
+function positionMarks () {
+  const frameH = parseFloat(frame.style.height) || 0;
+  const off = new Set();
+  for (const node of $$('.mark', overlay)) {
+    const a = drawnMarks.get(node.dataset.id);
+    if (!a) continue;
+    const st = anchorState(a);
+    node.classList.toggle('gone', !st.show);
+    node.classList.toggle('loose', !!st.loose);
+    if (!st.show) { off.add(a.id); continue }
+    const r = st.rect;
+    node.style.left = r.x + 'px';
+    node.style.top = r.y + 'px';
+    if (node.classList.contains('area')) {
+      node.style.width = r.w + 'px';
+      node.style.height = r.h + 'px';
+      node.classList.toggle('flip', !!(frameH && r.y + r.h + 64 > frameH && r.y > 64));
+    }
+  }
+  const changed = off.size !== S.offscreen.size || [...off].some(id => !S.offscreen.has(id));
+  S.offscreen = off;
+  placeComposer();
+  if (changed) renderPanel();
+}
 
 /* ───────────────────── panel: the index ───────────────────── */
 
@@ -1394,6 +1838,15 @@ function renderPanel () {
     body.appendChild(group(T('addressedGroup')(done.length)));
     for (const a of done) body.appendChild(itemNode(a, { done: true }));
   }
+  // The list is rebuilt whenever anything moves, including while a reply is
+  // being typed into it. Put the cursor back where it was.
+  if (S.focusReply) {
+    const ta = $(`.item[data-id="${S.focusReply}"] .treply`, body);
+    if (ta && document.activeElement !== ta) {
+      ta.focus({ preventScroll: true });
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
+  }
   renderCounts();
 }
 function group (text) {
@@ -1403,23 +1856,48 @@ function group (text) {
 }
 function itemNode (a, { ghost, otherSize, done } = {}) {
   const working = S.working.has(a.id);
+  // The mark is gone from the page because the thing it was made on is gone.
+  // The comment is not — it stays in the list, and says why it has no mark.
+  const off = S.offscreen.has(a.id) && !otherSize;
+  const open = S.threadOpen.has(a.id) && !isHistory();
   const el = document.createElement('div');
-  el.className = 'item' + (S.sel === a.id ? ' sel' : '') + (done ? ' done' : '') + (working ? ' working' : '');
+  el.className = 'item' + (S.sel === a.id ? ' sel' : '') + (done ? ' done' : '') +
+    (working ? ' working' : '') + (off ? ' off' : '');
   el.dataset.id = a.id;
   el.style.setProperty('--mk', MARK);
   el.innerHTML = `
     <div class="ih">
       <span class="n">${ghost ? 'v' + a.fromVersion : num(a)}</span>
-      <span class="kind">${T(a.kind === 'area' ? 'areaComment' : 'comment')}${otherSize ? ' · ' + sizeLabel(a.size) : ''}</span>
+      <span class="kind">${T(a.kind === 'area' ? 'areaComment' : 'comment')}${otherSize ? ' · ' + sizeLabel(a.size) : ''}${off ? ` · <span class="offtag">${esc(T('offscreen'))}</span>` : ''}</span>
     </div>
     <div class="note${a.note ? '' : ' blank'}">${esc(a.note || T('noNote'))}</div>
-    ${threadNote(a)}
+    ${threadNote(a, open)}
+    ${open ? threadBox(a) : ''}
     ${done && !isHistory() ? `<div class="acts">
       <button data-act="revert" title="${esc(T('revertTitle'))}">${esc(T('revert'))}</button>
       <button data-act="refine" title="${esc(T('refineTitle'))}">${esc(T('refine'))}</button>
     </div>` : ''}
     ${working ? '<div class="bar"></div>' : ''}`;
   $$('[data-act]', el).forEach(b => b.onclick = e => { e.stopPropagation(); reopen(a, b.dataset.act) });
+  const tog = $('.thread.tog', el);
+  if (tog) tog.onclick = e => { e.stopPropagation(); toggleThread(a.id) };
+  const box = $('.tbox', el);
+  if (box) {
+    // Everything inside the thread is its own business — clicking it must not
+    // also jump the page to the mark.
+    box.addEventListener('click', e => e.stopPropagation());
+    const ta = $('.treply', box);
+    ta.value = replyDrafts.get(a.id) || '';
+    ta.addEventListener('input', () => replyDrafts.set(a.id, ta.value));
+    ta.addEventListener('focus', () => { S.focusReply = a.id });
+    ta.addEventListener('blur', () => { if (S.focusReply === a.id) S.focusReply = null });
+    ta.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' || e.shiftKey || e.isComposing || e.keyCode === 229) return;
+      e.preventDefault();
+      sendPanelReply(a, ta.value);
+    });
+    $('.tsend', box).onclick = e => { e.stopPropagation(); sendPanelReply(a, ta.value) };
+  }
   el.onclick = () => {
     if (ghost) { toast(T('raised')(a.fromVersion)); return }
     if ((a.size || 'desktop') !== S.size.id) { setSize(a.size); setTimeout(() => reveal(a), 320); return }
@@ -1427,10 +1905,33 @@ function itemNode (a, { ghost, otherSize, done } = {}) {
   };
   return el;
 }
+/** Bring a comment into view. Its element may sit in a pane that scrolls on its
+    own, so ask the page to show it first, then chase it with the window box. */
 function reveal (a, focus = false) {
-  const r = anchorRect(a);
-  vpBox.scrollTo({ top: Math.max(0, r.y - 120), behavior: 'smooth' });
-  setTimeout(() => openComposer(a.id, focus), 220);
+  const st = anchorState(a);
+  if (!st.show) {
+    toast(T('offscreenToast'));
+    openComposer(a.id, focus);
+    return;
+  }
+  if (st.el && innerScrolls(st.el)) {
+    try { st.el.scrollIntoView({ block: 'center', inline: 'nearest' }) } catch {}
+  }
+  requestAnimationFrame(() => {
+    const r = anchorState(a).rect;
+    vpBox.scrollTo({ top: Math.max(0, r.y - 120), behavior: 'smooth' });
+    setTimeout(() => openComposer(a.id, focus), 220);
+  });
+}
+/** Does anything between here and the page scroll by itself? */
+function innerScrolls (el) {
+  for (let n = el.parentElement; n && n !== fdoc.documentElement; n = n.parentElement) {
+    if (n.scrollHeight > n.clientHeight + 4 || n.scrollWidth > n.clientWidth + 4) {
+      const ov = fwin()?.getComputedStyle(n);
+      if (ov && /(auto|scroll)/.test(ov.overflowY + ov.overflowX)) return true;
+    }
+  }
+  return false;
 }
 function renderCounts () {
   const open = S.ann.filter(a => a.status !== 'addressed' && hasSubstance(a));
@@ -1520,6 +2021,27 @@ $('#tlTrack').addEventListener('pointerdown', e => {
 
 /* ───────────── the deliverable: instructions for Claude ───────────── */
 
+/**
+ * Where a comment is, written the way a person would say it: the thing it is on
+ * first, the part of the page it lives in second, coordinates last. The brief is
+ * always in English — the reviewer's own words are the only part that is not.
+ */
+function whereLine (a) {
+  const geo = a.kind === 'area' && a.rect
+    ? `area ${Math.round(a.rect.w)}×${Math.round(a.rect.h)} at ${Math.round(a.rect.x)},${Math.round(a.rect.y)}`
+    : `at ${Math.round(a.point?.x || 0)},${Math.round(a.point?.y || 0)}`;
+  const an = a.anchor;
+  if (!an) return `${geo}${a.anchorText ? ` — on “${a.anchorText}”` : ''}`;
+  const el = '`<' + an.tag + (an.id ? ` id="${an.id}"` : '') + (an.cls ? ` class="${an.cls}"` : '') +
+    (an.role ? ` role="${an.role}"` : '') + '>`';
+  const words = an.text || an.label;
+  const reg = an.region;
+  const region = !reg ? ''
+    : reg.kind === 'region' ? (reg.label ? ` inside “${reg.label}”,` : '')
+    : ` inside ${reg.kind}${reg.label ? ` “${reg.label}”` : ''},`;
+  return `on ${el}${words ? ` “${words}”` : ''},${region} ${geo}`;
+}
+
 function buildFeedback () {
   const items = S.ann.filter(a => a.status !== 'addressed' && hasSubstance(a));
   const carried = S.carried.filter(a => a.status !== 'addressed');
@@ -1556,10 +2078,7 @@ function buildFeedback () {
     for (const a of list) {
       L.push(`### #${num(a)}${a.revert ? ' · REVERT' : ''}`);
       if (a.revert) L.push('**They asked for your last change here to be undone** — restore what was there before, then apply the note again only if it still stands.');
-      const where = a.kind === 'area'
-        ? `Area ${Math.round(a.rect.w)}×${Math.round(a.rect.h)} at ${Math.round(a.rect.x)},${Math.round(a.rect.y)}`
-        : `At ${Math.round(a.point.x)},${Math.round(a.point.y)}`;
-      L.push(`**Where** ${where}${a.anchorText ? ` — on “${a.anchorText}”` : ''}`);
+      L.push(`**Where** ${whereLine(a)}`);
       if (a.note) L.push(a.note);
       for (const m of a.replies || []) {
         L.push('');
@@ -1572,7 +2091,7 @@ function buildFeedback () {
     L.push('## Still open from earlier versions');
     L.push('');
     for (const a of carried) {
-      L.push(`- **[v${a.fromVersion}]** ${a.note}${a.anchorText ? ` — on “${a.anchorText}”` : ''}`);
+      L.push(`- **[v${a.fromVersion}]** ${a.note} — ${whereLine(a)}`);
     }
     L.push('');
   }
@@ -1593,6 +2112,15 @@ function buildFeedback () {
       // take it further. Either way it is not finished.
       reopened: !!a.reopenedAt, wantsRevert: !!a.revert,
       anchorText: a.anchorText || null,
+      // What the comment is attached to. `selector` is how the workspace finds
+      // the element again to keep the mark on it — a hint for you, not a promise
+      // about the markup.
+      anchor: a.anchor ? {
+        selector: a.anchor.sel, tag: a.anchor.tag, id: a.anchor.id || null,
+        classes: a.anchor.cls || null, role: a.anchor.role || null,
+        label: a.anchor.label || null, text: a.anchor.text || null,
+        region: a.anchor.region || null,
+      } : null,
       screenSize: a.size || 'desktop',
       point: a.point || null, rect: a.rect || null,
       fromVersion: a.fromVersion || S.version,
@@ -1695,8 +2223,15 @@ function adoptShare (data, announce) {
   const fresh = !!S.share.url && S.share.url !== had;
   if (fresh) $('#btnSendMore').classList.add('flag');
   renderShare();
-  if (fresh && announce) toast(T('shareGot'));
+  // A toast at the bottom of the screen outlives nobody's attention for a wait
+  // this long. Announce it the way a new version is announced.
+  if (fresh && announce) showShareReady();
 }
+function showShareReady () {
+  $('#shareBannerText').innerHTML = '<span class="tick">✓</span> ' + T('shareBannerReady');
+  $('#shareBanner').classList.add('on');
+}
+const hideShare = () => $('#shareBanner').classList.remove('on');
 function renderShare () {
   const b = $('#btnShare');
   if (S.runtime === 'artifact') { b.hidden = true; $('#sendMenu .mrule').hidden = true; return }
@@ -1708,8 +2243,9 @@ function renderShare () {
     b.querySelector('.d').innerHTML = `<span class="url">${esc(s.url)}</span>`;
     return;
   }
+  // The label says what the button does; only a stale link needs explaining.
   b.querySelector('.t').textContent = s.url ? T('shareStale') : T('share');
-  b.querySelector('.d').textContent = s.url ? T('shareStaleHint')(s.version) : T('shareHint');
+  b.querySelector('.d').textContent = s.url ? T('shareStaleHint')(s.version) : '';
 }
 async function requestShare () {
   const s = S.share;
@@ -1746,7 +2282,7 @@ function showDone () {
   clearWorking();
   closeComposer();
   setMode('view');
-  hideWork();
+  hideWork(); hideShare();
   $('#doneTitle').textContent = T('approvedTitle');
   $('#doneBody').textContent = T('approvedBody');
   $('#doneScreen').classList.add('on');
