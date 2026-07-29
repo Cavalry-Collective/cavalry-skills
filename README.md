@@ -83,31 +83,22 @@ Approve the plan, then follow each endpoint and component as it lands.
 
 ---
 
-## Why visual-first?
+## Why we built Visual Stack
 
-**AI moved software forward. Its interface moved backward.**
+We have tried spec-driven development and see the value in it: clear context helps Claude make better
+decisions. But in practice, a brief becomes a spec, the spec becomes a plan, and the plan grows into
+tasks, reports and notes. Before long, more time is spent reading about the work than looking at the
+work itself.
 
-Spec-driven development got the principle right: agree on what you are building before you build it.
-Then it buried that agreement in text.
+We wanted a better balance.
 
-A spec here. A plan there. A task list underneath. Soon the team is surrounded by documents that get
-skimmed, approved to be polite and contradicted by the code three days later.
+Visual Stack keeps the context Claude needs, but puts the plan into forms people can use directly:
+screens to comment on, story maps to rearrange and release phases to inspect. Each change flows back
+to Claude without another round of prose.
 
-The review that mattered never happened.
-
-Visual Stack makes each stage something you operate instead of something you merely read:
-
-- **Work on the artifact.** Review the screen, story map or release phase itself — not a description
-  of it.
-- **Edit instead of approving.** Change what is wrong. The change becomes the feedback.
-- **Keep feedback connected.** What you change flows directly back to the Claude Code session.
-- **Build from one shared truth.** The visual artifact defines the plan instead of illustrating a
-  separate document.
-
-It carries the oldest idea in the [Agile Manifesto](https://agilemanifesto.org/) — *working software
-over comprehensive documentation* — into the planning process itself.
-
-Prose remains useful for context, decisions and export. It just stops pretending to be the interface.
+The approach will feel familiar to teams used to Lean and Agile: visible work, small releases and
+short feedback loops. Visual Stack is our attempt to keep what works about SDD while making it easier
+to see, review and change.
 
 ---
 
