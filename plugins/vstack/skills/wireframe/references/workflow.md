@@ -108,6 +108,7 @@ bottom is the same data structured. Each comment:
 | `kind` | `comment` (a point) or `area` (a region) |
 | `note` | the reviewer's words — the actual requirement. **Every comment is a must**; there is no severity to triage by |
 | `anchor` | the element the comment was made on: `tag`, `id`, `classes`, `role`, `text`, `label`, the `region` it sits in, and the `selector` that found it |
+| `covers` | area comments only — every named element the box was drawn around, in page order |
 | `anchorText` | the words on screen under the mark — the short form of `anchor.text` |
 | `screenSize` | `ultrawide` / `desktop` / `tablet` / `phone` — the layout it was made at |
 | `point` / `rect` | where, in the page's own coordinates at that size |
@@ -119,7 +120,11 @@ bottom is the same data structured. Each comment:
 
 A comment is attached to an element, not to a coordinate. `anchor` is what it
 was made on and where that sits — read it first, and use the coordinates only to
-break a tie. `anchor.region` is the part of the page it lives in, which is often
+break a tie. For an area comment `anchor` is the element that contains the whole
+box and `covers` is what was inside it: "needs a date column" drawn over a list
+arrives with the rows it was drawn over, so the scope is read, not guessed. A
+trailing `…` in the brief's **Covers** line means the box held more than ten
+named things. `anchor.region` is the part of the page it lives in, which is often
 the whole answer: a comment `inside dialog “Add a role”` is about that modal,
 whatever the numbers say. When `anchor` is null the mark landed on blank space,
 which is usually itself the point ("this gap is too big").

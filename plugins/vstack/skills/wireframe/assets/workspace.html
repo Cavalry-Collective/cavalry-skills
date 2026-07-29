@@ -190,13 +190,6 @@ button{cursor:pointer;background:none;border:0;padding:0}
 /* The page was rebuilt and the element could not be found again: the mark falls
    back to where it was drawn, and says so by looking unsure of itself. */
 .mark.loose{opacity:.5;filter:saturate(.5)}
-/* What the next click will attach to, shown before it is clicked. */
-#hover{position:absolute;display:none;pointer-events:none;z-index:4;border:1px dashed var(--accent);
-  border-radius:3px;background:color-mix(in srgb,var(--accent) 5%,transparent)}
-#hover .htag{position:absolute;left:0;top:-17px;max-width:280px;overflow:hidden;text-overflow:ellipsis;
-  white-space:nowrap;background:var(--ink);color:#fff;font:600 10px/1.4 var(--mono);padding:2px 5px;
-  border-radius:3px}
-#hover.low .htag{top:100%;margin-top:3px}
 #drag{position:absolute;border:2px dashed var(--accent);border-radius:3px;display:none;
   background:color-mix(in srgb,var(--accent) 8%,transparent);pointer-events:none}
 
@@ -461,10 +454,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
               <div id="viewportBox">
                 <div id="scroller">
                   <iframe id="frame" title="Mockup under review"></iframe>
-                  <div id="overlay">
-                    <div id="hover"><span class="htag"></span></div>
-                    <div id="drag"></div>
-                  </div>
+                  <div id="overlay"><div id="drag"></div></div>
                 </div>
               </div>
             </div>
@@ -638,6 +628,7 @@ const STR = {
     shareBannerReady: '<b>The wireframe link is ready</b>', copyLink: 'Copy link',
     shareFail: 'Could not ask for a link',
     sendReply: 'Reply', addReply: 'Reply',
+    coversN: n => `${n} element${n > 1 ? 's' : ''} inside`,
     offscreen: 'not on screen', offscreenToast: 'Not on the page right now',
     anchorGone: 'not on screen', anchorLoose: 'moved since this version',
     inRegion: (k, l) => k === 'region' ? (l ? `in “${l}”` : '') : (l ? `in ${k} “${l}”` : `in ${k}`),
@@ -700,6 +691,7 @@ const STR = {
     shareBannerReady: '<b>原型链接已就绪</b>', copyLink: '复制链接',
     shareFail: '无法请求分享链接',
     sendReply: '发送', addReply: '回复',
+    coversN: n => `框内 ${n} 个元素`,
     offscreen: '当前不可见', offscreenToast: '页面上当前看不到这个元素',
     anchorGone: '当前不可见', anchorLoose: '页面已改动，位置为大致位置',
     inRegion: (k, l) => k === 'region' ? (l ? `位于「${l}」` : '') : (l ? `位于 ${k}「${l}」` : `位于 ${k}`),
@@ -1158,7 +1150,6 @@ function setMode (m) {
   });
   overlay.classList.toggle('view', m === 'view');
   overlay.style.cursor = m === 'annotate' ? 'crosshair' : 'default';
-  hideHover();
   // View mode is where the page gets driven — modals opened, tabs switched.
   // Coming back to Annotate, the marks answer to whatever is on screen now.
   if (m === 'view') closeComposer(); else scheduleSync();
@@ -1303,14 +1294,55 @@ function captureAnchor (p, rect) {
     size: { w: r.w, h: r.h },
   };
 }
+/**
+ * What a box was drawn around. The container alone is not the answer — "this
+ * list needs a date column" is about the rows inside it, and naming them is the
+ * difference between Claude finding the right three rows and guessing.
+ * Only things that are almost entirely inside the box count, and only the ones
+ * that carry a word: a wrapper with no text names nothing.
+ */
+const COVER_MAX = 10;
+function coversIn (rect, root) {
+  const out = [], seen = new Set();
+  let all = [];
+  try { all = root.querySelectorAll('*') } catch {}
+  if (!all.length || all.length > 3000) return out;
+  for (const el of all) {
+    const r = docRect(el);
+    if (!(r.w > 0 && r.h > 0)) continue;
+    const ox = Math.max(0, Math.min(r.x + r.w, rect.x + rect.w) - Math.max(r.x, rect.x));
+    const oy = Math.max(0, Math.min(r.y + r.h, rect.y + rect.h) - Math.max(r.y, rect.y));
+    if (ox * oy < r.w * r.h * 0.7) continue;
+    if (!isShown(el)) continue;
+    const tag = el.tagName.toLowerCase();
+    // Leaves, and the controls and headings that are worth naming even when
+    // they wrap something.
+    if (el.querySelector('*') && !/^(button|a|input|select|textarea|img|svg|label|h1|h2|h3|h4|h5|h6|th|td|li)$/.test(tag)) continue;
+    const words = trim(ownText(el) || attr(el, 'aria-label', 'placeholder', 'alt', 'title'), 40);
+    const key = tag + '|' + words;
+    if (!words || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ tag, text: words });
+    if (out.length >= COVER_MAX) break;
+  }
+  return out;
+}
+
 function anchorFor (p, rect) {
   const anchor = captureAnchor(p, rect);
+  const root = (anchor && findAnchorEl(anchor)) || fdoc?.body;
   return {
     anchor,
     // Kept for reviews written before comments knew what they were on.
     anchorText: anchor ? (anchor.text || anchor.label) : '',
     anchorVersion: S.version,
+    ...(rect && root ? { covers: coversIn(rect, root) } : {}),
   };
+}
+/** The element a freshly captured anchor describes — it is still under the
+    cursor, so the selector is exact. */
+function findAnchorEl (an) {
+  try { return an.sel ? fdoc.querySelector(an.sel) : null } catch { return null }
 }
 
 /** How much a candidate element looks like the one that was annotated. */
@@ -1474,38 +1506,6 @@ overlay.addEventListener('pointerup', e => {
   addComment({ kind: 'area', rect, ...anchorFor(null, rect) });
 });
 
-/* ── what the next click will land on ──
-   The tool decides what a comment is about the moment it is made. Showing that
-   decision *before* the click is the difference between "it knows what I meant"
-   and "it guessed". */
-let hoverPt = null, hoverEvent = null, hoverQueued = false;
-const hoverBox = $('#hover');
-function hideHover () { hoverBox.style.display = 'none' }
-function drawHover () {
-  if (S.mode !== 'annotate' || drag || isHistory() || !hoverPt) return hideHover();
-  const el = elAt(hoverPt);
-  if (!el || el === fdoc.body || el === fdoc.documentElement) return hideHover();
-  const r = docRect(el);
-  if (!(r.w > 0 && r.h > 0)) return hideHover();
-  Object.assign(hoverBox.style,
-    { display: 'block', left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
-  hoverBox.classList.toggle('low', r.y < 20);
-  hoverBox.querySelector('.htag').textContent =
-    trim(ownText(el) || attr(el, 'aria-label', 'placeholder', 'alt', 'title') ||
-      el.tagName.toLowerCase() + (classesOf(el)[0] ? '.' + classesOf(el)[0] : ''), 46);
-}
-overlay.addEventListener('pointermove', e => {
-  // Measure in the frame, not on every pointer event — reading the overlay's box
-  // per move is a forced layout for something the eye only sees once a frame.
-  const c = { clientX: e.clientX, clientY: e.clientY };
-  if (hoverQueued) { hoverEvent = c; return }
-  hoverEvent = c;
-  hoverQueued = true;
-  requestAnimationFrame(() => { hoverQueued = false; hoverPt = pt(hoverEvent); drawHover() });
-});
-overlay.addEventListener('pointerleave', () => { hoverPt = null; hideHover() });
-overlay.addEventListener('pointerdown', hideHover);
-
 function addComment (a) {
   const c = normalise({ id: uid(), size: S.size.id, ...a });
   c._fresh = true;
@@ -1563,14 +1563,16 @@ function openComposer (id, focus) {
   // Say what this is attached to, so "it did not know what I meant" is answered
   // while the note is being written rather than after the next round.
   const anc = composer.querySelector('.canchor');
-  const desc = anchorLabel(a.anchor);
+  const covers = a.covers?.length ? T('coversN')(a.covers.length) : '';
+  const desc = [anchorLabel(a.anchor), covers].filter(Boolean).join(' · ');
   const shown = anchorState(a).show;
   anc.classList.toggle('on', !!desc || !shown);
   anc.classList.toggle('gone', !shown);
   anc.innerHTML = desc
     ? `<b>${esc(desc)}</b>` + (shown ? '' : ' · ' + esc(T('anchorGone')))
     : esc(T('anchorGone'));
-  anc.title = desc;
+  // The list itself is long; the line is short. Hovering says the whole of it.
+  anc.title = [desc, ...(a.covers || []).map(c => `${c.tag} “${c.text}”`)].filter(Boolean).join('\n');
 
   const note = composer.querySelector('.cnote');
   note.value = a.note || '';
@@ -2042,6 +2044,10 @@ function whereLine (a) {
   return `on ${el}${words ? ` “${words}”` : ''},${region} ${geo}`;
 }
 
+/** Everything the box was drawn around, in the order it appears on the page. */
+const coversLine = a => a.covers.map(c => `\`<${c.tag}>\` “${c.text}”`).join(' · ') +
+  (a.covers.length >= COVER_MAX ? ' · …' : '');
+
 function buildFeedback () {
   const items = S.ann.filter(a => a.status !== 'addressed' && hasSubstance(a));
   const carried = S.carried.filter(a => a.status !== 'addressed');
@@ -2079,6 +2085,7 @@ function buildFeedback () {
       L.push(`### #${num(a)}${a.revert ? ' · REVERT' : ''}`);
       if (a.revert) L.push('**They asked for your last change here to be undone** — restore what was there before, then apply the note again only if it still stands.');
       L.push(`**Where** ${whereLine(a)}`);
+      if (a.covers?.length) L.push(`**Covers** ${coversLine(a)}`);
       if (a.note) L.push(a.note);
       for (const m of a.replies || []) {
         L.push('');
@@ -2121,6 +2128,8 @@ function buildFeedback () {
         label: a.anchor.label || null, text: a.anchor.text || null,
         region: a.anchor.region || null,
       } : null,
+      // For an area: what was inside the box when it was drawn.
+      covers: a.covers?.length ? a.covers : null,
       screenSize: a.size || 'desktop',
       point: a.point || null, rect: a.rect || null,
       fromVersion: a.fromVersion || S.version,
