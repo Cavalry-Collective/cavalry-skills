@@ -157,9 +157,17 @@ Review happens on the phase files themselves, through §5.
 
 ## State & handoff
 
-Runs standalone today — a base wireframe and a set of phases are all it needs.
+**No `.vstack/pipeline.json`?** You're standalone — a base wireframe and a set of phases are all
+this needs, and that is a first-class way to run it. Skip this section, and **never create the state
+file**: only `/vstack:start` and `/vstack:requirements` bring a pipeline into being.
 
-It is also **stage 5 of the planned Cavalry pipeline** (`docs/pipeline-wishlist.md` in the
-`visual-stack` repo), which isn't built. When it is: read the base and phases from
-`.vstack/pipeline.json`, write `artifacts.wireframes[].phases`, and hand on to the build stages.
-Until then there is no state file to read or write — don't create one.
+With a state file:
+
+- **Read** `specs/story-map.json` for the phases — their order, names and goals, and which stories
+  land when. `artifacts.wireframes[]` for the base page. While a story map exists it is the phase
+  truth; don't re-derive phases from anything else.
+- **Write** `artifacts.wireframes[].phases` — the per-phase files, against the wireframe they were
+  cut from — plus `stage: "phase-wireframe"` and a history entry. The generated `<name>-phases.html`
+  (§6) is a view, not an artifact: don't record it, and don't let a later stage read it.
+- **Next** — `/vstack:phase-build` plans and builds phase 1. Offer to run it; don't ask whether to
+  continue.

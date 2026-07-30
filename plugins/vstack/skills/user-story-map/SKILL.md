@@ -81,3 +81,27 @@ Failure modes to relay honestly: if the server is stopped or the port dies, the 
 - The bridge is **strictly optional to the page**: it injects a `window.__VSTACK_BRIDGE__` handle when it serves the template. Opened as an Artifact or straight off disk, the same file runs on its inline `<script id="data">` block and keeps edits in `localStorage`. Served, the JSON file is the map and `localStorage` is ignored on load — otherwise a stale arrangement would outrank the one Claude is holding.
 - This is a *planning* tool, not a document — favour a clean, operable grid over prose. Keep story text to a short phrase; the goal lines on phases/activities carry the "why".
 - If the user later sends back (or pastes) an edited JSON, treat it as the new source of truth for re-slicing any plan/roadmap you generated from it. Old JSON with the legacy `"ai": true` flag still imports — the engine converts it to an `"AI"` tag.
+
+## State & handoff
+
+**No `.vstack/pipeline.json`?** You're standalone — a plan, a `tasks.md` or a conversation is enough.
+Everything above still applies; skip this section, and write the map wherever suits (default
+`.storymap/`). **Never create the state file here.** Only `/vstack:start` and
+`/vstack:requirements` bring a pipeline into being.
+
+With a state file:
+
+- **Read** `artifacts.specs[]` — the specs are the stories, and the map's job is to say *when*, not
+  to reopen *what*. `artifacts.product` for the goal the phases serve.
+- **Write** the map to `specs/story-map.json`. That exact path matters: `phase-wireframe` cuts the
+  phases from it and `phase-build` reads it to know which phase is last. Then set
+  `artifacts.storyMap` and `stage: "user-story-map"`, and add a `history` entry noting the phase
+  count.
+- **Write it when the user has finished re-slicing**, not on the first send. A map is dragged
+  several times in one sitting; the state should record where they stopped, not where they passed
+  through.
+- **Phases here define the phases everywhere after.** `phase-build` owns the phase *counter*, but
+  the number of phases and what falls in each is decided on this page — renumbering later invalidates
+  every phase wireframe already cut.
+- **Next** — `/vstack:phase-wireframe` cuts the signed-off design down to each phase. Offer to run
+  it; don't ask whether to continue.

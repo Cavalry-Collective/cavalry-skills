@@ -273,3 +273,29 @@ node "$SKILL/assets/bundle-artifact.mjs" --file "$FILE" --out review.html
 - `node "$SKILL/assets/review-server.mjs" status --file "$FILE"` prints the current version, whether a review is waiting, and any stop / sign-off / share request outstanding.
 - `check --file "$FILE"` is the same question reduced to an exit code — 0 carry on, 2 stop. Use it inside a round, where `status` is too much output to read repeatedly.
 - Full command reference and troubleshooting: `references/workflow.md`.
+
+## State & handoff
+
+**No `.vstack/pipeline.json`?** You're standalone, and that is a first-class way to run this — a URL
+or a sentence is enough. Everything above still applies; skip this section. **Never create the state
+file here.** Only `/vstack:start` and `/vstack:requirements` bring a pipeline into being, and a
+half-written one is worse than none, because the next stage would trust it.
+
+Standalone, the design source is §2's priority order (reference site → screenshots → the project's
+own system → ask), the page goes where the user wants (default `wireframes/`), and you end with the
+result. **One** closing line may mention the chain exists; it never proposes the next stage.
+
+With a state file:
+
+- **Read** `artifacts.product` — `specs/product.md` is the constitution, and a wireframe that
+  contradicts it is wrong however good it looks. Read `artifacts.requirements` if it is there. In a
+  repo from the template, `design/tokens.css` and `design/CLAUDE.md` **are** the design source and
+  outrank §2's order — you are drawing inside a system that already exists.
+- **Write** the page to `design/<feature>.html` — the template's convention, and where the later
+  stages look. Then `artifacts.wireframes[]`: append for a new feature, replace in place for one
+  already there, matching on feature and never on array position. Set `stage: "wireframe"` and add a
+  `history` entry. If the template's `design/README.md` inventory exists, fill the feature's row.
+- **Write it on sign-off, not on every publish.** A design still under review is not an artifact;
+  recording it as one puts versions in the state file that nobody agreed to. Approve is the moment.
+- **Next** — `/vstack:spec` turns the signed-off design into acceptance criteria. Offer to run it;
+  don't ask whether to continue.
