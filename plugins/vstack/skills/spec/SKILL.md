@@ -1,6 +1,6 @@
 ---
 name: spec
-description: Turn a wireframe and everything already agreed into a written spec in traditional agile shape — an initiative broken into epics, epics into user stories with acceptance criteria, and themes as the labels that span them — presented as an interactive drill-down tree the user prunes, edits and annotates in the browser, with a plain-markdown spec generated from it. Use when the user wants a spec, an initiative or epic broken into user stories, acceptance criteria, to formalise what a mockup does, or to review and edit a spec visually.
+description: Turn a wireframe and everything already agreed into a written spec in traditional agile shape — an initiative broken into epics, epics into user stories with acceptance criteria, and themes as the labels that span them — presented as an interactive drill-down tree the user prunes, edits and annotates in the browser, with a plain-markdown spec generated from it. Use when the user wants a spec, an initiative or epic broken into user stories, acceptance criteria, to formalise what a wireframe or mockup does, or to review and edit a spec visually.
 ---
 
 A spec in traditional agile shape — the full Atlassian ladder, **initiative → epics → user
@@ -161,6 +161,10 @@ generated file, and the next round will overwrite them.
   engine. Only the JSON document is yours.
 - The bridge binds `127.0.0.1` and dies when the tab closes (90s grace). Port busy → another spec
   page is up; pass `--port`.
+- **The version timeline is kept on disk**, in `.vstack-bridge/<feature>.history/` beside the JSON —
+  one frozen copy per open, send and rewrite. It survives a reload and carries across rounds, so the
+  page opens on the whole trail rather than starting from blank. Nothing to run: the bridge records
+  it. If the user wants a version back, the bodies are plain JSON files.
 - One review is one feature. Several features means several JSON files served one at a time.
 - **Works beside any other tooling.** vstack writes `.vstack/` and plain markdown under `specs/`,
   and touches nothing else — no `.specify/`, no other tool's state, no hooks, no config. If the

@@ -81,7 +81,7 @@ const bundle = {
 
 const shell = fs.readFileSync(path.join(HERE, 'workspace.html'), 'utf8')
 // `<` only occurs inside JSON strings here, so escaping it wholesale is safe and
-// stops any `</script>` in the mockup markup from closing our data island.
+// stops any `</script>` in the wireframe markup from closing our data island.
 const json = JSON.stringify(bundle).replace(/</g, '\\u003c')
 
 let out = shell.replace(

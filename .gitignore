@@ -4,4 +4,8 @@
 # belongs to one machine mid-review, none of it belongs in the repo.
 .ui-review/
 
+# The JSON-document skills keep theirs the same way: a seq counter, a `url` file
+# naming a live port, and the version history behind the timeline.
+.vstack-bridge/
+
 .DS_Store

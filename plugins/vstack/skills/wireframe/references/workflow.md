@@ -8,7 +8,7 @@ The review is one file. Everything the loop needs sits beside it, out of the
 way:
 
 ```
-mockups/
+wireframes/
   candidate-pipeline.html        ← the page — the ONLY file you edit
   .ui-review/
     candidate-pipeline/

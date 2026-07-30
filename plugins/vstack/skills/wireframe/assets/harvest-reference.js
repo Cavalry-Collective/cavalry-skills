@@ -2,13 +2,13 @@
  * harvest-reference.js — read a real page's design decisions off the page.
  *
  * Paste the whole thing into the Chrome javascript tool while the reference site
- * is open, at the width the mockup will lead with. It returns JSON: the palette
+ * is open, at the width the wireframe will lead with. It returns JSON: the palette
  * by role, the type scale actually in use, the spacing rhythm, radii, shadows,
  * and a sketch of the layout. Nothing is guessed — every number is a value the
  * page is really painting.
  *
  * Why measure instead of eyeball: a palette read off a screenshot is always a
- * little wrong, and "a little wrong" across twenty values is what makes a mockup
+ * little wrong, and "a little wrong" across twenty values is what makes a design
  * look like a knock-off of the thing it is meant to be.
  *
  * Run it once per breakpoint you care about; the layout section is the part that

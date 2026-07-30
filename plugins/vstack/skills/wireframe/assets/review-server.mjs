@@ -2,7 +2,7 @@
 /**
  * review-server.mjs — the local half of the wireframe review loop.
  *
- * You point it at one HTML file — a mockup, an exported screen, any page you
+ * You point it at one HTML file — a wireframe, an exported screen, any page you
  * want eyes on. It serves that file inside the review workspace so the two
  * share an origin, keeps a version history beside it, and gives the workspace
  * somewhere to push feedback that Claude picks up without any copy-paste.

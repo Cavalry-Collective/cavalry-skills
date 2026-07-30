@@ -1,0 +1,572 @@
+<title>Requirements</title>
+<style>
+  :root{
+    --paper:#eef0f3; --surface:#fff; --surface-2:#f7f8fa; --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+    --line:#e2e4e9; --line-2:#d0d2d9; --brand:#d23b2e;
+    /* Brandolini's wall, mapped onto the token system. Hotspot is magenta, not
+       red, so it never competes with --brand on the interactive accents. */
+    --evt:#e07b1f; --cmd:#2f6fd0; --act:#a9711a; --pol:#8a53c0; --vw:#10876e; --hot:#c2317a;
+    --shadow:0 1px 2px rgba(16,17,22,.06); --radius:9px;
+    --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;
+    --line:#282a31;--line-2:#363942;--brand:#f0685c;
+    --evt:#f0a04a;--cmd:#6fa4ee;--act:#d2a24f;--pol:#b98cec;--vw:#2fb89b;--hot:#ec6aa8;
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+  }}
+  :root[data-theme="light"]{--paper:#eef0f3;--surface:#fff;--surface-2:#f7f8fa;--ink:#16171c;--ink-2:#43454d;--ink-3:#71737c;--line:#e2e4e9;--line-2:#d0d2d9;--brand:#d23b2e;--evt:#e07b1f;--cmd:#2f6fd0;--act:#a9711a;--pol:#8a53c0;--vw:#10876e;--hot:#c2317a;--shadow:0 1px 2px rgba(16,17,22,.06)}
+  :root[data-theme="dark"]{--paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;--line:#282a31;--line-2:#363942;--brand:#f0685c;--evt:#f0a04a;--cmd:#6fa4ee;--act:#d2a24f;--pol:#b98cec;--vw:#2fb89b;--hot:#ec6aa8;--shadow:0 1px 2px rgba(0,0,0,.4)}
+
+  *{box-sizing:border-box}
+  body{margin:0;height:100vh;overflow:hidden;background:var(--paper);color:var(--ink);
+    font-family:var(--font);font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+  :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+  #app{display:grid;grid-template-rows:auto minmax(0,1fr);height:100vh}
+  #top{display:flex;align-items:center;gap:10px;padding:0 14px;height:50px;background:var(--surface);
+    border-bottom:1px solid var(--line);flex:none}
+  .brand{display:flex;align-items:baseline;gap:8px}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--brand);align-self:center;flex:none}
+  .brand b{font-weight:700;letter-spacing:-.01em;line-height:1.2}
+  .brand .eyebrow{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:700;line-height:1.2}
+  .spacer{flex:1}
+  .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+    border:1px solid var(--line-2);background:var(--surface);font-weight:600;font-size:.8rem;white-space:nowrap}
+  .btn:hover{background:var(--surface-2)}
+  .btn[disabled]{opacity:.45;pointer-events:none}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.primary:hover{background:color-mix(in srgb,var(--brand) 88%,#000)}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;color:var(--ink-3);
+    font-family:var(--mono);letter-spacing:.04em}
+  .live .d{width:7px;height:7px;border-radius:50%;background:var(--vw)}
+  kbd{font-family:var(--mono);font-size:.63rem;font-weight:600;background:var(--surface-2);
+    border:1px solid var(--line-2);border-bottom-width:2px;border-radius:4px;padding:.05rem .3rem;color:var(--ink-2)}
+
+  #main{display:grid;grid-template-columns:340px minmax(0,1fr);min-height:0}
+  @media (max-width:960px){ #main{grid-template-columns:minmax(0,1fr)} #write{display:none} }
+
+  /* ── left: the transcript. Every card traces back to a paragraph here, so a
+        paragraph with no cards is visibly unmined rather than silently lost. ── */
+  #write{display:grid;grid-template-rows:auto minmax(0,1fr);border-right:1px solid var(--line);
+    background:var(--surface);min-height:0}
+  #write .h{display:flex;align-items:baseline;gap:8px;padding:.6rem .85rem .5rem;
+    border-bottom:1px solid var(--line)}
+  #write .h b{font-size:.82rem;font-weight:700}
+  #write .h span{font-size:.7rem;color:var(--ink-3);margin-left:auto;font-family:var(--mono)}
+  #prose{overflow:auto;padding:.5rem 0 2rem}
+  .para{display:grid;grid-template-columns:34px minmax(0,1fr);align-items:start;gap:.35rem;
+    padding:.3rem .85rem .3rem .5rem;border-left:2px solid transparent}
+  .para:hover{background:var(--surface-2)}
+  .para.lit{background:color-mix(in srgb,var(--brand) 7%,var(--surface));border-left-color:var(--brand)}
+  .para .n{font-family:var(--mono);font-size:.62rem;font-weight:700;color:var(--ink-3);
+    background:var(--surface-2);border:1px solid var(--line);border-radius:20px;
+    padding:.08rem 0;text-align:center;margin-top:.22rem;cursor:pointer;user-select:none}
+  .para.bare .n{color:var(--brand);border-color:color-mix(in srgb,var(--brand) 45%,var(--line));
+    border-style:dashed;background:none}
+  .para .t{font-size:.85rem;line-height:1.6;outline:0;color:var(--ink-2);cursor:text;white-space:pre-wrap}
+  .para.lit .t{color:var(--ink)}
+
+  /* ── right: the storm ── */
+  #right{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:0}
+  #legend{display:flex;align-items:center;gap:.75rem;padding:.42rem .9rem;background:var(--surface);
+    border-bottom:1px solid var(--line);flex-wrap:wrap;font-size:.73rem;color:var(--ink-3)}
+  #legend .sw{display:inline-flex;align-items:center;gap:.3rem;color:var(--ink-2);font-weight:600}
+  #legend .sw i{width:9px;height:9px;border-radius:2px;background:var(--c);flex:none}
+  #legend .hint{margin-left:auto;color:var(--ink-3);font-weight:400}
+
+  #scroll{overflow:auto;background:var(--surface-2);position:relative}
+  #grid{position:relative;display:grid;align-items:start;
+    grid-template-columns:var(--lanew) repeat(var(--cols),var(--colw));width:max-content;min-width:100%}
+  svg#links{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:1}
+  svg#links path{fill:none}
+  svg#links path.pol{stroke:var(--pol);stroke-width:1.5;stroke-dasharray:5 4;marker-end:url(#ap)}
+  svg#links path.vw{stroke:var(--vw);stroke-width:1.5;marker-end:url(#av)}
+  svg#links path.vwd{stroke:var(--vw);stroke-width:1.5;stroke-dasharray:2 3;marker-end:url(#av)}
+
+  /* time axis: guides only. A storm has no step numbers — the order is the meaning. */
+  .axis{grid-row:1;height:26px;border-bottom:1px solid var(--line);background:var(--surface);
+    position:sticky;top:0;z-index:4;display:flex;align-items:center}
+  .axis.lbl{position:sticky;left:0;z-index:6;padding-left:.85rem;font-family:var(--mono);
+    font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+  .axis.col{border-left:1px dashed var(--line-2);justify-content:center}
+  .axis.col .arrow{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--line-2))}
+
+  .lane{position:sticky;left:0;z-index:3;background:var(--surface);border-right:1px solid var(--line);
+    border-top:1px solid var(--line);padding:.7rem .6rem .7rem .85rem;min-height:76px;
+    display:grid;align-content:start;gap:.2rem}
+  .lane b{font-size:.8rem;font-weight:700;outline:0;cursor:text;line-height:1.3}
+  .lane em{font-family:var(--mono);font-size:.58rem;color:var(--ink-3);font-style:normal;letter-spacing:.06em}
+  .cell{border-top:1px solid var(--line);border-left:1px dashed var(--line-2);
+    padding:.55rem .45rem;display:grid;gap:.4rem;align-content:start;min-height:76px;z-index:2}
+  .cell.drop{background:color-mix(in srgb,var(--brand) 8%,transparent);
+    box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--brand) 40%,transparent)}
+
+  .unit{display:flex;align-items:stretch;gap:.28rem}
+  .unit .to{align-self:center;color:var(--ink-3);font-size:.7rem;flex:none}
+
+  .card{position:relative;background:var(--surface);border:1px solid var(--line-2);
+    border-left:3px solid var(--c);border-radius:7px;box-shadow:var(--shadow);
+    padding:.3rem .42rem;min-width:0;flex:1;display:grid;gap:.1rem;cursor:grab;user-select:none}
+  .card:hover{box-shadow:0 3px 12px rgba(0,0,0,.10);z-index:8}
+  .card.sel{border-color:var(--c);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 38%,transparent);z-index:8}
+  .card.dim{opacity:.34}
+  .card.moving{opacity:.5;cursor:grabbing}
+  .card .k{font-family:var(--mono);font-size:.53rem;letter-spacing:.1em;text-transform:uppercase;
+    font-weight:700;color:var(--c)}
+  .card .t{font-size:.78rem;font-weight:600;line-height:1.32;outline:0;cursor:text;
+    white-space:pre-wrap;overflow-wrap:anywhere}
+  .card.cmd{--c:var(--cmd)} .card.evt{--c:var(--evt)} .card.pol{--c:var(--pol)}
+  .card.vw{--c:var(--vw)}   .card.hot{--c:var(--hot)}
+  .card.pol .t,.card.hot .t{font-weight:500}
+  .card.hot{background:color-mix(in srgb,var(--hot) 7%,var(--surface))}
+
+  /* the actor rides on the command, exactly where Vernon puts the small yellow
+     sticky — which makes "no actor" a visible empty slot, not a missing card */
+  .who{display:inline-flex;align-items:center;gap:.22rem;font-size:.63rem;font-weight:700;
+    color:var(--act);width:max-content;max-width:100%;outline:0;cursor:text}
+  .who::before{content:"◍";font-size:.6rem}
+  .who.none{color:var(--brand);opacity:.8;font-weight:600;font-style:italic}
+  .who.none::before{content:"◌"}
+
+  /* a finding is a dot on the card — the storm is our own surface, so the mark
+     belongs on it rather than in a panel down the side */
+  .card .flag{position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;
+    background:var(--brand);box-shadow:0 0 0 2px var(--surface);display:none}
+  .card.flagged .flag{display:block}
+  .card.cue{box-shadow:0 0 0 2px var(--brand),0 6px 18px rgba(0,0,0,.16)}
+
+  /* the rail floats above the card, not beside it — beside it would sit on top
+     of the paired event card and the arrow between them */
+  .rail{position:absolute;bottom:100%;right:0;padding-bottom:4px;display:none;
+    align-items:center;gap:3px;z-index:9}
+  .card:hover .rail,.card.sel .rail{display:flex}
+  .rail button{width:18px;height:18px;border-radius:50%;border:1px solid var(--line-2);
+    background:var(--surface);color:var(--ink-3);font-size:.62rem;line-height:1;
+    display:grid;place-items:center;box-shadow:var(--shadow);flex:none}
+  .rail button:hover{border-color:var(--brand);color:var(--brand)}
+  .rail button.del:hover{background:var(--brand);border-color:var(--brand);color:#fff}
+
+  .add{border:1px dashed var(--line-2);border-radius:7px;color:var(--ink-3);font-size:.7rem;
+    font-weight:600;padding:.24rem;opacity:0;transition:opacity .1s}
+  .cell:hover .add{opacity:1}
+  .add:hover{border-color:var(--brand);color:var(--brand)}
+
+  /* ── findings strip ── */
+  #checks{display:flex;align-items:center;gap:.6rem;padding:.5rem .9rem;background:var(--surface);
+    border-top:1px solid var(--line);flex:none;min-height:44px}
+  #checks .cnt{font-weight:700;font-size:.8rem;flex:none}
+  #checks .cnt b{color:var(--brand)}
+  #checks .msg{font-size:.79rem;color:var(--ink-2);min-width:0;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;flex:1}
+  #checks .msg em{font-style:normal;font-weight:700;color:var(--ink)}
+  #checks .why{font-family:var(--mono);font-size:.62rem;color:var(--ink-3);flex:none}
+  #checks .nav{display:flex;gap:4px;flex:none}
+  #checks .nav button{width:26px;height:26px;border:1px solid var(--line-2);border-radius:6px;
+    background:var(--surface);color:var(--ink-2);display:grid;place-items:center;font-size:.7rem}
+  #checks .nav button:hover{border-color:var(--brand);color:var(--brand)}
+  #checks.clean .cnt{color:var(--vw)} #checks.clean .nav{display:none}
+</style>
+
+<div id="app">
+  <div id="top">
+    <span class="brand"><span class="dot"></span><b>Requirements</b>
+      <span class="eyebrow">Cavalry · stage 1</span></span>
+    <span class="spacer"></span>
+    <button class="btn" id="tidy">Collapse actors</button>
+    <span class="live"><span class="d"></span>Live</span>
+    <button class="btn primary" id="send" disabled>Send to Claude</button>
+  </div>
+
+  <div id="main">
+    <section id="write">
+      <div class="h"><b>What you need</b><span id="cov"></span></div>
+      <div id="prose"></div>
+    </section>
+
+    <section id="right">
+      <div id="legend">
+        <span class="sw" style="--c:var(--cmd)"><i></i>Command</span>
+        <span class="sw" style="--c:var(--evt)"><i></i>Event</span>
+        <span class="sw" style="--c:var(--act)"><i></i>Actor</span>
+        <span class="sw" style="--c:var(--pol)"><i></i>Policy</span>
+        <span class="sw" style="--c:var(--vw)"><i></i>View</span>
+        <span class="sw" style="--c:var(--hot)"><i></i>Hotspot</span>
+        <span class="hint">rows are the thing it's about · drag a card to move it in time
+          · <kbd>⌫</kbd> delete</span>
+      </div>
+
+      <div id="scroll"><div id="grid"></div></div>
+
+      <div id="checks">
+        <span class="cnt" id="cnt"></span>
+        <span class="msg" id="msg"></span>
+        <span class="why" id="why"></span>
+        <span class="nav"><button id="prev" title="Previous">◀</button>
+          <button id="next" title="Next">▶</button></span>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────────────────────
+   One storm. Horizontal is time, vertical is the thing it's about — so the
+   layout is a grid and no graph-layout engine is needed. Six card types, and
+   the checks below are computed from the grammar rather than authored, because
+   a finding that has to be written by hand is a finding nobody maintains.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+let prose = [
+  "Hiring managers open a role and see everyone who applied, newest first.",
+  "They can search by name and filter by stage, then move a candidate forward or reject them with a reason.",
+  "Recruiters need to bulk-move candidates after a screening day — a dozen at a time, not one by one.",
+  "Interviewers get a link to a candidate and leave a scorecard without seeing anyone else's until they've submitted theirs.",
+  "Everything a candidate did should be visible on one timeline: applied, screened, interviewed, offered.",
+];
+
+let lanes = [
+  { id:'role', name:'Role' },
+  { id:'appl', name:'Application' },
+  { id:'intv', name:'Interview' },
+  { id:'card', name:'Scorecard' },
+];
+
+const COLS = 6;
+
+/* type: cmd | evt | pol | vw | hot   ·   lane + t place it   ·   src is the paragraph */
+let cards = [
+  { id:'c1', type:'cmd', text:'Publish role',           lane:'role', t:0, who:'Hiring manager', src:0 },
+  { id:'e1', type:'evt', text:'Role published',         lane:'role', t:0, src:0 },
+  { id:'v1', type:'vw',  text:'Role pipeline — every application, newest first', lane:'role', t:1, src:0 },
+
+  { id:'e2', type:'evt', text:'Candidate applied',      lane:'appl', t:1, src:0 },
+  { id:'h1', type:'hot', text:'Can a rejected candidate re-apply to the same role?', lane:'appl', t:1, src:1 },
+
+  { id:'c2', type:'cmd', text:'Move candidate forward', lane:'appl', t:2, who:'Hiring manager', src:1 },
+  { id:'e3', type:'evt', text:'Candidate advanced',     lane:'appl', t:2, src:1 },
+  { id:'c3', type:'cmd', text:'Reject candidate',       lane:'appl', t:2, who:'Hiring manager', src:1 },
+  { id:'e4', type:'evt', text:'Candidate rejected',     lane:'appl', t:2, src:1 },
+
+  { id:'c4', type:'cmd', text:'Bulk-move candidates',   lane:'appl', t:3, who:'', src:2 },
+  { id:'e5', type:'evt', text:'Candidates advanced in bulk', lane:'appl', t:3, src:2 },
+
+  { id:'p1', type:'pol', text:'whenever a candidate reaches Interview, then schedule the interviews',
+    lane:'intv', t:3, src:1 },
+  { id:'c5', type:'cmd', text:'Schedule interview',     lane:'intv', t:4, who:'Recruiter', src:3 },
+  { id:'e6', type:'evt', text:'Interview scheduled',    lane:'intv', t:4, src:3 },
+  { id:'v2', type:'vw',  text:'Candidate link — one candidate, no one else', lane:'intv', t:5, src:3 },
+
+  { id:'c6', type:'cmd', text:'Submit scorecard',       lane:'card', t:5, who:'Interviewer', src:3 },
+  { id:'e7', type:'evt', text:'Scorecard submitted',    lane:'card', t:5, src:3 },
+  { id:'p2', type:'pol', text:'whenever every scorecard is in, then reveal them all',
+    lane:'card', t:5, src:3 },
+];
+
+/* causes cmd→evt · reacts evt→pol · triggers pol→cmd · shows evt→vw · informs vw→cmd */
+let links = [
+  { from:'c1', to:'e1', kind:'causes' },
+  { from:'c2', to:'e3', kind:'causes' },
+  { from:'c3', to:'e4', kind:'causes' },
+  { from:'c4', to:'e5', kind:'causes' },
+  { from:'c5', to:'e6', kind:'causes' },
+  { from:'c6', to:'e7', kind:'causes' },
+  { from:'e1', to:'v1', kind:'shows'  },
+  { from:'e2', to:'v1', kind:'shows'  },
+  { from:'v1', to:'c2', kind:'informs'},
+  { from:'v1', to:'c3', kind:'informs'},
+  { from:'e3', to:'p1', kind:'reacts' },
+  { from:'e5', to:'p1', kind:'reacts' },
+  { from:'p1', to:'c5', kind:'triggers'},
+  { from:'e6', to:'v2', kind:'shows'  },
+  { from:'v2', to:'c6', kind:'informs'},
+  { from:'e7', to:'p2', kind:'reacts' },
+];
+
+const KIND = { cmd:'Command', evt:'Event', pol:'Policy', vw:'View', hot:'Hotspot' };
+const $ = s => document.querySelector(s);
+const GRID = $('#grid');
+const byId = id => cards.find(c => c.id === id);
+const out = (id, k) => links.filter(l => l.from === id && l.kind === k);
+const into = (id, k) => links.filter(l => l.to === id && l.kind === k);
+
+let sel = null, cue = null, showWho = true;
+let uid = 0;
+const nid = p => p + (++uid) + Date.now().toString(36);
+const dirty = () => { $('#send').disabled = false; };
+
+/* ── the checks. Each returns findings straight off the grammar. ───────────── */
+function findings(){
+  const f = [];
+  const add = (why, msg, card, para) => f.push({ why, msg, card, para });
+
+  for (const c of cards.filter(c => c.type === 'cmd')) {
+    if (!out(c.id, 'causes').length)
+      add('no outcome', `<em>${c.text}</em> — the command runs and nothing changes. Missing event, or it's really a query.`, c.id);
+    if (!c.who && !into(c.id, 'triggers').length)
+      add('no actor', `<em>${c.text}</em> — nobody is named. Who does this, or what schedule fires it?`, c.id);
+    /* A command only needs something on screen when it acts on what already
+       exists — creating the first of a thing needs no view, and a command a
+       policy fires needs no human looking at anything. Both exemptions are
+       readable off the storm, so this check stays quiet until it means it. */
+    const actsOnExisting = cards.some(x => x.type === 'evt' && x.lane === c.lane && x.t < c.t);
+    if (actsOnExisting && !into(c.id, 'triggers').length && !into(c.id, 'informs').length)
+      add('no view', `<em>${c.text}</em> — nothing on screen to pick from. A screen is missing.`, c.id);
+  }
+  for (const e of cards.filter(c => c.type === 'evt')) {
+    if (!into(e.id, 'causes').length)
+      add('no cause', `<em>${e.text}</em> — nothing causes it. Either it arrives from outside, or the flow has a hole.`, e.id);
+    if (!out(e.id, 'reacts').length && !out(e.id, 'shows').length)
+      add('dead end', `<em>${e.text}</em> — nothing reacts to it and no view shows it. Why does it happen?`, e.id);
+  }
+  for (const l of lanes) {
+    if (!cards.some(c => c.lane === l.id && c.type === 'evt'))
+      add('thin row', `<em>${l.name}</em> — nothing ever happens to it. Not its own thing.`,
+        cards.find(c => c.lane === l.id)?.id);
+  }
+  prose.forEach((p, i) => {
+    if (p.trim() && !cards.some(c => c.src === i))
+      add('not modelled', `Paragraph ${i + 1} produced no cards — <em>${p.slice(0, 58)}…</em>`, null, i);
+  });
+  for (const h of cards.filter(c => c.type === 'hot'))
+    add('open question', `<em>${h.text}</em>`, h.id);
+  return f;
+}
+
+/* ── render ────────────────────────────────────────────────────────────────── */
+function renderProse(){
+  const lit = sel ? byId(sel)?.src : null;
+  $('#prose').innerHTML = prose.map((p, i) => {
+    const n = cards.filter(c => c.src === i).length;
+    return `<div class="para ${n ? '' : 'bare'} ${lit === i ? 'lit' : ''}" data-p="${i}">
+      <div class="n" title="${n ? n + ' card' + (n === 1 ? '' : 's') : 'nothing modelled from this yet'}">${n || '—'}</div>
+      <div class="t" contenteditable="plaintext-only" spellcheck="false">${p}</div>
+    </div>`;
+  }).join('');
+  const bare = prose.filter((p, i) => p.trim() && !cards.some(c => c.src === i)).length;
+  $('#cov').textContent = bare ? `${bare} not modelled` : 'all modelled';
+}
+
+function card(c, flagged){
+  const who = c.type !== 'cmd' ? '' :
+    showWho ? `<div class="who ${c.who ? '' : 'none'}" contenteditable="plaintext-only"
+                    spellcheck="false">${c.who || 'who?'}</div>` : '';
+  return `<div class="card ${c.type} ${sel === c.id ? 'sel' : ''} ${cue === c.id ? 'cue' : ''}
+               ${flagged ? 'flagged' : ''}" data-id="${c.id}">
+    <span class="flag"></span>
+    <div class="k">${KIND[c.type]}</div>
+    <div class="t" contenteditable="plaintext-only" spellcheck="false">${c.text}</div>
+    ${who}
+    <div class="rail">
+      <button data-act="type" title="Change type">⇄</button>
+      <button class="del" data-act="del" title="Delete">×</button>
+    </div>
+  </div>`;
+}
+
+/* a command and the event it causes read as one beat, so they sit side by side
+   with the arrow between them — Vernon's Command/Event pair */
+function units(laneId, t){
+  const here = cards.filter(c => c.lane === laneId && c.t === t);
+  const paired = new Set();
+  const u = [];
+  for (const c of here) {
+    if (paired.has(c.id)) continue;
+    if (c.type === 'cmd') {
+      const e = out(c.id, 'causes').map(l => byId(l.to)).find(e => e && e.lane === laneId && e.t === t);
+      if (e) { paired.add(e.id); u.push([c, e]); continue; }
+    }
+    u.push([c]);
+  }
+  return u;
+}
+
+function render(){
+  const flags = new Set(findings().map(f => f.card).filter(Boolean));
+  GRID.style.setProperty('--cols', COLS);
+  GRID.style.setProperty('--colw', '246px');
+  GRID.style.setProperty('--lanew', '124px');
+
+  let html = `<svg id="links"><defs>
+    <marker id="ap" viewBox="0 0 8 8" refX="6.5" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,1 L6.5,4 L0,7" fill="none" stroke="var(--pol)" stroke-width="1.4"/></marker>
+    <marker id="av" viewBox="0 0 8 8" refX="6.5" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,1 L6.5,4 L0,7" fill="none" stroke="var(--vw)" stroke-width="1.4"/></marker>
+  </defs></svg>`;
+
+  html += `<div class="axis lbl">time →</div>`;
+  for (let t = 0; t < COLS; t++) html += `<div class="axis col"><span class="arrow"></span></div>`;
+
+  for (const l of lanes) {
+    const n = cards.filter(c => c.lane === l.id).length;
+    html += `<div class="lane" data-lane="${l.id}">
+      <b contenteditable="plaintext-only" spellcheck="false">${l.name}</b>
+      <em>${n} card${n === 1 ? '' : 's'}</em></div>`;
+    for (let t = 0; t < COLS; t++) {
+      const inner = units(l.id, t).map(u => `<div class="unit">
+        ${card(u[0], flags.has(u[0].id))}
+        ${u[1] ? `<span class="to">→</span>${card(u[1], flags.has(u[1].id))}` : ''}
+      </div>`).join('');
+      html += `<div class="cell" data-lane="${l.id}" data-t="${t}">${inner}
+        <button class="add" data-lane="${l.id}" data-t="${t}">+ command</button></div>`;
+    }
+  }
+  GRID.innerHTML = html;
+  requestAnimationFrame(drawLinks);
+  renderProse();
+  renderChecks();
+}
+
+function drawLinks(){
+  const svg = GRID.querySelector('svg#links');
+  const box = {};
+  GRID.querySelectorAll('.card').forEach(el => {
+    box[el.dataset.id] = { x:el.offsetLeft, y:el.offsetTop, w:el.offsetWidth, h:el.offsetHeight };
+  });
+  const paths = [];
+  for (const l of links) {
+    if (l.kind === 'causes') continue;                    /* drawn inline as the pair arrow */
+    const a = box[l.from], b = box[l.to];
+    if (!a || !b) continue;
+    const cls = (l.kind === 'reacts' || l.kind === 'triggers') ? 'pol'
+              : l.kind === 'informs' ? 'vwd' : 'vw';
+    const x1 = a.x + a.w / 2, y1 = a.y + a.h, x2 = b.x + b.w / 2, y2 = b.y;
+    const down = y2 > y1;
+    const my = down ? (y1 + y2) / 2 : y1 + 26;
+    paths.push(`<path class="${cls}" d="M${x1},${down ? y1 : a.y} C${x1},${my} ${x2},${my} ${x2},${down ? y2 : b.y + b.h}"/>`);
+  }
+  svg.innerHTML = svg.querySelector('defs').outerHTML + paths.join('');
+  svg.style.height = GRID.scrollHeight + 'px';
+}
+
+let fi = 0;
+function renderChecks(){
+  const f = findings();
+  const strip = $('#checks');
+  strip.classList.toggle('clean', !f.length);
+  if (!f.length) {
+    $('#cnt').textContent = 'Nothing outstanding';
+    $('#msg').innerHTML = ''; $('#why').textContent = '';
+    return;
+  }
+  fi = Math.min(fi, f.length - 1);
+  const c = f[fi];
+  $('#cnt').innerHTML = `<b>${f.length}</b> to look at`;
+  $('#msg').innerHTML = c.msg;
+  $('#why').textContent = `${fi + 1}/${f.length} · ${c.why}`;
+}
+
+function step(d){
+  const f = findings();
+  if (!f.length) return;
+  fi = (fi + d + f.length) % f.length;
+  const c = f[fi];
+  cue = c.card || null;
+  sel = c.card || sel;
+  render();
+  const el = c.card && GRID.querySelector(`[data-id="${c.card}"]`);
+  if (el) el.scrollIntoView({ block:'nearest', inline:'center', behavior:'smooth' });
+  if (c.para != null) $(`.para[data-p="${c.para}"]`)?.scrollIntoView({ block:'nearest', behavior:'smooth' });
+  setTimeout(() => { cue = null; render(); }, 1600);
+}
+$('#next').onclick = () => step(1);
+$('#prev').onclick = () => step(-1);
+
+/* ── editing ───────────────────────────────────────────────────────────────── */
+GRID.addEventListener('input', e => {
+  const card = e.target.closest('.card');
+  if (card) {
+    const c = byId(card.dataset.id);
+    if (e.target.classList.contains('t')) c.text = e.target.textContent;
+    if (e.target.classList.contains('who')) c.who = e.target.textContent.trim();
+    dirty(); renderChecks(); return;
+  }
+  const lane = e.target.closest('.lane');
+  if (lane) { lanes.find(l => l.id === lane.dataset.lane).name = e.target.textContent; dirty(); }
+});
+GRID.addEventListener('focusout', e => { if (e.target.classList.contains('who')) render(); });
+
+$('#prose').addEventListener('input', e => {
+  const p = e.target.closest('.para'); if (!p) return;
+  prose[+p.dataset.p] = e.target.textContent; dirty(); renderChecks();
+});
+$('#prose').addEventListener('click', e => {
+  const p = e.target.closest('.para'); if (!p) return;
+  const i = +p.dataset.p;
+  document.querySelectorAll('.card').forEach(el => {
+    el.classList.toggle('dim', !cards.find(c => c.id === el.dataset.id && c.src === i));
+  });
+  document.querySelectorAll('.para').forEach(el => el.classList.toggle('lit', el === p));
+});
+
+const ORDER = ['cmd','evt','pol','vw','hot'];
+GRID.addEventListener('click', e => {
+  const addBtn = e.target.closest('.add');
+  if (addBtn) {
+    const c = { id:nid('c'), type:'cmd', text:'', lane:addBtn.dataset.lane, t:+addBtn.dataset.t,
+                who:'', src:null };
+    cards.push(c); sel = c.id; dirty(); render();
+    GRID.querySelector(`[data-id="${c.id}"] .t`)?.focus();
+    return;
+  }
+  const el = e.target.closest('.card'); if (!el) return;
+  const c = byId(el.dataset.id);
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act === 'del') { cards = cards.filter(x => x.id !== c.id);
+    links = links.filter(l => l.from !== c.id && l.to !== c.id); sel = null; dirty(); render(); return; }
+  if (act === 'type') { c.type = ORDER[(ORDER.indexOf(c.type) + 1) % ORDER.length]; dirty(); render(); return; }
+  sel = c.id; render();
+});
+
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Backspace' || e.key === 'Delete') && sel && !e.target.isContentEditable) {
+    e.preventDefault();
+    cards = cards.filter(x => x.id !== sel);
+    links = links.filter(l => l.from !== sel && l.to !== sel);
+    sel = null; dirty(); render();
+  }
+  if (e.key === 'Escape') { sel = null; document.querySelectorAll('.dim').forEach(n => n.classList.remove('dim')); render(); }
+});
+
+$('#tidy').onclick = () => { showWho = !showWho;
+  $('#tidy').textContent = showWho ? 'Collapse actors' : 'Show actors'; render(); };
+$('#send').onclick = () => { $('#send').disabled = true; };
+
+/* ── drag a card to another row or another moment ───────────────────────────── */
+let drag = null;
+GRID.addEventListener('pointerdown', e => {
+  if (e.target.closest('.rail') || e.target.isContentEditable) return;
+  const el = e.target.closest('.card'); if (!el) return;
+  drag = { id:el.dataset.id, x0:e.clientX, y0:e.clientY, live:false, el };
+});
+document.addEventListener('pointermove', e => {
+  if (!drag) return;
+  if (!drag.live) {
+    if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 5) return;
+    drag.live = true; drag.el.classList.add('moving');
+  }
+  GRID.querySelectorAll('.cell.drop').forEach(n => n.classList.remove('drop'));
+  const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest('.cell');
+  drag.cell = cell || null;
+  cell?.classList.add('drop');
+});
+document.addEventListener('pointerup', () => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  GRID.querySelectorAll('.cell.drop').forEach(n => n.classList.remove('drop'));
+  d.el.classList.remove('moving');
+  if (!d.live) return;
+  if (d.cell) {
+    const c = byId(d.id);
+    c.lane = d.cell.dataset.lane; c.t = +d.cell.dataset.t;
+    dirty();
+  }
+  sel = d.id; render();
+});
+
+addEventListener('resize', drawLinks);
+render();
+</script>

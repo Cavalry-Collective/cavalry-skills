@@ -1,9 +1,11 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ShopLite</title>
+<title>ShopLite</title>
 <!--
   Interactive user story map. Drag story cards between cells to re-slice work
   across phases. Self-contained (no external resources) so it works as an Artifact.
 
-  TO USE: replace the STORY_MAP object in the <script id="data"> block near the
+  TO USE: served by lib/json-bridge.mjs the map lives in a JSON file beside the
+  page and this file needs no editing at all. To publish an Artifact instead,
+  copy it and replace the <title> and the <script id="data"> block near the
   bottom with the real content, then publish. Everything else is the engine and
   needs no editing. Schema:
     { title,                                       // the product/initiative name only — no "Story Map" suffix
@@ -164,7 +166,7 @@
   .bulkbar{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);z-index:65;display:flex;align-items:center;gap:.45rem;background:var(--surface);border:1px solid var(--line-2);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.2);padding:.4rem .6rem}
   .bulkbar[hidden]{display:none}
   .bulkbar .cnt{font-size:.74rem;font-weight:600;color:var(--ink);margin-right:.2rem;white-space:nowrap}
-  /* live link to the Claude session (only when served by assets/bridge.py) */
+  /* live link to the Claude session (only when served by lib/json-bridge.mjs) */
   .linkdot{display:inline-flex;align-items:center;gap:.35rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.04em;color:var(--ink-3);white-space:nowrap;margin-right:.1rem}
   .linkdot[hidden]{display:none}
   .linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
@@ -459,13 +461,15 @@
 (function(){
   "use strict";
   const raw = JSON.parse(document.getElementById("data").textContent);
-  const KEY = "usm:" + (raw.title||"map").toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,40);
-  // Present only when the page is served by assets/bridge.py from a Claude
-  // session: {token, save, events}. Null as an Artifact / opened from disk.
-  const BRIDGE = window.__USM_BRIDGE__ || null;
+  const keyFor = m => "usm:" + (m.title||"map").toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,40);
+  let KEY = keyFor(raw);
+  // Present only when the page is served by lib/json-bridge.mjs from a Claude
+  // session: {token, doc, save, events, name}. Null as an Artifact / opened
+  // from disk, where the <script id="data"> block below is the whole map.
+  const BRIDGE = window.__VSTACK_BRIDGE__ || null;
   let linkUp = !!BRIDGE;
   const STATUSES = ["open","progress","review","done"];
-  let state = normalize(load() || clone(raw));
+  let state = normalize(clone(raw));
 
   // UI language (EN / 中文) — chrome only; map content stays as authored
   const I18N = {
@@ -962,7 +966,7 @@
   $("io-cancel").onclick=()=>io.close();
   $("io-ok").onclick=()=>{ try{ const o=JSON.parse($("io-text").value); if(!o.activities||!o.phases||!o.stories) throw 0; state=normalize(o); save(); render(); io.close(); toast(T("tLoaded")); }catch(e){ toast(T("badJson")); } };
 
-  // ---- live link back to the Claude session (present only under bridge.py) ----
+  // ---- live link back to the Claude session (only under json-bridge.mjs) ----
   // Send: POST the state; the server writes the JSON and bumps a counter the
   // session is waiting on. Receive: SSE tells us Claude rewrote the file — we
   // offer it rather than applying it, so an in-progress re-slice isn't clobbered.
@@ -977,7 +981,7 @@
   function sendToClaude(){
     if(sending) return;
     sending=true; $("export").disabled=true;
-    fetch(BRIDGE.save,{method:"POST",headers:{"Content-Type":"application/json","X-USM-Token":BRIDGE.token},body:JSON.stringify(state,null,2)})
+    fetch(BRIDGE.save,{method:"POST",headers:{"Content-Type":"application/json","X-VSTACK-Token":BRIDGE.token},body:JSON.stringify(state,null,2)})
       .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
       .then(()=>{ linkUp=true; setLink(true); toast(T("tSent")); })
       .catch(()=>{ linkUp=false; setLink(false); toast(T("tSendFail")); openIO(T("ioCopy"),JSON.stringify(state,null,2),true); })
@@ -997,9 +1001,27 @@
   }
   $("copy").hidden = !BRIDGE;   // primary button is Send when linked, Copy when not
 
-  applyLang();
-  render();
+  /* Bridged, the JSON file on disk is the map and the page is just its editor,
+     so boot from /doc — never from localStorage, which would quietly resurrect
+     an older arrangement over the one Claude is holding. Off disk there is no
+     doc to fetch: the inline block is the map, and localStorage carries the
+     user's edits between openings. */
+  (async function boot(){
+    if(BRIDGE){
+      try{
+        const r = await fetch(BRIDGE.doc+"?t="+encodeURIComponent(BRIDGE.token));
+        const o = await r.json();
+        if(o && o.activities && o.phases && o.stories) state = normalize(o);
+      }catch(e){ /* keep the inline fallback and let the link dot show the truth */ }
+    } else {
+      const saved = load();
+      if(saved) state = normalize(saved);
+    }
+    KEY = keyFor(state);
+    // Served, the template is unfilled — the tab takes its name from the map.
+    if(BRIDGE && state.title) document.title = state.title + " · Visual Stack";
+    applyLang();
+    render();
+  })();
 })();
 </script>
-
-</body></html>

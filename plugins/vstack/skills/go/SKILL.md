@@ -46,7 +46,7 @@ No state file. Two things to look at, in order:
 1. **The conversation.** What has the user been doing here — describing an idea? Iterating on a UI?
    Arguing scope? Debugging code? The chat is usually the stronger signal.
 2. **The directory.** Cheap checks, no deep read: is it a git repo with real code? Are there HTML
-   mockups (`design/*.html`, or any standalone page being discussed)? A `specs/` directory? A
+   wireframes (`design/*.html`, or any standalone page being discussed)? A `specs/` directory? A
    `story-map.json`? A `.ui-review/` directory from past wireframe rounds?
 
 Map what you find to an entry point:
@@ -54,10 +54,10 @@ Map what you find to an entry point:
 | Situation | Entry point |
 |---|---|
 | An idea is being discussed; little or nothing on disk | `/vstack:start` — or `/vstack:wireframe` directly if they just want to see a screen |
-| A UI, screen, or design is being discussed, or mockups exist | `/vstack:wireframe` — build it, or open the existing page for review |
-| Acceptance criteria, "what exactly should it do", or a mockup that needs formalising | `/vstack:spec` |
+| A UI, screen, or design is being discussed, or wireframes exist | `/vstack:wireframe` — build it, or open the existing page for review |
+| Acceptance criteria, "what exactly should it do", or a wireframe that needs formalising | `/vstack:spec` |
 | Scope, phases, releases, or "what's in v1" is being discussed | `/vstack:user-story-map` |
-| A story map and a signed-off mockup both exist | `/vstack:phase-wireframe` |
+| A story map and a signed-off wireframe both exist | `/vstack:phase-wireframe` |
 | "Build it" — a spec or story map exists and the ask is implementation | `/vstack:phase-build` |
 | A real codebase with no vstack state | `/vstack:start` — its existing-app mode records the project without touching code |
 

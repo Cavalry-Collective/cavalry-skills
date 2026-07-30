@@ -6,7 +6,7 @@ below as `next`), `start` (stage 0, né `init`), `wireframe`, `spec` (stage 3), 
 `requirements` (stage 1) and the visual layers noted below remain. This document records the chain's
 design and the decisions already made so they don't have to be re-argued.
 
-**Mockups for the unbuilt stages live in [`mockups/`](mockups/)** — `requirements`, `spec`, the phase
+**Wireframes for the unbuilt stages live in [`wireframes/`](wireframes/)** — `requirements`, `spec`, the phase
 slider and the build maps. They are reviewed designs, not implementations; `start`'s chooser was one of
 them until it became `plugins/vstack/skills/start/assets/chooser.html`.
 
@@ -122,7 +122,7 @@ rule nobody advances the phase and the loop stalls silently.
 `phase-wireframe` is the stage that earns the chain its keep: it takes a design everyone has already
 signed off and **subtracts** it to each release phase, so the phase-1 build target looks exactly like
 the approved design minus what isn't in phase 1 yet. It is the one stage with no equivalent
-elsewhere, and it needs nothing from the pipeline — a base mockup and a set of phases are enough —
+elsewhere, and it needs nothing from the pipeline — a base wireframe and a set of phases are enough —
 so it was built first. See `plugins/vstack/skills/phase-wireframe/`.
 
 Three things settled while building it, worth carrying into the rest of the chain:
@@ -181,7 +181,7 @@ Run in an **existing codebase**, the form opens straight on the confirm step, pr
 
 ### 1 · `requirements` — the live concept map
 
-*Design reviewed to v6 in [`mockups/requirements-map.html`](mockups/requirements-map.html); **not
+*Design reviewed to v6 in [`wireframes/requirements-map.html`](wireframes/requirements-map.html); **not
 approved**, and deliberately parked. The notes below are what the review settled, not a finished spec.*
 
 You write requirements in prose; the map builds itself beside you. The map is the artifact — the
@@ -240,7 +240,7 @@ phase adds is obvious at a glance.
 `wireframe` already ships almost exactly this — its version timeline is a draggable handle that
 scrubs published versions. Same interaction, different axis.
 
-**Reviewed to v5 in [`mockups/phase-wireframe-slider.html`](mockups/phase-wireframe-slider.html).**
+**Reviewed to v5 in [`wireframes/phase-wireframe-slider.html`](wireframes/phase-wireframe-slider.html).**
 It ended up *being* the wireframe workspace — same tokens, same topbar, same canvas and browser
 window, same timeline markup — with the version rail showing phases and one addition, a
 **Highlight new** switch. That is the strongest form of "one engine, not eight" found so far: not a
@@ -256,7 +256,7 @@ than an editor that edits the wrong file.
 ### 6–8 · `phase-build` — the board · **built, as one skill**
 
 *Shipped as `plugins/vstack/skills/phase-build/` — the trio merged into one skill with three tabs,
-as the reviewed mockup already had it. The same board is the pre-build plan and the live build view.*
+as the reviewed wireframe already had it. The same board is the pre-build plan and the live build view.*
 
 The same shape three times, over three different subjects, as tabs on one board:
 
@@ -288,9 +288,20 @@ hard parts and six places for them to drift.
 page on `127.0.0.1`, wake the session when the user sends, push updates back as an offered refresh
 rather than a silent overwrite, and shut down cleanly when the tab closes. **The shared engine now
 exists**: `plugins/vstack/lib/json-bridge.mjs`, generalized from `bridge.py` when `spec` and
-`phase-build` were built — both run on it, so the third and fourth copies never happened. The two
-original skills deliberately keep their own engines for now; migrating them is optional cleanup,
-not a debt that grows.
+`phase-build` were built.
+
+**Three of the four skills run on it.** `user-story-map` has been migrated and `bridge.py` is gone:
+the map JSON is the artifact, the template is served unmodified, and the page loads from `/doc`
+(inline data is still there, and is what an Artifact copy runs on). One engine, one Node runtime, no
+Python.
+
+**`wireframe` keeps its own, deliberately.** `review-server.mjs` is not a second copy of the same
+idea — it serves the page under review from the same origin, keeps frozen HTML versions and
+per-version review folders, carries five sentinel files that four CLI subcommands read and write,
+and rebroadcasts on `fs.watch`. json-bridge's whole model is *one JSON document, one seq, whole-doc
+push*. Merging them would either strip what the review loop needs or grow the shared engine into a
+superset of both, which is more places to drift, not fewer. Two engines with different jobs is the
+honest answer.
 
 **The mind map.** Three stages (6–8) plus `requirements` want a directed graph with inline editing,
 drag-to-reparent, and a two-state colour scheme. That is one component fed four datasets, not four
@@ -537,19 +548,24 @@ Items 1–3 shipped on 2026-07-29 with plugin 4.0.0.
 
 ## Still open
 
-- **`specs/requirements.md` is an extension** to the template's convention, which describes only
-  dated per-feature files. The template's `design/CLAUDE.md` already refers to *"the requirements
-  spec under `specs/`"*, so the name is defensible — but it wants a line in
-  `vstack-template-base`'s `specs/README.md`, which is a change to a different repo.
+- **Two lines owed to [`vstack-template-base`](https://github.com/Cavalry-Collective/vstack-template-base)**,
+  a different repo, so they can't be written from here. Both are small, and both are about the
+  template's own docs agreeing with what the stack writes into it:
+  1. `specs/README.md` — name `product.md` and `requirements.md`. The convention there describes only
+     dated per-feature files; `design/CLAUDE.md` already refers to *"the requirements spec under
+     `specs/`"*, so the extension is defensible, it is just undocumented.
+  2. `design/CLAUDE.md` and the `design/README.md` inventory column — say **wireframe**, per the
+     decision below. Today they say *prototype*.
 - ~~**The `phase-build-*` trio is the least specified part of this.**~~ Resolved by building it: the
   trio **is one `phase-build` skill** with three tabs. What it adds over the template's `CLAUDE.md`
   contracts is the visible, adjustable plan and the live build record — the contracts still govern
   *how* each node is built (and in a non-template repo, the codebase's own conventions do).
-- **Wireframe or mockup?** The template's `design/` folder, its `CLAUDE.md`, and its inventory table
-  all say *prototype* and *mockup*, and the deliverable described there is a fully interactive,
-  token-styled page — closer to a mockup than a wireframe. The skill name and the template's
-  vocabulary would disagree. Either is fine, but they should be reconciled deliberately rather than
-  left to drift.
+- ~~**Wireframe or mockup?**~~ **Settled: wireframe**, everywhere the stack speaks — the skill names,
+  the copy, this repo's `docs/wireframes/`, and the default output folder a standalone run writes to.
+  One word for the thing, whatever its fidelity: a page you operate, argue with, and sign off. The
+  skills still *answer* to "mockup" and "prototype" — both stay in the trigger descriptions, because
+  that is what people type. The template repo is the last place the two vocabularies disagree; the
+  line it needs is listed at the top of this section.
 - **How far `start` should go on its own.** Day-1 steps 11–13 — protect `main`, stand up staging,
   confirm CI green — are GitHub settings and a live push, not file edits. A skill probably shouldn't
   do those unasked, so `start` may have to end by *handing back a checklist* rather than claiming the
@@ -574,7 +590,7 @@ Items 1–3 shipped on 2026-07-29 with plugin 4.0.0.
 - ~~**What "existing" means for the `phase-build` colouring.**~~ Resolved, the honest way: **read
   from the codebase**, at plan time, with the read stamped on the board. Never from a previous
   phase's plan.
-- **The graph layout dependency.** Partially settled: the build board ships the mockup's hand-rolled
+- **The graph layout dependency.** Partially settled: the build board ships the wireframe's hand-rolled
   layered **tree** layout, which is enough for endpoints, the atomic tree, and infra as shipped. A
   general dependency *graph* (infra nodes with multiple parents) still has no answer, and neither
   does `requirements`' free-form concept map.
@@ -599,12 +615,13 @@ Rough order, each step independently useful:
    stages that hold a conversation, not to stages that ask a question.
 3. ~~**The shared live-link engine**~~ — **built**, as `plugins/vstack/lib/json-bridge.mjs`,
    generalized from `bridge.py` (seq waiter, SSE push with echo suppression, token, injection,
-   idle-close) plus a `patch` subcommand for per-node progress. `spec` and `phase-build` both run on
-   it. `wireframe` and `user-story-map` keep their own engines for now — migration is optional
-   cleanup, not growing debt.
+   idle-close) plus a `patch` subcommand for per-node progress and an on-disk version history
+   (`/history`, `/history/<n>`) behind the spec page's timeline. `spec`, `phase-build` and
+   `user-story-map` run on it; `bridge.py` is gone. `wireframe` keeps `review-server.mjs` — see
+   *One engine, not eight* for why that one is not a duplicate.
 4. ~~**`next`**~~ — **built**, as `/vstack:go`, with inference mode on top of the planned
    state-file reading. It proves the `pipeline.json` schema everything after depends on.
-5. **`requirements`**, from another round of design — the v6 mockup was parked, not approved. It is
+5. **`requirements`**, from another round of design — the v6 wireframe was parked, not approved. It is
    also the first mind map, so the graph-layout question gets settled here.
 6. ~~**The `ui-review` → `wireframe` rename**~~ — **done**. Footers still to come, once the state file has stopped moving.
 7. ~~**`spec`**~~ — **built**, the drill-down on the shared engine. Note for when `requirements`

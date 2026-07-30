@@ -1,11 +1,11 @@
 ---
 name: phase-wireframe
-description: Take one signed-off UI mockup and cut it down into a series of phased mockups — one per release phase, each showing only what exists by that phase, with the layout untouched. Use when the user wants a Phase 1 / MVP version of an existing mockup, phased or staged mockups, a mockup sliced by release phase or story map, or wants to see what a screen looks like before later features land.
+description: Take one signed-off UI wireframe and cut it down into a series of phased wireframes — one per release phase, each showing only what exists by that phase, with the layout untouched. Use when the user wants a Phase 1 / MVP version of an existing wireframe or mockup, phased or staged screens, a design sliced by release phase or story map, or wants to see what a screen looks like before later features land.
 ---
 
-One mockup in, one mockup per phase out. Each phase file shows everything available **by** that phase
-and nothing that isn't, in exactly the positions the approved design already put them — so a phase
-mockup is the real build target for that release, not a redrawing of it.
+One wireframe in, one wireframe per phase out. Each phase file shows everything available **by** that
+phase and nothing that isn't, in exactly the positions the approved design already put them — so a
+phase wireframe is the real build target for that release, not a redrawing of it.
 
 ```
 base.html ──┬──► phase-1/base.html    only what ships in phase 1
@@ -18,7 +18,7 @@ is the entire discipline of this skill, and §4 proves it mechanically rather th
 
 ## 1 · Resolve the two inputs
 
-**The base mockup** — one self-contained HTML file. If the user hasn't named one, ask; don't guess
+**The base wireframe** — one self-contained HTML file. If the user hasn't named one, ask; don't guess
 among the files in `design/`. Never work from an already-phased file: every phase is cut from the
 original.
 
@@ -60,7 +60,7 @@ Confirm the plan, then generate. If the user re-slices the story map afterwards,
 For each phase 1, 2, 3 … **in order**, and only starting the next once the current one is written,
 checked and shown:
 
-1. **Start from the original full mockup.** Never from the previous phase's output — errors compound.
+1. **Start from the original full wireframe.** Never from the previous phase's output — errors compound.
 2. **Subtract every element, component and interaction that does not belong to the current phase or
    any earlier phase.** Phases are cumulative: phase 2 shows phase 1 *and* phase 2.
 3. **Keep the exact same layout, spacing, alignment, sizes and visual hierarchy.** Do not move,
@@ -126,7 +126,7 @@ the plan, then regenerate the affected phases from the base.
 
 ## State & handoff
 
-Runs standalone today — a base mockup and a set of phases are all it needs.
+Runs standalone today — a base wireframe and a set of phases are all it needs.
 
 It is also **stage 5 of the planned Cavalry pipeline** (`docs/pipeline-wishlist.md` in the
 `visual-stack` repo), which isn't built. When it is: read the base and phases from

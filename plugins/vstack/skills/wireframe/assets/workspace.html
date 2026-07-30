@@ -453,7 +453,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
               </div>
               <div id="viewportBox">
                 <div id="scroller">
-                  <iframe id="frame" title="Mockup under review"></iframe>
+                  <iframe id="frame" title="Wireframe under review"></iframe>
                   <div id="overlay"><div id="drag"></div></div>
                 </div>
               </div>
@@ -750,7 +750,7 @@ async function boot () {
     }
   }
   S.runtime = data.mode || (inline ? 'artifact' : 'local');
-  S.name = data.name || 'Mockup';
+  S.name = data.name || 'Wireframe';
   S.fileName = data.fileName || 'page.html';
   S.html = data.html || '';
   S.versions = data.versions || [];
@@ -2056,7 +2056,7 @@ function buildFeedback () {
   const reopened = items.concat(carried).filter(a => a.reopenedAt && !a.revert);
 
   const L = [];
-  L.push(`# Mockup review — ${S.name} · v${S.version}`);
+  L.push(`# Wireframe review — ${S.name} · v${S.version}`);
   L.push(`${items.length} comment(s) — every one is a must` +
     (carried.length ? ` · ${carried.length} carried over` : '') +
     (reverts.length ? ` · ${reverts.length} revert` : '') +

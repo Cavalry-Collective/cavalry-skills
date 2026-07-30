@@ -1,6 +1,6 @@
 # Resolving the design source
 
-A mockup is only useful if it looks like the thing it will become. Resolve one
+A wireframe is only useful if it looks like the thing it will become. Resolve one
 source and stick to it for every iteration — mixing sources between versions is
 the fastest way to make a review loop feel like it's going backwards.
 
@@ -11,10 +11,10 @@ Chrome tools:
 
 1. `navigate` to the URL in a new tab. Dismiss the cookie banner first (decline
    non-essential) so it is in neither the screenshots nor the numbers.
-2. Screenshot at each size the mockup needs — 1440 first, then 390 if the design
+2. Screenshot at each size the wireframe needs — 1440 first, then 390 if the design
    has to work small. Save them beside the page under review.
 3. Run **`assets/harvest-reference.js`** with the javascript tool, at the width
-   the mockup will lead with (the workspace offers 2560 / 1440 / 834 / 390). It
+   the wireframe will lead with (the workspace offers 2560 / 1440 / 834 / 390). It
    returns JSON:
 
    | | |
@@ -26,7 +26,7 @@ Chrome tools:
 
    Every number is a value the page is really painting. A colour eyeballed off a
    screenshot is always slightly wrong, and twenty slightly-wrong values is what
-   makes a mockup read as a knock-off of the thing it is meant to be.
+   makes a design read as a knock-off of the thing it is meant to be.
 4. Note what the JSON can't see: button hierarchy, density, how empty states
    read, what the page leads with.
 5. Write it all to `<page-dir>/<name>-reference.md`, screenshots beside it. Every

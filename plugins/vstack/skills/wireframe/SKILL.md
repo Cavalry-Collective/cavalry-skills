@@ -1,9 +1,9 @@
 ---
 name: wireframe
-description: Build a UI wireframe or mockup and open it in an interactive review workspace where the user comments directly on the page, turning those comments into the next iteration. Use when the user wants a wireframe, UI mockup, screen design or prototype built; wants to review, annotate, mark up or comment on a page or design; wants to iterate on a UI; or wants to compare versions of a screen.
+description: Build a UI wireframe and open it in an interactive review workspace where the user comments directly on the page, turning those comments into the next iteration. Use when the user wants a wireframe, UI mockup, screen design or prototype built; wants to review, annotate, mark up or comment on a page or design; wants to iterate on a UI; or wants to compare versions of a screen.
 ---
 
-A two-way review loop over one HTML file. The user comments on the page; you apply the comments, ask about anything ambiguous, and publish the next version. It works on a mockup you just generated, an exported screen, a prototype — anything that is a self-contained HTML page.
+A two-way review loop over one HTML file. The user comments on the page; you apply the comments, ask about anything ambiguous, and publish the next version. It works on a wireframe you just generated, an exported screen, a prototype — anything that is a self-contained HTML page.
 
 ```
 requirements ──► page.html ──► review workspace ──► feedback.md ──┐
@@ -46,14 +46,14 @@ With a **URL**, use the Chrome tools:
 
 1. `navigate` to it in a new tab. Dismiss the cookie banner (decline non-essential) so
    it isn't in the screenshots or the measurements.
-2. `resize_window` and screenshot at each size the mockup needs — 1440 first, then 390
-   if the design has to work small. Save them beside the mockup.
+2. `resize_window` and screenshot at each size the wireframe needs — 1440 first, then 390
+   if the design has to work small. Save them beside the wireframe.
 3. Run **`assets/harvest-reference.js`** with the javascript tool. It returns JSON —
    the palette weighted by how much of the page it covers, the type scale actually in
    use, spacing rhythm, radii, shadows, and the layout skeleton (nav model, content
    width, grid columns, how many tables and inputs). Read it out of the page rather
    than off a screenshot: a colour eyeballed from an image is always slightly wrong,
-   and twenty slightly-wrong values is exactly what makes a mockup look like a knock-off.
+   and twenty slightly-wrong values is exactly what makes a design look like a knock-off.
 4. If a signed-in view is the real reference, ask the user to navigate there themselves
    and say when to capture — never enter credentials.
 
@@ -86,7 +86,7 @@ Requirements the workspace places on the file:
 
 ```bash
 SKILL=<this skill dir>          # the directory containing this SKILL.md
-FILE=mockups/candidate-pipeline.html
+FILE=wireframes/candidate-pipeline.html
 
 node "$SKILL/assets/review-server.mjs" publish --file "$FILE" --label "Initial version"
 ```

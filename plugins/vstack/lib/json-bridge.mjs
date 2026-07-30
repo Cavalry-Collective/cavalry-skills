@@ -20,9 +20,20 @@
  *        [--port 0] [--idle-timeout 90] [--name <label>]
  *   node json-bridge.mjs patch --json <doc.json> --id <nodeId> --set k=v [--set k=v ...]
  *
- * serve injects `window.__VSTACK_BRIDGE__ = {token, doc, save, events, name}`
- * ahead of the template; opened off disk the template sees no handle and works
- * standalone. Bookkeeping lives in <json-dir>/.vstack-bridge/<stem>.{seq,url}.
+ * serve injects `window.__VSTACK_BRIDGE__ = {token, doc, save, events, history,
+ * name}` ahead of the template; opened off disk the template sees no handle and
+ * works standalone. Every version the document passes through is kept beside it,
+ * so a reload doesn't lose the trail:
+ *
+ *   GET /history      the index — [{n, origin, at}], oldest first
+ *   GET /history/<n>  that version's document
+ *
+ * `origin` is who moved it: `opened` (the state the link started in), `sent`
+ * (the page pressed Send) or `claude` (the session rewrote the file). The page
+ * labels them; the server only records what happened.
+ *
+ * Bookkeeping lives in <json-dir>/.vstack-bridge/<stem>.{seq,url} and
+ * <stem>.history/.
  * The seq waiter (from the skill instructions):
  *
  *   S=<dir>/.vstack-bridge/<stem>.seq ; N=<the seq printed when you armed>
@@ -94,8 +105,25 @@ const BRIDGE_DIR = path.join(path.dirname(DOC), '.vstack-bridge')
 const STEM = path.basename(DOC, '.json')
 const SEQ_FILE = path.join(BRIDGE_DIR, STEM + '.seq')
 const URL_FILE = path.join(BRIDGE_DIR, STEM + '.url')
+const HIST_DIR = path.join(BRIDGE_DIR, STEM + '.history')
+const HIST_INDEX = path.join(HIST_DIR, 'index.json')
 fs.mkdirSync(BRIDGE_DIR, { recursive: true })
 if (!fs.existsSync(SEQ_FILE)) fs.writeFileSync(SEQ_FILE, '0')
+
+/* ── history — one frozen copy per version, so a reload keeps the trail ──
+   The page owns the labels; the server records only what moved the document
+   and when. A version identical to the one before it is not a version. */
+const readHistory = () => { try { return JSON.parse(fs.readFileSync(HIST_INDEX, 'utf8')) } catch { return [] } }
+function record (origin, text) {
+  const index = readHistory()
+  const last = index[index.length - 1]
+  if (last && last.hash === sha(text)) return last
+  const entry = { n: (last?.n || 0) + 1, origin, at: new Date().toISOString(), hash: sha(text) }
+  fs.mkdirSync(HIST_DIR, { recursive: true })
+  writeAtomic(path.join(HIST_DIR, `v${entry.n}.json`), text)
+  writeAtomic(HIST_INDEX, JSON.stringify(index.concat(entry), null, 2))
+  return entry
+}
 
 const TOKEN = crypto.randomBytes(16).toString('base64url')
 const okToken = url => url.searchParams.get('t') === TOKEN
@@ -112,7 +140,7 @@ let idleSince = Date.now()
 function page () {
   const body = fs.readFileSync(TEMPLATE, 'utf8')
   const handle = `<script>window.__VSTACK_BRIDGE__=${JSON.stringify({
-    token: TOKEN, name: NAME, doc: '/doc', save: '/save', events: '/events',
+    token: TOKEN, name: NAME, doc: '/doc', save: '/save', events: '/events', history: '/history',
   })}</script>\n`
   if (/^\s*<!doctype/i.test(body)) return body.replace(/(<head[^>]*>)/i, `$1\n${handle}`)
   return `<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n${handle}${body}`
@@ -139,6 +167,19 @@ const server = http.createServer((req, res) => {
     return send(res, 200, 'application/json', fs.readFileSync(DOC, 'utf8'))
   }
 
+  if (req.method === 'GET' && url.pathname === '/history') {
+    if (!okToken(url) && !okHeader(req)) return send(res, 403, 'application/json', '{"error":"bad token"}')
+    return send(res, 200, 'application/json', JSON.stringify(readHistory().map(({ hash, ...v }) => v)))
+  }
+
+  const hv = url.pathname.match(/^\/history\/(\d+)$/)
+  if (req.method === 'GET' && hv) {
+    if (!okToken(url) && !okHeader(req)) return send(res, 403, 'application/json', '{"error":"bad token"}')
+    const f = path.join(HIST_DIR, `v${Number(hv[1])}.json`)
+    if (!fs.existsSync(f)) return send(res, 404, 'application/json', '{"error":"no such version"}')
+    return send(res, 200, 'application/json', fs.readFileSync(f, 'utf8'))
+  }
+
   if (req.method === 'POST' && url.pathname === '/save') {
     if (!okToken(url) && !okHeader(req)) return send(res, 403, 'application/json', '{"error":"bad token"}')
     let body = ''
@@ -154,8 +195,9 @@ const server = http.createServer((req, res) => {
       lastMtime = fs.statSync(DOC).mtimeMs
       const seq = Number(fs.readFileSync(SEQ_FILE, 'utf8') || '0') + 1
       writeAtomic(SEQ_FILE, String(seq))
-      console.log(`save #${seq} from page (${body.length}b)`)
-      return send(res, 200, 'application/json', JSON.stringify({ ok: true, seq }))
+      const v = record('sent', text)
+      console.log(`save #${seq} from page (${body.length}b) — v${v.n}`)
+      return send(res, 200, 'application/json', JSON.stringify({ ok: true, seq, version: v.n }))
     })
     return
   }
@@ -186,9 +228,10 @@ setInterval(() => {
   if (h === lastHash || h === fromPage) { lastHash = h; return }
   lastHash = h
   try { JSON.parse(text) } catch { return }        // mid-write or invalid — next tick catches it
+  const v = record('claude', text)
   const payload = 'event: push\ndata: ' + text.replace(/\n/g, '\ndata: ') + '\n\n'
   for (const c of clients) c.write(payload)
-  console.log('pushed update to ' + clients.size + ' client(s)')
+  console.log(`pushed v${v.n} to ${clients.size} client(s)`)
 }, 1000)
 
 /* keepalive — SSE clients are the only tab-alive signal we have */
@@ -220,6 +263,9 @@ server.on('error', e => {
 server.listen(PORT, '127.0.0.1', () => {
   const url = `http://127.0.0.1:${server.address().port}/?t=${TOKEN}`
   writeAtomic(URL_FILE, url)
+  // The state the link opened in is a version like any other — unless the last
+  // one recorded already is it, which is what re-serving an untouched doc means.
+  record('opened', fs.readFileSync(DOC, 'utf8'))
   console.log(`${NAME} — live link up`)
   console.log(`  open ${url}`)
   console.log(`  seq  ${SEQ_FILE} (${fs.readFileSync(SEQ_FILE, 'utf8')})`)

@@ -508,16 +508,36 @@ function migrate (d) {
 }
 const allStories = () => doc.epics.flatMap(ep => ep.stories);
 
-/* ── versions — a freeze on every send and every applied update ── */
-let versions = [];        // [{n, label, date, json}]
+/* ── versions — the trail json-bridge keeps beside the document ──
+   The server records one on every open, send and Claude rewrite, so closing
+   the tab and coming back doesn't lose the history the way an in-page array
+   would. Only the index is fetched up front; bodies come on demand. Opened off
+   disk there is one version — the one in front of you. */
+let versions = [];        // [{n, label, date, json}] — json null until fetched
 let viewing = 1;          // the version on screen; latest == live and editable
+let stash = null;         // the live document, parked while an old one is on screen
+let navSeq = 0;           // scrubbing outruns the fetches; only the last one wins
 const latest = () => versions.length ? versions[versions.length - 1].n : 1;
 const isHistory = () => viewing !== latest();
 const RO = () => isHistory();
-function freeze (label) {
-  versions.push({ n: latest() + (versions.length ? 1 : 0), label, date: new Date().toISOString(), json: JSON.stringify(doc) });
-  viewing = latest();
-  buildTimeline();
+const ORIGIN = { opened: 'vOpened', sent: 'vSent', claude: 'vClaude' };
+
+async function refreshVersions () {
+  if (!BRIDGE) return;
+  try {
+    const idx = await (await fetch(`${BRIDGE.history}?t=${BRIDGE.token}`)).json();
+    if (!Array.isArray(idx) || !idx.length) return;
+    // Only bodies that came from the server are reusable — the boot fallback's
+    // v1 is the live document, which is not necessarily the server's v1.
+    const cached = new Map(versions.filter(v => v.fetched).map(v => [v.n, v.json]));
+    versions = idx.map(v => ({
+      n: v.n, label: t(ORIGIN[v.origin] || 'vSent'), date: v.at,
+      json: cached.get(v.n) || null, fetched: cached.has(v.n),
+    }));
+    viewing = latest();
+    stash = null;
+    buildTimeline();
+  } catch { /* the link dot is already saying the link is down */ }
 }
 
 const dirty = () => {
@@ -860,13 +880,24 @@ function syncTimeline () {
   $('#histText').textContent = t('viewingOld')(viewing);
   $('#btnNow').textContent = t('backToNow');
 }
-function gotoVersion (n) {
-  if (!vAt(n) || n === viewing) { syncTimeline(); return; }
-  if (!isHistory()) {           // leaving the live doc — keep its state in the latest slot
-    versions[versions.length - 1].json = JSON.stringify(doc);
+async function gotoVersion (n) {
+  const v = vAt(n);
+  if (!v || n === viewing) { syncTimeline(); return; }
+  const my = ++navSeq;
+  if (!isHistory()) stash = JSON.stringify(doc);   // leaving the live document
+  if (n === latest() && stash) {                   // …and coming back to it
+    doc = migrate(JSON.parse(stash)); stash = null;
+  } else {
+    if (!v.json && BRIDGE) {
+      try {
+        v.json = JSON.stringify(await (await fetch(`${BRIDGE.history}/${n}?t=${BRIDGE.token}`)).json());
+        v.fetched = true;
+      } catch { syncTimeline(); return }
+    }
+    if (my !== navSeq || !v.json) return;          // scrubbed past while it loaded
+    doc = migrate(JSON.parse(v.json));
   }
   viewing = n;
-  doc = migrate(JSON.parse(vAt(n).json));
   render();
 }
 $('#btnNow').addEventListener('click', () => gotoVersion(latest()));
@@ -915,11 +946,14 @@ function offerRefresh () {
   $('#rbDismiss').textContent = t('dismiss');
   $('#workBanner').classList.add('on');
 }
-$('#rbApply').addEventListener('click', () => {
+/* Applying is a choice to take Claude's document over yours — anything edited
+   since the last Send goes with it. The server already recorded this version
+   when it pushed; dismissing leaves the page on its own copy and the timeline
+   picks the update up on the next refresh. */
+$('#rbApply').addEventListener('click', async () => {
   if (pendingPush) {
-    if (!isHistory()) versions[versions.length - 1].json = JSON.stringify(doc);
     doc = migrate(pendingPush); pendingPush = null; dirtySinceSend = false;
-    freeze(t('vClaude'));
+    await refreshVersions();
   }
   $('#workBanner').classList.remove('on');
   render();
@@ -937,10 +971,9 @@ $('#send').addEventListener('click', async () => {
     });
     if (!r.ok) throw new Error(r.status);
     dirtySinceSend = false;
-    freeze(t('vSent'));
+    await refreshVersions();
     $('#send').textContent = t('sent');
     setTimeout(syncSend, 1600);
-    syncTimeline();
   } catch { $('#send').disabled = false; }
 });
 
@@ -967,6 +1000,8 @@ $('#send').addEventListener('click', async () => {
   versions = [{ n: 1, label: t('vOpened'), date: new Date().toISOString(), json: JSON.stringify(doc) }];
   viewing = 1;
   buildTimeline();
+  render();
+  await refreshVersions();   // the trail from earlier rounds, if there is one
   render();
 })();
 </script>

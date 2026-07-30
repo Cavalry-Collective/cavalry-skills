@@ -292,7 +292,7 @@ const buildActive = () => {
   return any;
 };
 
-/* ── layout + render (the mockup's tree layout, kept) ── */
+/* ── layout + render (the wireframe's tree layout, kept) ── */
 function layout () {
   const out = []; let row = 0;
   (function w (n, d) {
@@ -392,7 +392,7 @@ function syncButtons () {
   $('#start').classList.toggle('primary', !active);
 }
 
-/* ── find / edit (the mockup's) ── */
+/* ── find / edit (the wireframe's) ── */
 const find = (id, n = tree(), p = null) => {
   if (n.id === id) return { n, p };
   for (const k of n.children || []) { const r = find(id, k, n); if (r) return r; }
