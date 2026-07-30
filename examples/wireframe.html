@@ -98,14 +98,40 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
 .vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
 .vslink:hover .vsmark{opacity:.8}
-.brand .ws{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
-  color:var(--ink-3);white-space:nowrap}
+/* The tool's name, in the place the wordmark used to take. */
 .brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;max-width:280px}
 .brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink-3);white-space:nowrap}
 .spacer{flex:1}
 .sep{width:1px;height:20px;background:var(--line);flex:none}
+
+/* Says the tool itself is unfinished — not that something is running. A page
+   still being built should admit it in the chrome, not in a footnote. */
+.wip{flex:none;font:700 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:#b0761a;background:color-mix(in srgb,#b0761a 12%,transparent);
+  border:1px solid color-mix(in srgb,#b0761a 34%,transparent);
+  border-radius:999px;padding:4px 8px;white-space:nowrap}
+@media (prefers-color-scheme:dark){.wip{color:#d29a3f;background:color-mix(in srgb,#d29a3f 14%,transparent);
+  border-color:color-mix(in srgb,#d29a3f 34%,transparent)}}
+:root[data-theme=dark] .wip{color:#d29a3f;background:color-mix(in srgb,#d29a3f 14%,transparent);
+  border-color:color-mix(in srgb,#d29a3f 34%,transparent)}
+:root[data-theme=light] .wip{color:#b0761a;background:color-mix(in srgb,#b0761a 12%,transparent);
+  border-color:color-mix(in srgb,#b0761a 34%,transparent)}
+
+/* A switch is on or off. A segmented control is a choice between alternatives —
+   using one to mean the other is why "Highlight new" read as two buttons. */
+.switch{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px 0 9px;
+  border:1px solid var(--line-2);border-radius:7px;background:var(--surface);color:var(--ink-2);
+  font:inherit;font-weight:550;white-space:nowrap;cursor:pointer;flex:none}
+.switch:hover{background:var(--surface-2);color:var(--ink)}
+.switch .track{width:26px;height:15px;border-radius:999px;background:var(--line-2);
+  position:relative;flex:none;transition:background .14s}
+.switch .knob{position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;
+  background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .14s}
+.switch[aria-checked=true]{color:var(--ink);border-color:var(--brand-line)}
+.switch[aria-checked=true] .track{background:var(--brand)}
+.switch[aria-checked=true] .knob{transform:translateX(11px)}
 
 /* buttons — one shape, three sizes of intent */
 .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
@@ -117,6 +143,13 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .btn.primary[disabled]{opacity:.45;cursor:default;filter:none;pointer-events:none}
 .btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
 .btn.sm{height:25px;padding:0 9px;font-size:11.5px}
+
+/* A primary action with a ▾ beside it. The workspace and the story map both
+   have one and they were built twice; same markup, same metrics, here. */
+.split{display:inline-flex;position:relative;flex:none}
+.split > .btn:first-child{border-radius:7px 0 0 7px}
+.split > .caret{border-radius:0 7px 7px 0;width:28px;padding:0 8px;justify-content:center;
+  border-left:1px solid color-mix(in srgb,#fff 28%,transparent)}
 
 /* segmented control — modes, sizes, language, theme */
 .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
@@ -153,7 +186,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .banner.good .tick{color:var(--ok);font-weight:700}
 
 @media (max-width:720px){
-  .brand .ws,.brand .eyebrow{display:none}
+  .brand .eyebrow,.wip{display:none}
   .vs-topbar{gap:8px;padding:0 8px}
 }
 /* /vstack:shell css */
@@ -173,10 +206,11 @@ body.phase #sendMenu,
 body.phase #composer,
 body.phase #overlay{display:none!important}
 body.phase #main{grid-template-columns:1fr}
+/* What this phase adds, marked on the page itself rather than described beside
+   it. A switch, not a segmented control: it is on or off, not a choice between
+   two things. */
 #hiNew{display:none}
 body.phase #hiNew{display:inline-flex}
-/* What this phase adds, marked on the page itself rather than described beside it. */
-#hiNew button[aria-pressed=true]{background:var(--brand);color:#fff}
 /* Send becomes Stop while a round is out. Not red-on-red: a stop is a quiet
    correction, not a second call to action competing with the one it replaces. */
 #btnSend.stop{background:var(--surface);border-color:var(--brand-line);color:var(--brand)}
@@ -191,12 +225,8 @@ body.phase #hiNew{display:inline-flex}
 .seg.icons button[aria-pressed=true]{background:var(--surface-2);color:var(--ink)}
 
 /* Send is the loop; approve is the way out of it. Same control, because they
-   are the same decision made two ways — one more round, or done. */
-.split{display:inline-flex}
-.split .btn{border-radius:7px 0 0 7px}
-.split .caret{border-radius:0 7px 7px 0;border-left:1px solid rgba(255,255,255,.28);padding:0 8px;width:28px;
-  justify-content:center}
-.split .btn[disabled]+.caret{border-left-color:rgba(255,255,255,.28)}
+   are the same decision made two ways — one more round, or done. The split
+   itself is the shell's; only what hangs off it is the workspace's. */
 #sendMenu{position:absolute;top:42px;right:12px;z-index:60;width:266px;background:var(--surface);
   border:1px solid var(--line-2);border-radius:10px;box-shadow:var(--shadow-pop);padding:5px;display:none}
 #sendMenu.on{display:block}
@@ -403,6 +433,13 @@ body.phase #hiNew{display:inline-flex}
 .item .kind .offtag{color:var(--ink-3);font-style:italic}
 .item .thread{font-size:11px;color:var(--ink-3);margin-top:4px;display:flex;align-items:center;gap:5px}
 .item .thread.asked{color:var(--brand);font-weight:600}
+/* A question is the only thing here waiting on the reviewer. It gets the
+   accent edge and its reply box already open — the rest of the list can wait. */
+.item.asked{border-color:var(--brand-line);background:var(--brand-soft)}
+.item.asked .thread.asked::before{content:"";width:6px;height:6px;border-radius:50%;
+  background:var(--brand);flex:none;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 22%,transparent)}
+.grouphd.awaiting{color:var(--brand)}
 /* The conversation lives where the comment is listed, not only on the mark —
    answering Claude should not mean hunting for a pin on the page. */
 .item .thread.tog{width:100%;text-align:left}
@@ -522,12 +559,15 @@ body.phase #hiNew{display:inline-flex}
         <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
         <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
       </svg>
-      <span class="ws">Visual Stack</span>
     </a>
+    <!-- The mark is the stack; the word beside it is this tool. Writing
+         "Visual Stack" here said what the logo already says, and pushed the
+         one thing you can't infer — which tool you are in — further right. -->
     <b id="pageName"></b>
     <span class="eyebrow" id="pageEyebrow"></span>
   </div>
   <div class="spacer"></div>
+  <span class="wip" id="wip" hidden></span>
   <!-- The page's own controls: `tools` sits before the shared switches,
        `actions` after them, where the primary action belongs. -->
   <!-- vstack:slot tools -->
@@ -536,7 +576,9 @@ body.phase #hiNew{display:inline-flex}
       <button data-mode="annotate" aria-pressed="true"></button>
     </div>
 
-    <div class="seg" id="hiNew"><button aria-pressed="false"></button></div>
+    <button class="switch" id="hiNew" role="switch" aria-checked="false">
+      <span class="track"><span class="knob"></span></span><span class="lbl"></span>
+    </button>
 
     <div class="seg icons" id="sizeSwitch"></div>
 <!-- /vstack:slot tools -->
@@ -748,6 +790,14 @@ window.VSShell = (function () {
     if (e && eyebrow != null) e.textContent = eyebrow;
   }
 
+  /** Mark the tool itself as unfinished. `false` takes it off again. */
+  function wip (on, label) {
+    const el = $('#wip');
+    if (!el) return;
+    el.hidden = !on;
+    el.textContent = label || 'Work in progress';
+  }
+
   function init (opts = {}) {
     document.querySelectorAll('#themeSwitch button').forEach(b => {
       b.addEventListener('click', () => setTheme(b.dataset.themeSet));
@@ -764,6 +814,7 @@ window.VSShell = (function () {
     // action stays out of the bar unless a page asks for it.
     const send = $('#send');
     if (send && opts.send) send.hidden = false;
+    if (opts.wip) wip(true, typeof opts.wip === 'string' ? opts.wip : undefined);
     name(opts.name, opts.eyebrow);
     applyTheme();
     applyLang();
@@ -771,7 +822,7 @@ window.VSShell = (function () {
   }
 
   const api = {
-    init, setTheme, setLang, setLink, hideLink, name,
+    init, setTheme, setLang, setLink, hideLink, name, wip,
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
@@ -921,6 +972,7 @@ const STR = {
     you: 'You', claude: 'Claude',
     emptyTitle: 'No comments yet.', emptyBody: 'In Annotate mode, click a spot for a comment or drag over an area. The note opens right there on the page — this list is just the index.',
     noNote: 'No note yet', claudeAsked: 'Claude asked something', addressedBy: 'Addressed by Claude',
+    awaitingYou: n => `${n} waiting on you`,
     reply: 'reply', replies: 'replies', otherSizes: n => `On other screen sizes (${n})`,
     stillOpen: n => `Still open from earlier versions (${n})`,
     noOpen: 'No open comments', openCount: n => `${n} open`, waiting: 'Claude is waiting on an answer',
@@ -989,6 +1041,7 @@ const STR = {
     you: '你', claude: 'Claude',
     emptyTitle: '还没有批注。', emptyBody: '在批注模式下，点击某处留言，或拖拽框选一块区域。输入框会直接出现在页面上——右侧只是索引。',
     noNote: '还没写内容', claudeAsked: 'Claude 有疑问', addressedBy: 'Claude 已处理',
+    awaitingYou: n => `${n} 条等你回复`,
     reply: '条回复', replies: '条回复', otherSizes: n => `其他屏幕尺寸（${n}）`,
     stillOpen: n => `早前版本仍未解决（${n}）`,
     noOpen: '没有待处理批注', openCount: n => `${n} 条待处理`, waiting: 'Claude 在等你回复',
@@ -1109,7 +1162,9 @@ async function boot () {
 
   const phase = S.runtime === 'phase';
   loadAnnotations();
-  VSShell.init({ name: S.name, eyebrow: phase ? 'Phases' : 'Review' });
+  // The mark says Visual Stack; the word beside it says which tool this is,
+  // and the eyebrow says which page you are looking at in it.
+  VSShell.init({ name: phase ? 'Phase wireframe' : 'Wireframe', eyebrow: S.name });
   document.title = S.name + (phase ? ' — Phases' : ' — Review') + ' · Visual Stack';
   $('#urlBar').textContent = S.fileName;
   LANG = VSShell.lang;
@@ -1298,7 +1353,7 @@ function adoptUpdate () {
   S.version = data.currentVersion; S.name = data.name || S.name;
   if (bumped) { S.viewing = S.version; loadAnnotations(); S.sentSig = null }
   closeComposer();
-  VSShell.name(S.name);
+  VSShell.name(null, S.name);
   buildTimeline(); loadFrame(); render();
   if (bumped) toast(T('nowReviewing')(S.version));
 }
@@ -1332,8 +1387,8 @@ function applyLang () {
   const mv = $('#modeSwitch [data-mode=view]'), ma = $('#modeSwitch [data-mode=annotate]');
   mv.textContent = T('viewLabel'); mv.title = T('view');
   ma.innerHTML = esc(T('annotateLabel')) + ' <span class="kbd">space</span>'; ma.title = T('annotate');
-  $('#hiNew button').textContent = T('hiNew');
-  $('#hiNew button').title = T('hiNewTitle');
+  $('#hiNew .lbl').textContent = T('hiNew');
+  $('#hiNew').title = T('hiNewTitle');
   $('#btnReload').title = T('reloadTitle');
   $('#btnNow').textContent = T('backToCurrent');
   $('#btnRefresh').textContent = T('reviewChanges');
@@ -1498,10 +1553,10 @@ function enterPhaseMode () {
   document.body.classList.add('phase');
   setMode('view');
   S.highlightNew = false;
-  const btn = $('#hiNew button');
-  btn.onclick = () => {
+  const sw = $('#hiNew');
+  sw.onclick = () => {
     S.highlightNew = !S.highlightNew;
-    btn.setAttribute('aria-pressed', String(S.highlightNew));
+    sw.setAttribute('aria-checked', String(S.highlightNew));
     paintNew();
   };
 }
@@ -2251,14 +2306,23 @@ function renderPanel () {
   // own section at the bottom, where revert and refine live.
   const match = a => hasSubstance(a) && a.status !== 'addressed' &&
     (!f.status || f.status === 'open' || a.status === f.status);
-  const here = S.ann.filter(a => match(a) && (a.size || 'desktop') === S.size.id);
-  const elsewhere = S.ann.filter(a => match(a) && (a.size || 'desktop') !== S.size.id);
+  // A question from Claude is the one thing in this list that is waiting on
+  // *you*. It goes first, under a heading that says how many — everything else
+  // can be read at leisure; this can't, because the round is stalled on it.
+  const isAsked = a => a.status === 'question';
+  const asked = S.ann.filter(a => match(a) && isAsked(a));
+  const here = S.ann.filter(a => match(a) && !isAsked(a) && (a.size || 'desktop') === S.size.id);
+  const elsewhere = S.ann.filter(a => match(a) && !isAsked(a) && (a.size || 'desktop') !== S.size.id);
   const carried = S.carried.filter(a => a.status === 'open');
   const done = f.status === 'question' ? [] : S.ann.filter(a =>
     hasSubstance(a) && a.status === 'addressed');
 
   if (!S.ann.some(hasSubstance) && !carried.length) {
     body.innerHTML = `<div class="empty">${esc(T('emptyTitle'))}<br><br>${esc(T('emptyBody'))}</div>`;
+  }
+  if (asked.length) {
+    body.appendChild(group(T('awaitingYou')(asked.length)));
+    for (const a of asked) body.appendChild(itemNode(a, { asked: true }));
   }
   for (const a of here) body.appendChild(itemNode(a));
   if (elsewhere.length) {
@@ -2289,7 +2353,7 @@ function group (text) {
   h.className = 'grouphd'; h.textContent = text;
   return h;
 }
-function itemNode (a, { ghost, otherSize, done } = {}) {
+function itemNode (a, { ghost, otherSize, done, asked } = {}) {
   const working = S.working.has(a.id);
   // The mark is gone from the page because the thing it was made on is gone.
   // The comment is not — it stays in the list, and says why it has no mark.
@@ -2297,7 +2361,7 @@ function itemNode (a, { ghost, otherSize, done } = {}) {
   const open = S.threadOpen.has(a.id) && !isHistory();
   const el = document.createElement('div');
   el.className = 'item' + (S.sel === a.id ? ' sel' : '') + (done ? ' done' : '') +
-    (working ? ' working' : '') + (off ? ' off' : '');
+    (working ? ' working' : '') + (off ? ' off' : '') + (asked ? ' asked' : '');
   el.dataset.id = a.id;
   el.style.setProperty('--mk', MARK);
   el.innerHTML = `

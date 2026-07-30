@@ -91,8 +91,12 @@
   :root[data-theme="dark"]{--p0:#ef6a5e;--p1:#d29a3f;--p2:#2fb89b;--p3:#7d90ee;--p4:#b98cec;--p5:#3fb6d6;--band:15%}
 
   *{box-sizing:border-box}
-  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);line-height:1.5;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:1600px;margin:0 auto;padding:clamp(1.2rem,3vw,2.4rem) clamp(.8rem,2.5vw,2rem) 3rem}
+  body{margin:0;background:var(--paper);color:var(--ink);font:13px/1.5 var(--font);
+    -webkit-font-smoothing:antialiased}
+  /* the spec sheet's rhythm — same gutters, same base size, so moving between
+     the two stages doesn't feel like moving between two products */
+  .wrap{max-width:1600px;margin:0 auto;
+    padding:clamp(1.2rem,3vw,2.2rem) clamp(1.4rem,4vw,3rem) 3rem}
 
 /* vstack:shell css */
 /* The chrome every vstack page wears: the top bar and the controls that sit in
@@ -111,14 +115,40 @@
 .vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
 .vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
 .vslink:hover .vsmark{opacity:.8}
-.brand .ws{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
-  color:var(--ink-3);white-space:nowrap}
+/* The tool's name, in the place the wordmark used to take. */
 .brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;max-width:280px}
 .brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink-3);white-space:nowrap}
 .spacer{flex:1}
 .sep{width:1px;height:20px;background:var(--line);flex:none}
+
+/* Says the tool itself is unfinished — not that something is running. A page
+   still being built should admit it in the chrome, not in a footnote. */
+.wip{flex:none;font:700 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:#b0761a;background:color-mix(in srgb,#b0761a 12%,transparent);
+  border:1px solid color-mix(in srgb,#b0761a 34%,transparent);
+  border-radius:999px;padding:4px 8px;white-space:nowrap}
+@media (prefers-color-scheme:dark){.wip{color:#d29a3f;background:color-mix(in srgb,#d29a3f 14%,transparent);
+  border-color:color-mix(in srgb,#d29a3f 34%,transparent)}}
+:root[data-theme=dark] .wip{color:#d29a3f;background:color-mix(in srgb,#d29a3f 14%,transparent);
+  border-color:color-mix(in srgb,#d29a3f 34%,transparent)}
+:root[data-theme=light] .wip{color:#b0761a;background:color-mix(in srgb,#b0761a 12%,transparent);
+  border-color:color-mix(in srgb,#b0761a 34%,transparent)}
+
+/* A switch is on or off. A segmented control is a choice between alternatives —
+   using one to mean the other is why "Highlight new" read as two buttons. */
+.switch{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px 0 9px;
+  border:1px solid var(--line-2);border-radius:7px;background:var(--surface);color:var(--ink-2);
+  font:inherit;font-weight:550;white-space:nowrap;cursor:pointer;flex:none}
+.switch:hover{background:var(--surface-2);color:var(--ink)}
+.switch .track{width:26px;height:15px;border-radius:999px;background:var(--line-2);
+  position:relative;flex:none;transition:background .14s}
+.switch .knob{position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;
+  background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .14s}
+.switch[aria-checked=true]{color:var(--ink);border-color:var(--brand-line)}
+.switch[aria-checked=true] .track{background:var(--brand)}
+.switch[aria-checked=true] .knob{transform:translateX(11px)}
 
 /* buttons — one shape, three sizes of intent */
 .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
@@ -130,6 +160,13 @@
 .btn.primary[disabled]{opacity:.45;cursor:default;filter:none;pointer-events:none}
 .btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
 .btn.sm{height:25px;padding:0 9px;font-size:11.5px}
+
+/* A primary action with a ▾ beside it. The workspace and the story map both
+   have one and they were built twice; same markup, same metrics, here. */
+.split{display:inline-flex;position:relative;flex:none}
+.split > .btn:first-child{border-radius:7px 0 0 7px}
+.split > .caret{border-radius:0 7px 7px 0;width:28px;padding:0 8px;justify-content:center;
+  border-left:1px solid color-mix(in srgb,#fff 28%,transparent)}
 
 /* segmented control — modes, sizes, language, theme */
 .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
@@ -166,15 +203,19 @@
 .banner.good .tick{color:var(--ok);font-weight:700}
 
 @media (max-width:720px){
-  .brand .ws,.brand .eyebrow{display:none}
+  .brand .eyebrow,.wip{display:none}
   .vs-topbar{gap:8px;padding:0 8px}
 }
 /* /vstack:shell css */
 
   header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
-  header .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);font-weight:600;margin:0 0 .5rem;display:inline-flex;align-items:center;gap:.5rem}
-  h1{font-size:clamp(1.5rem,3.5vw,2.3rem);line-height:1.05;letter-spacing:-.03em;font-weight:800;margin:0 0 .5rem;text-wrap:balance}
-  /* the map's own buttons sit in the bar, at the bar's scale */
+  header .eyebrow{font:700 10.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+    color:var(--brand);margin:0 0 .55rem;display:inline-flex;align-items:center;gap:.5rem}
+  header .eyebrow::before{content:"";width:1.4rem;height:2px;background:var(--brand);border-radius:2px}
+  h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;font-weight:750;
+    margin:0 0 .3rem;text-wrap:balance}
+  /* Buttons are the shell's, exactly as the workspace has them — the only
+     addition is the pressed state Select needs, which no other page has. */
   .btn.on{background:color-mix(in srgb,var(--brand) 12%,var(--surface));border-color:var(--brand);color:var(--brand)}
   .btn.on:hover{background:color-mix(in srgb,var(--brand) 18%,var(--surface));color:var(--brand)}
   .selmode .card,.selmode .card [contenteditable]{cursor:pointer}
@@ -182,9 +223,6 @@
   .selmode .card::after{content:"";position:absolute;top:4px;right:4px;width:12px;height:12px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--surface)}
   .selmode .card.sel::after{content:"✓";width:14px;height:14px;border:0;background:var(--brand);color:#fff;font-size:.6rem;line-height:14px;text-align:center}
   .btn svg{width:15px;height:15px}
-  .split{position:relative;display:inline-flex}
-  .split #export{border-top-right-radius:0;border-bottom-right-radius:0}
-  .split .caret{border-top-left-radius:0;border-bottom-left-radius:0;border-left:1px solid color-mix(in srgb,#fff 30%,var(--brand));padding:0 .4rem}
   .menu{position:absolute;top:calc(100% + 4px);right:0;z-index:70;background:var(--surface);border:1px solid var(--line-2);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:.25rem;min-width:150px}
   .menu[hidden]{display:none}
   .menu button{display:flex;align-items:center;gap:.45rem;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:.74rem;color:var(--ink-2);padding:.35rem .5rem;border-radius:6px;cursor:pointer;white-space:nowrap}
@@ -303,12 +341,15 @@
         <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
         <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
       </svg>
-      <span class="ws">Visual Stack</span>
     </a>
+    <!-- The mark is the stack; the word beside it is this tool. Writing
+         "Visual Stack" here said what the logo already says, and pushed the
+         one thing you can't infer — which tool you are in — further right. -->
     <b id="pageName"></b>
     <span class="eyebrow" id="pageEyebrow"></span>
   </div>
   <div class="spacer"></div>
+  <span class="wip" id="wip" hidden></span>
   <!-- The page's own controls: `tools` sits before the shared switches,
        `actions` after them, where the primary action belongs. -->
   <!-- vstack:slot tools -->
@@ -677,6 +718,14 @@ window.VSShell = (function () {
     if (e && eyebrow != null) e.textContent = eyebrow;
   }
 
+  /** Mark the tool itself as unfinished. `false` takes it off again. */
+  function wip (on, label) {
+    const el = $('#wip');
+    if (!el) return;
+    el.hidden = !on;
+    el.textContent = label || 'Work in progress';
+  }
+
   function init (opts = {}) {
     document.querySelectorAll('#themeSwitch button').forEach(b => {
       b.addEventListener('click', () => setTheme(b.dataset.themeSet));
@@ -693,6 +742,7 @@ window.VSShell = (function () {
     // action stays out of the bar unless a page asks for it.
     const send = $('#send');
     if (send && opts.send) send.hidden = false;
+    if (opts.wip) wip(true, typeof opts.wip === 'string' ? opts.wip : undefined);
     name(opts.name, opts.eyebrow);
     applyTheme();
     applyLang();
@@ -700,10 +750,108 @@ window.VSShell = (function () {
   }
 
   const api = {
-    init, setTheme, setLang, setLink, hideLink, name,
+    init, setTheme, setLang, setLink, hideLink, name, wip,
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
+  };
+  return api;
+})();
+
+/* ── the scrubber ──
+   An ordered set of states and a handle that moves between them: versions on
+   the spec and the review workspace, release phases on phase-wireframe. The
+   page says what the stops are and what showing one does; this owns the track,
+   the ticks, the drag, and the caption.
+
+     VSScrub.mount({ onPick: id => showThat(id) })
+     VSScrub.set({ items: [{ id, cap, label, sub }], active: id })
+
+   `cap` is the label under the tick (v3, P2), `label` names the stop, and
+   `sub` is the line beneath it — both are escaped here, so a page never has to
+   remember to. */
+window.VSScrub = (function () {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  let items = [];
+  let active = null;
+  let onPick = () => {};
+  let wired = false;
+
+  const index = () => Math.max(0, items.findIndex(i => i.id === active));
+  const pct = i => items.length < 2 ? 100 : (i / (items.length - 1)) * 100;
+
+  function pickAt (clientX) {
+    const track = $('#tlTrack');
+    if (!track || !items.length) return null;
+    const r = track.getBoundingClientRect();
+    return items[Math.round(clamp((clientX - r.left) / r.width, 0, 1) * (items.length - 1))]?.id;
+  }
+  function pick (id) {
+    if (id == null || id === active) return;
+    active = id;
+    paint();
+    onPick(id);
+  }
+  const step = d => { const n = items[index() + d]; if (n) pick(n.id) };
+
+  function paint () {
+    const track = $('#tlTrack');
+    if (!track) return;
+    const i = index();
+    track.querySelectorAll('.tick').forEach(t => t.remove());
+    items.forEach((it, k) => {
+      const t = document.createElement('div');
+      t.className = 'tick' + (k <= i ? ' past' : '');
+      t.style.left = pct(k) + '%';
+      t.innerHTML = `<span class="cap">${esc(it.cap)}</span>`;
+      if (it.label) t.title = it.label;
+      t.onclick = e => { e.stopPropagation(); pick(it.id) };
+      track.appendChild(t);
+    });
+    $('#tlHandle').style.left = pct(i) + '%';
+    $('#tlFill').style.width = pct(i) + '%';
+    const cur = items[i];
+    $('#tlMeta').innerHTML = cur
+      ? `<div class="row"><b>${esc(cur.cap)}</b> <span class="lab">${esc(cur.label)}</span></div>` +
+        `<div class="row">${esc(cur.sub)}</div>`
+      : '';
+    $('#tlPrev').disabled = i === 0;
+    $('#tlNext').disabled = i >= items.length - 1;
+  }
+
+  function mount (opts = {}) {
+    if (opts.onPick) onPick = opts.onPick;
+    if (wired || !$('#tlTrack')) return api;
+    wired = true;
+    $('#tlPrev').onclick = () => step(-1);
+    $('#tlNext').onclick = () => step(1);
+    $('#tlHandle').addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const mv = ev => pick(pickAt(ev.clientX));
+      const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up) };
+      addEventListener('pointermove', mv); addEventListener('pointerup', up);
+    });
+    $('#tlTrack').addEventListener('pointerdown', e => {
+      if (e.target.closest('#tlHandle, .tick')) return;
+      pick(pickAt(e.clientX));
+    });
+    return api;
+  }
+
+  const api = {
+    mount,
+    set ({ items: list, active: a }) {
+      if (list) items = list;
+      if (a !== undefined) active = a;
+      if (active == null && items.length) active = items[items.length - 1].id;
+      paint();
+      return api;
+    },
+    get active () { return active },
+    get items () { return items },
   };
   return api;
 })();
@@ -1271,7 +1419,7 @@ window.VSShell = (function () {
     if(BRIDGE && state.title) document.title = state.title + " · Visual Stack";
     // A map authored in Chinese opens in Chinese the first time, then the
     // reader's own choice sticks.
-    VSShell.init({ name: T("eyebrow"), defaultLang: state.lang || raw.lang });
+    VSShell.init({ name: T("eyebrow"), eyebrow: state.title || "", defaultLang: state.lang || raw.lang });
     lang = VSShell.lang;
     applyLang();
     render();

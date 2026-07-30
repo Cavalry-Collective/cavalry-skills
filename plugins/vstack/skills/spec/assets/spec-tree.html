@@ -99,14 +99,40 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
 .vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
 .vslink:hover .vsmark{opacity:.8}
-.brand .ws{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
-  color:var(--ink-3);white-space:nowrap}
+/* The tool's name, in the place the wordmark used to take. */
 .brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;max-width:280px}
 .brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink-3);white-space:nowrap}
 .spacer{flex:1}
 .sep{width:1px;height:20px;background:var(--line);flex:none}
+
+/* Says the tool itself is unfinished — not that something is running. A page
+   still being built should admit it in the chrome, not in a footnote. */
+.wip{flex:none;font:700 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:#b0761a;background:color-mix(in srgb,#b0761a 12%,transparent);
+  border:1px solid color-mix(in srgb,#b0761a 34%,transparent);
+  border-radius:999px;padding:4px 8px;white-space:nowrap}
+@media (prefers-color-scheme:dark){.wip{color:#d29a3f;background:color-mix(in srgb,#d29a3f 14%,transparent);
+  border-color:color-mix(in srgb,#d29a3f 34%,transparent)}}
+:root[data-theme=dark] .wip{color:#d29a3f;background:color-mix(in srgb,#d29a3f 14%,transparent);
+  border-color:color-mix(in srgb,#d29a3f 34%,transparent)}
+:root[data-theme=light] .wip{color:#b0761a;background:color-mix(in srgb,#b0761a 12%,transparent);
+  border-color:color-mix(in srgb,#b0761a 34%,transparent)}
+
+/* A switch is on or off. A segmented control is a choice between alternatives —
+   using one to mean the other is why "Highlight new" read as two buttons. */
+.switch{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px 0 9px;
+  border:1px solid var(--line-2);border-radius:7px;background:var(--surface);color:var(--ink-2);
+  font:inherit;font-weight:550;white-space:nowrap;cursor:pointer;flex:none}
+.switch:hover{background:var(--surface-2);color:var(--ink)}
+.switch .track{width:26px;height:15px;border-radius:999px;background:var(--line-2);
+  position:relative;flex:none;transition:background .14s}
+.switch .knob{position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;
+  background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .14s}
+.switch[aria-checked=true]{color:var(--ink);border-color:var(--brand-line)}
+.switch[aria-checked=true] .track{background:var(--brand)}
+.switch[aria-checked=true] .knob{transform:translateX(11px)}
 
 /* buttons — one shape, three sizes of intent */
 .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
@@ -118,6 +144,13 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .btn.primary[disabled]{opacity:.45;cursor:default;filter:none;pointer-events:none}
 .btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
 .btn.sm{height:25px;padding:0 9px;font-size:11.5px}
+
+/* A primary action with a ▾ beside it. The workspace and the story map both
+   have one and they were built twice; same markup, same metrics, here. */
+.split{display:inline-flex;position:relative;flex:none}
+.split > .btn:first-child{border-radius:7px 0 0 7px}
+.split > .caret{border-radius:0 7px 7px 0;width:28px;padding:0 8px;justify-content:center;
+  border-left:1px solid color-mix(in srgb,#fff 28%,transparent)}
 
 /* segmented control — modes, sizes, language, theme */
 .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
@@ -154,7 +187,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .banner.good .tick{color:var(--ok);font-weight:700}
 
 @media (max-width:720px){
-  .brand .ws,.brand .eyebrow{display:none}
+  .brand .eyebrow,.wip{display:none}
   .vs-topbar{gap:8px;padding:0 8px}
 }
 /* /vstack:shell css */
@@ -192,8 +225,10 @@ h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;fon
   display:inline-grid;place-items:center}
 [aria-expanded=true] > .tw,[aria-expanded=true] .tw:first-child{transform:rotate(90deg)}
 
-/* ── stories: hairline rows, indented under their epic ── */
-.slist{margin:.35rem 0 0 1.6rem}
+/* ── stories: hairline rows, indented under their epic ──
+   The indent has to clear the epic's own twisty and label, or a story reads as
+   a sibling of its epic rather than a child of it. */
+.slist{margin:.35rem 0 0 2.6rem}
 .srow + .srow .shead{border-top:1px solid var(--line)}
 .shead{display:flex;align-items:center;gap:.55rem;padding:.5rem .1rem;cursor:pointer;
   position:relative;padding-right:1.7rem}
@@ -213,12 +248,20 @@ h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;fon
 .del:hover{color:var(--brand);background:var(--surface-2)}
 .del.armed{font:700 10px/1 var(--mono);color:#fff;background:var(--brand)}
 
-/* ── expanded story — the PRD's columns, stacked: requirements, acceptance
-   criteria as Given/When/Then scenarios, and the Definition-of-Ready row ── */
-.sbody{margin:0 0 .7rem 2.25rem}
+/* ── expanded story — the PRD's two columns, side by side: what it should do,
+   and how you'd know. They are read against each other, so they sit against
+   each other; stacking made the second one look like a footnote to the first.
+   The whole body is one panel, so an open story is visibly one thing. */
+.sbody{margin:.15rem 0 .8rem 1.75rem;padding:.7rem .9rem .8rem;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+  column-gap:1.4rem;align-items:start}
+.sbody > .col{min-width:0}
+/* one column each, until there isn't room for two */
+@media (max-width:1080px){ .sbody{grid-template-columns:minmax(0,1fr);row-gap:.2rem} }
 .sect{font:800 8.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;
   color:var(--ink-3);margin:.65rem 0 .3rem}
-.sect:first-child{margin-top:.4rem}
+.sect:first-child{margin-top:0}
 .req{position:relative;display:flex;gap:.5rem;align-items:flex-start;padding:.15rem 1.7rem .15rem 0}
 .req::before{content:"–";color:var(--ink-3);flex:none}
 .reqtext{flex:1;min-width:0;font-size:12.5px;color:var(--ink-2)}
@@ -262,8 +305,11 @@ h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;fon
 .act:hover{color:var(--brand)}
 .toolrow{display:flex;justify-content:flex-end;margin:1.2rem 0 -1.2rem}
 .act.n:hover{color:var(--note)}
-.eacts{margin:.4rem 0 0 2.25rem}
-#addEpic{margin-top:1.6rem}
+/* "+ story" lines up with the stories it adds to, "+ epic" with the epics —
+   an add control indented past the rows it belongs to reads as a child of the
+   last one. */
+.eacts{margin:.4rem 0 0}
+#addEpic{margin:1.6rem 0 0}
 /* viewing history: the sheet is a record, not an editor */
 body.history .del,body.history .acts,body.history .eacts,body.history #addEpic,
 body.history .tagrow,body.history .kill{display:none!important}
@@ -333,12 +379,15 @@ body.history .tagrow,body.history .kill{display:none!important}
         <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
         <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
       </svg>
-      <span class="ws">Visual Stack</span>
     </a>
+    <!-- The mark is the stack; the word beside it is this tool. Writing
+         "Visual Stack" here said what the logo already says, and pushed the
+         one thing you can't infer — which tool you are in — further right. -->
     <b id="pageName"></b>
     <span class="eyebrow" id="pageEyebrow"></span>
   </div>
   <div class="spacer"></div>
+  <span class="wip" id="wip" hidden></span>
   <!-- The page's own controls: `tools` sits before the shared switches,
        `actions` after them, where the primary action belongs. -->
   <!-- vstack:slot tools -->
@@ -624,6 +673,14 @@ window.VSShell = (function () {
     if (e && eyebrow != null) e.textContent = eyebrow;
   }
 
+  /** Mark the tool itself as unfinished. `false` takes it off again. */
+  function wip (on, label) {
+    const el = $('#wip');
+    if (!el) return;
+    el.hidden = !on;
+    el.textContent = label || 'Work in progress';
+  }
+
   function init (opts = {}) {
     document.querySelectorAll('#themeSwitch button').forEach(b => {
       b.addEventListener('click', () => setTheme(b.dataset.themeSet));
@@ -640,6 +697,7 @@ window.VSShell = (function () {
     // action stays out of the bar unless a page asks for it.
     const send = $('#send');
     if (send && opts.send) send.hidden = false;
+    if (opts.wip) wip(true, typeof opts.wip === 'string' ? opts.wip : undefined);
     name(opts.name, opts.eyebrow);
     applyTheme();
     applyLang();
@@ -647,7 +705,7 @@ window.VSShell = (function () {
   }
 
   const api = {
-    init, setTheme, setLang, setLink, hideLink, name,
+    init, setTheme, setLang, setLink, hideLink, name, wip,
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
@@ -790,6 +848,7 @@ const STR = {
   apply: ['Review changes', '查看更新'], dismiss: ['Later', '稍后'],
   qpTitle: ['Clarifications', '澄清事项'],
   qpAnswerPh: ['Type an answer…', '输入回答…'],
+  qpOther: ['Something else…', '其他…'],
   vOpened: ['Opened', '打开'],
   vSent: ['Sent to Claude', '发送给 Claude'],
   vClaude: ['Claude’s update', 'Claude 的更新'],
@@ -891,37 +950,35 @@ function storyHtml (s, ei, si) {
       <button class="del" data-act="del">×</button>
     </div>
     <div class="sbody" ${s.open ? '' : 'hidden'}>
-      <div class="sect">${t('reqsLbl')}</div>
-      ${(s.reqs || []).map((r, ri) => `
-        <div class="req" data-r="${ri}">
-          <span class="reqtext" contenteditable="${ce}" data-act="edit-req">${esc(r)}</span>
-          <button class="del" data-act="delr">×</button>
-        </div>`).join('')}
-      <div class="acts"><button class="act" data-act="addr">${t('addReq')}</button></div>
+      <div class="col">
+        <div class="sect">${t('reqsLbl')}</div>
+        ${(s.reqs || []).map((r, ri) => `
+          <div class="req" data-r="${ri}">
+            <span class="reqtext" contenteditable="${ce}" data-act="edit-req">${esc(r)}</span>
+            <button class="del" data-act="delr">×</button>
+          </div>`).join('')}
+        <div class="acts"><button class="act" data-act="addr">${t('addReq')}</button></div>
+      </div>
 
-      <div class="sect">${t('acLbl')}</div>
-      ${s.crit.map((c, ci) => `
-        <div class="crow" data-c="${ci}">
-          <div class="chead" role="button" tabindex="0" aria-expanded="${!!c.open}" data-act="togc">
-            <span class="tw">▶</span>
-            <span class="slbl">${t('scenario')}</span>
-            <span class="ctext" contenteditable="${ce}" data-act="edit-scen">${esc(c.scenario || '')}</span>
-          </div>
-          <div class="gwt" ${c.open ? '' : 'hidden'}>
-            ${gline(t('given'), 'given', c, ci, ce)}
-            ${gline(t('when'), 'when', c, ci, ce)}
-            ${gline(t('then'), 'then', c, ci, ce)}
-            ${gline(t('andLbl'), 'and', c, ci, ce)}
-          </div>
-          <button class="del" data-act="delc">×</button>
-        </div>`).join('')}
-      <div class="acts"><button class="act" data-act="addc">${t('addScen')}</button></div>
-
-      ${doc.themes.length ? `
-      <div class="tagrow"><span class="lbl">${esc(t('themesLbl'))}</span>
-        ${doc.themes.map((th, ti) => `
-          <button class="tagtog ${(s.themes || []).includes(th) ? 'on' : ''}" data-thi="${ti}">${esc(th)}</button>`).join('')}
-      </div>` : ''}
+      <div class="col">
+        <div class="sect">${t('acLbl')}</div>
+        ${s.crit.map((c, ci) => `
+          <div class="crow" data-c="${ci}">
+            <div class="chead" role="button" tabindex="0" aria-expanded="${!!c.open}" data-act="togc">
+              <span class="tw">▶</span>
+              <span class="slbl">${t('scenario')}</span>
+              <span class="ctext" contenteditable="${ce}" data-act="edit-scen">${esc(c.scenario || '')}</span>
+            </div>
+            <div class="gwt" ${c.open ? '' : 'hidden'}>
+              ${gline(t('given'), 'given', c, ci, ce)}
+              ${gline(t('when'), 'when', c, ci, ce)}
+              ${gline(t('then'), 'then', c, ci, ce)}
+              ${gline(t('andLbl'), 'and', c, ci, ce)}
+            </div>
+            <button class="del" data-act="delc">×</button>
+          </div>`).join('')}
+        <div class="acts"><button class="act" data-act="addc">${t('addScen')}</button></div>
+      </div>
     </div>
   </article>`;
 }
@@ -1100,18 +1157,26 @@ function allNotes () {
   return out;
 }
 
+const otherPicked = new Set();   // clarifications answered in the reviewer's own words
 function renderQPanel () {
   const items = allNotes();
   $('#qpTitle').textContent = t('qpTitle');
   $('#qpCount').textContent = items.length;
   $('#pbody').innerHTML = items.map(({ n, path, ctx }) => {
     const hasOpts = (n.options || []).length > 0;
+    // An answer that is none of the offered ones is still an answer. "Something
+    // else" is the last choice rather than a box floating beside them, so the
+    // options are the whole set and picking one is picking from all of it.
+    const freeVal = n.answer && (!hasOpts || !n.options.includes(n.answer)) ? n.answer : '';
+    // "picked but not yet typed" is a state of the page, not of the spec — it
+    // would be a meaningless key in the JSON Claude reads back.
+    const otherOn = !hasOpts || !!freeVal || otherPicked.has(path);
     const opts = hasOpts && !RO()
       ? `<span class="opts">${n.options.map((o, oi) =>
-          `<button class="opt ${n.answer === o ? 'picked' : ''}" data-oi="${oi}"><span class="rad"></span>${esc(o)}</button>`).join('')}</span>`
+          `<button class="opt ${n.answer === o ? 'picked' : ''}" data-oi="${oi}"><span class="rad"></span>${esc(o)}</button>`).join('')
+        }<button class="opt other ${otherOn ? 'picked' : ''}" data-other="1"><span class="rad"></span>${esc(t('qpOther'))}</button></span>`
       : '';
-    const freeVal = n.answer && (!hasOpts || !n.options.includes(n.answer)) ? n.answer : '';
-    const freeAns = RO() ? '' :
+    const freeAns = RO() || (hasOpts && !otherOn) ? '' :
       `<span class="qans" contenteditable="plaintext-only" data-ph="${esc(t('qpAnswerPh'))}">${esc(freeVal)}</span>`;
     return `<div class="item" data-jump="${esc(path)}">
         <div class="ih"><span class="n">?</span>
@@ -1129,6 +1194,18 @@ $('#pbody').addEventListener('click', e => {
   if (opt) {
     if (RO()) return;
     const note = noteAt(item.dataset.jump);
+    if (opt.dataset.other) {
+      // Picking "something else" drops whichever option was chosen and hands
+      // the cursor to the box, so answering is one action, not two.
+      otherPicked.add(item.dataset.jump);
+      note.answer = null;
+      dirty(); render();
+      requestAnimationFrame(() => {
+        $('#pbody').querySelector(`[data-jump="${item.dataset.jump}"] .qans`)?.focus();
+      });
+      return;
+    }
+    otherPicked.delete(item.dataset.jump);
     const picked = note.options[+opt.dataset.oi];
     note.answer = note.answer === picked ? null : picked;
     dirty(); render();

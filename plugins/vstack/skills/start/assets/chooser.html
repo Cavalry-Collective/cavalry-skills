@@ -66,8 +66,8 @@
 
   *{box-sizing:border-box}
   [hidden]{display:none!important}
-  body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);font-family:var(--font);
-    font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);
+    font:13px/1.5 var(--font);-webkit-font-smoothing:antialiased}
   button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
   :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 
@@ -88,14 +88,40 @@
 .vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
 .vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
 .vslink:hover .vsmark{opacity:.8}
-.brand .ws{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
-  color:var(--ink-3);white-space:nowrap}
+/* The tool's name, in the place the wordmark used to take. */
 .brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;max-width:280px}
 .brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink-3);white-space:nowrap}
 .spacer{flex:1}
 .sep{width:1px;height:20px;background:var(--line);flex:none}
+
+/* Says the tool itself is unfinished — not that something is running. A page
+   still being built should admit it in the chrome, not in a footnote. */
+.wip{flex:none;font:700 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:#b0761a;background:color-mix(in srgb,#b0761a 12%,transparent);
+  border:1px solid color-mix(in srgb,#b0761a 34%,transparent);
+  border-radius:999px;padding:4px 8px;white-space:nowrap}
+@media (prefers-color-scheme:dark){.wip{color:#d29a3f;background:color-mix(in srgb,#d29a3f 14%,transparent);
+  border-color:color-mix(in srgb,#d29a3f 34%,transparent)}}
+:root[data-theme=dark] .wip{color:#d29a3f;background:color-mix(in srgb,#d29a3f 14%,transparent);
+  border-color:color-mix(in srgb,#d29a3f 34%,transparent)}
+:root[data-theme=light] .wip{color:#b0761a;background:color-mix(in srgb,#b0761a 12%,transparent);
+  border-color:color-mix(in srgb,#b0761a 34%,transparent)}
+
+/* A switch is on or off. A segmented control is a choice between alternatives —
+   using one to mean the other is why "Highlight new" read as two buttons. */
+.switch{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px 0 9px;
+  border:1px solid var(--line-2);border-radius:7px;background:var(--surface);color:var(--ink-2);
+  font:inherit;font-weight:550;white-space:nowrap;cursor:pointer;flex:none}
+.switch:hover{background:var(--surface-2);color:var(--ink)}
+.switch .track{width:26px;height:15px;border-radius:999px;background:var(--line-2);
+  position:relative;flex:none;transition:background .14s}
+.switch .knob{position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;
+  background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .14s}
+.switch[aria-checked=true]{color:var(--ink);border-color:var(--brand-line)}
+.switch[aria-checked=true] .track{background:var(--brand)}
+.switch[aria-checked=true] .knob{transform:translateX(11px)}
 
 /* buttons — one shape, three sizes of intent */
 .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
@@ -107,6 +133,13 @@
 .btn.primary[disabled]{opacity:.45;cursor:default;filter:none;pointer-events:none}
 .btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
 .btn.sm{height:25px;padding:0 9px;font-size:11.5px}
+
+/* A primary action with a ▾ beside it. The workspace and the story map both
+   have one and they were built twice; same markup, same metrics, here. */
+.split{display:inline-flex;position:relative;flex:none}
+.split > .btn:first-child{border-radius:7px 0 0 7px}
+.split > .caret{border-radius:0 7px 7px 0;width:28px;padding:0 8px;justify-content:center;
+  border-left:1px solid color-mix(in srgb,#fff 28%,transparent)}
 
 /* segmented control — modes, sizes, language, theme */
 .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
@@ -143,24 +176,25 @@
 .banner.good .tick{color:var(--ok);font-weight:700}
 
 @media (max-width:720px){
-  .brand .ws,.brand .eyebrow{display:none}
+  .brand .eyebrow,.wip{display:none}
   .vs-topbar{gap:8px;padding:0 8px}
 }
 /* /vstack:shell css */
 
-  /* the form's bar floats over a scrolling page rather than capping an app */
-  .vs-topbar{padding:0 clamp(.8rem,2.5vw,2rem);
-    background:color-mix(in srgb,var(--surface) 90%,transparent);backdrop-filter:blur(8px)}
-  .vslink:hover .ws{color:var(--ink)}
+  /* The bar is the shell's, unmodified — it was the padding and the blur here
+     that made this page's chrome read as a different product. */
 
-  .wrap{max-width:1500px;margin:0 auto;padding:clamp(1rem,2.5vw,2rem) clamp(.8rem,2.5vw,2rem) 4rem;
+  .wrap{max-width:1500px;margin:0 auto;
+    padding:clamp(1.2rem,3vw,2.2rem) clamp(1.4rem,4vw,3rem) 4rem;
     display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:clamp(1rem,2.5vw,2.2rem);align-items:start}
   @media (max-width:1080px){ .wrap{grid-template-columns:minmax(0,1fr)} #cart{position:static} }
 
-  .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
-    color:var(--brand);font-weight:600;margin:0 0 .5rem;display:inline-flex;align-items:center;gap:.5rem}
-  .eyebrow::before{content:"";width:1.5rem;height:2px;background:var(--brand);border-radius:2px}
-  h1{font-size:clamp(1.15rem,2.2vw,1.45rem);line-height:1.1;letter-spacing:-.025em;font-weight:800;margin:0 0 1rem}
+  /* the spec sheet's heading metrics — same eyebrow rule, same h1 scale */
+  .eyebrow{font:700 10.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+    color:var(--brand);margin:0 0 .55rem;display:inline-flex;align-items:center;gap:.5rem}
+  .eyebrow::before{content:"";width:1.4rem;height:2px;background:var(--brand);border-radius:2px}
+  h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;font-weight:750;
+    margin:0 0 1rem}
 
   /* ── stepper + the one nav, top right on every step ── */
   .stephdr{display:flex;align-items:center;gap:1rem;margin:0 0 1.5rem;flex-wrap:wrap}
@@ -283,12 +317,15 @@
         <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
         <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
       </svg>
-      <span class="ws">Visual Stack</span>
     </a>
+    <!-- The mark is the stack; the word beside it is this tool. Writing
+         "Visual Stack" here said what the logo already says, and pushed the
+         one thing you can't infer — which tool you are in — further right. -->
     <b id="pageName"></b>
     <span class="eyebrow" id="pageEyebrow"></span>
   </div>
   <div class="spacer"></div>
+  <span class="wip" id="wip" hidden></span>
   <!-- The page's own controls: `tools` sits before the shared switches,
        `actions` after them, where the primary action belongs. -->
   <!-- vstack:slot tools -->
@@ -504,6 +541,14 @@ window.VSShell = (function () {
     if (e && eyebrow != null) e.textContent = eyebrow;
   }
 
+  /** Mark the tool itself as unfinished. `false` takes it off again. */
+  function wip (on, label) {
+    const el = $('#wip');
+    if (!el) return;
+    el.hidden = !on;
+    el.textContent = label || 'Work in progress';
+  }
+
   function init (opts = {}) {
     document.querySelectorAll('#themeSwitch button').forEach(b => {
       b.addEventListener('click', () => setTheme(b.dataset.themeSet));
@@ -520,6 +565,7 @@ window.VSShell = (function () {
     // action stays out of the bar unless a page asks for it.
     const send = $('#send');
     if (send && opts.send) send.hidden = false;
+    if (opts.wip) wip(true, typeof opts.wip === 'string' ? opts.wip : undefined);
     name(opts.name, opts.eyebrow);
     applyTheme();
     applyLang();
@@ -527,7 +573,7 @@ window.VSShell = (function () {
   }
 
   const api = {
-    init, setTheme, setLang, setLink, hideLink, name,
+    init, setTheme, setLang, setLink, hideLink, name, wip,
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },

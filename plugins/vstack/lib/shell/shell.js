@@ -65,6 +65,14 @@ window.VSShell = (function () {
     if (e && eyebrow != null) e.textContent = eyebrow;
   }
 
+  /** Mark the tool itself as unfinished. `false` takes it off again. */
+  function wip (on, label) {
+    const el = $('#wip');
+    if (!el) return;
+    el.hidden = !on;
+    el.textContent = label || 'Work in progress';
+  }
+
   function init (opts = {}) {
     document.querySelectorAll('#themeSwitch button').forEach(b => {
       b.addEventListener('click', () => setTheme(b.dataset.themeSet));
@@ -81,6 +89,7 @@ window.VSShell = (function () {
     // action stays out of the bar unless a page asks for it.
     const send = $('#send');
     if (send && opts.send) send.hidden = false;
+    if (opts.wip) wip(true, typeof opts.wip === 'string' ? opts.wip : undefined);
     name(opts.name, opts.eyebrow);
     applyTheme();
     applyLang();
@@ -88,7 +97,7 @@ window.VSShell = (function () {
   }
 
   const api = {
-    init, setTheme, setLang, setLink, hideLink, name,
+    init, setTheme, setLang, setLink, hideLink, name, wip,
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
