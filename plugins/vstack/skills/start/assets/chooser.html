@@ -189,10 +189,10 @@
     display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:clamp(1rem,2.5vw,2.2rem);align-items:start}
   @media (max-width:1080px){ .wrap{grid-template-columns:minmax(0,1fr)} #cart{position:static} }
 
-  /* the spec sheet's heading metrics — same eyebrow rule, same h1 scale */
+  /* the spec sheet's heading metrics — no rule before it; the bar already
+     names the tool, so a red mark here was decoration twice over */
   .eyebrow{font:700 10.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
     color:var(--brand);margin:0 0 .55rem;display:inline-flex;align-items:center;gap:.5rem}
-  .eyebrow::before{content:"";width:1.4rem;height:2px;background:var(--brand);border-radius:2px}
   h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;font-weight:750;
     margin:0 0 1rem}
 
@@ -277,18 +277,21 @@
   .sum .row .k{font-family:var(--mono);font-size:.68rem;color:var(--ink-3);min-width:6.5rem;padding-top:.15rem}
   .sum .none{color:var(--ink-3);font-style:italic;font-size:.8rem}
 
-  /* ── cart — a running basket of what's been picked ── */
-  #cart{position:sticky;top:calc(clamp(1rem,2.5vw,2rem) + 43px);background:var(--surface);border:1px solid var(--line-2);
-    border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
-  #cart h3{margin:0;padding:.7rem .9rem;font-size:.8rem;font-weight:700;letter-spacing:-.01em;
-    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:.5rem}
+  /* ── cart — a running basket of what's been picked ──
+     Built as the spec's clarifications panel: same head rule, same card, same
+     mono key over the value. Two side panels in one product, one shape. */
+  #cart{position:sticky;top:calc(clamp(1.2rem,3vw,2.2rem) + 46px);
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  #cart h3{margin:0;display:flex;align-items:center;gap:8px;padding:10px 12px 8px;
+    border-bottom:1px solid var(--line);font-size:13px;font-weight:700;letter-spacing:-.01em}
   #cart h3 .dot{width:8px;height:8px;border-radius:50%;background:var(--brand);flex:none}
-  #cart .lot{padding:.7rem .9rem}
-  ul{list-style:none;margin:0;padding:0;display:grid;gap:.3rem}
-  li{font-size:.8rem;display:flex;align-items:baseline;gap:.5rem;color:var(--ink)}
-  li .k{font-family:var(--mono);font-size:.64rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
-    color:var(--ink-3);min-width:4.6rem;flex:none}
-  .none{font-size:.78rem;color:var(--ink-3);font-style:italic}
+  #cart .lot{padding:8px 10px 14px}
+  ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  li{position:relative;border:1px solid var(--line);border-radius:8px;padding:7px 9px;
+    background:var(--surface);display:grid;gap:4px}
+  li .k{font:600 11px/1 var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)}
+  li .v{font-size:12.5px;line-height:1.4;color:var(--ink-2)}
+  .none{font-size:12.5px;color:var(--ink-3);font-style:italic;border:0;padding:2px 0}
 
   /* ── the send modal — sending, sent, or the server went away ── */
   #done{position:fixed;inset:0;z-index:200;display:none;place-items:center;
@@ -322,10 +325,10 @@
          "Visual Stack" here said what the logo already says, and pushed the
          one thing you can't infer — which tool you are in — further right. -->
     <b id="pageName"></b>
+    <span class="wip" id="wip" hidden></span>
     <span class="eyebrow" id="pageEyebrow"></span>
   </div>
   <div class="spacer"></div>
-  <span class="wip" id="wip" hidden></span>
   <!-- The page's own controls: `tools` sits before the shared switches,
        `actions` after them, where the primary action belongs. -->
   <!-- vstack:slot tools -->
@@ -357,7 +360,7 @@
 
 <div class="wrap">
   <main>
-    <p class="eyebrow" id="eyebrow">Stage 0</p>
+    <p class="eyebrow" id="eyebrow">Start</p>
     <h1 id="title">Set up the project</h1>
 
     <div class="stephdr">
@@ -923,7 +926,7 @@ function renderConfirm () {
 }
 
 /* ── cart — everything picked so far, shopping-basket style ── */
-const li = (k, text) => `<li><span class="k">${esc(k)}</span><span>${esc(text)}</span></li>`;
+const li = (k, text) => `<li><span class="k">${esc(k)}</span><span class="v">${esc(text)}</span></li>`;
 const clip = (s, n) => s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s;
 
 function renderCart () {
@@ -988,7 +991,7 @@ function syncNav () {
 /* ── static chrome text, re-applied on language switch ── */
 function applyChrome () {
   document.title = t('title') + ' · Visual Stack';
-  VSShell.name(t('title'));
+  VSShell.name('Start');   // the tool, not the page's heading
   $('#title').textContent = t('title');
   $('#hWhat').textContent = t('hWhat');       $('#rWhat').textContent = t('pickOne');
   $('#hKind').textContent = t('hKind');       $('#rKind').textContent = t('pickOne');
@@ -1147,7 +1150,7 @@ async function submit () {
 $('#doneRetry').addEventListener('click', () => submit());
 
 /* ── boot: chrome text, link poll, prefill ── */
-VSShell.init({ name: 'Set up the project' });
+VSShell.init({ name: 'Start' });
 applyChrome();
 pollLink();
 

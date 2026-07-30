@@ -93,9 +93,11 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--paper);color:var(--ink);font:13px/1.5 var(--font);
     -webkit-font-smoothing:antialiased}
-  /* the spec sheet's rhythm — same gutters, same base size, so moving between
-     the two stages doesn't feel like moving between two products */
-  .wrap{max-width:1600px;margin:0 auto;
+  /* the spec sheet, literally: the content sits on a surface panel with the
+     same gutters and base size, so the two stages read as one product rather
+     than a document and a dashboard */
+  .wrap{max-width:1600px;margin:0 auto;min-height:100vh;background:var(--surface);
+    border-left:1px solid var(--line);border-right:1px solid var(--line);
     padding:clamp(1.2rem,3vw,2.2rem) clamp(1.4rem,4vw,3rem) 3rem}
 
 /* vstack:shell css */
@@ -235,6 +237,8 @@
   .t0{--tc:var(--p4)}.t1{--tc:var(--p5)}.t2{--tc:var(--p1)}.t3{--tc:var(--p2)}.t4{--tc:var(--p3)}.t5{--tc:var(--p0)}
 
   .trow{display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap}
+  .trow #selmode{margin-left:auto}
+  .kbd{font:500 10px/1 var(--mono);opacity:.65}
   .trow h1{margin:0}
   .legend{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem;font-size:.68rem;color:var(--ink-3)}
   .legend .lt{font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase}
@@ -346,15 +350,13 @@
          "Visual Stack" here said what the logo already says, and pushed the
          one thing you can't infer — which tool you are in — further right. -->
     <b id="pageName"></b>
+    <span class="wip" id="wip" hidden></span>
     <span class="eyebrow" id="pageEyebrow"></span>
   </div>
   <div class="spacer"></div>
-  <span class="wip" id="wip" hidden></span>
   <!-- The page's own controls: `tools` sits before the shared switches,
        `actions` after them, where the primary action belongs. -->
   <!-- vstack:slot tools -->
-  <button class="btn" id="selmode">Select</button>
-  <button class="btn" id="import">Import</button>
 <!-- /vstack:slot tools -->
   <div class="seg" id="themeSwitch">
     <button data-theme-set="auto" aria-pressed="true" title="Match the system">A</button>
@@ -381,7 +383,7 @@
     <button class="btn primary" id="export">Copy to Clipboard</button>
     <button class="btn primary caret" id="export-more" aria-haspopup="true" aria-label="More export options">▾</button>
     <div class="menu" id="export-menu" hidden>
-      <button id="copy" hidden>Copy to Clipboard</button>
+      <button id="copy" hidden></button>
       <button id="download">Download JSON</button>
       <button id="jira" disabled>Export to JIRA <span class="soon">Coming soon</span></button>
     </div>
@@ -397,6 +399,9 @@
       <div class="trow">
         <h1 id="title" contenteditable spellcheck="false"></h1>
         <div class="legend" id="legend"></div>
+        <!-- bulk select belongs to the grid, not to the session — so it sits
+             at the top right of the map rather than in the product's bar -->
+        <button class="btn sm" id="selmode">Select</button>
       </div>
     </div>
   </header>
@@ -878,9 +883,11 @@ window.VSScrub = (function () {
       eyebrow:"User story map", corner:"Phase ↓ / Journey →",
       addPhase:"＋ phase", addPhaseTitle:"Add a release phase (row)",
       addActivity:"＋ activity", addActTitle:"Add a journey activity (column)",
-      import:"Import", copy:"Copy to Clipboard", download:"Download JSON", moreExport:"More export options",
+      copy:"Copy for Claude", download:"Download JSON", moreExport:"More export options",
       jira:"Export to JIRA", soon:"Coming soon",
+      /* the workspace's words, exactly — it is the same act at the same corner */
       send:"Send to Claude", sendTitle:"Send this arrangement back to the Claude session",
+      kbd:"⌘⏎",
       linkOn:"Linked to Claude", linkOff:"Link lost", linkOffTitle:"The Claude session is no longer serving this map — use Copy to Clipboard instead",
       tSent:"Sent to Claude", tSendFail:"Couldn't reach Claude — copy the JSON instead",
       pushMsg:"Claude updated this map", refresh:"Refresh", dismiss:"Dismiss",
@@ -905,9 +912,10 @@ window.VSScrub = (function () {
       eyebrow:"用户故事地图", corner:"阶段 ↓ / 旅程 →",
       addPhase:"＋ 阶段", addPhaseTitle:"添加发布阶段（行）",
       addActivity:"＋ 活动", addActTitle:"添加旅程活动（列）",
-      import:"导入", copy:"复制到剪贴板", download:"下载 JSON", moreExport:"更多导出选项",
+      copy:"复制给 Claude", download:"下载 JSON", moreExport:"更多导出选项",
       jira:"导出到 JIRA", soon:"即将推出",
       send:"发送给 Claude", sendTitle:"将当前排布发送回 Claude 会话",
+      kbd:"⌘⏎",
       linkOn:"已连接 Claude", linkOff:"连接已断开", linkOffTitle:"Claude 会话不再提供此地图——请改用复制到剪贴板",
       tSent:"已发送给 Claude", tSendFail:"无法连接 Claude——请改为复制 JSON",
       pushMsg:"Claude 更新了此地图", refresh:"刷新", dismiss:"忽略",
@@ -935,8 +943,8 @@ window.VSScrub = (function () {
   const T = (k,...a)=>{ const v=I18N[lang][k]; return typeof v==="function"?v(...a):v; };
   function applyLang(){
     $("eyebrow").textContent=T("eyebrow");
-    $("import").textContent=T("import");
-    $("export").textContent = BRIDGE ? T("send") : T("copy");
+    // the workspace's shape: the act, then the shortcut that performs it
+    $("export").innerHTML = esc(BRIDGE ? T("send") : T("copy")) + ` <span class="kbd">${esc(T("kbd"))}</span>`;
     $("export").title = BRIDGE ? T("sendTitle") : "";
     $("copy").textContent=T("copy");
     $("pb-msg").textContent=T("pushMsg"); $("pb-apply").textContent=T("refresh"); $("pb-dismiss").textContent=T("dismiss");
@@ -1361,7 +1369,11 @@ window.VSScrub = (function () {
   $("export-more").onclick=e=>{ e.stopPropagation(); $("export-menu").hidden=!$("export-menu").hidden; };
   $("download").onclick=()=>{ $("export-menu").hidden=true; const b=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}); const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=KEY+".json"; a.click(); URL.revokeObjectURL(u); };
   document.addEventListener("pointerdown",e=>{ if(!$("export-menu").hidden && !e.target.closest(".split")) $("export-menu").hidden=true; });
-  $("import").onclick=()=>openIO(T("ioImport"),'',false);
+  // ⌘⏎ sends, the way it does in the workspace — the chip on the button is
+  // only honest if the key works.
+  document.addEventListener("keydown",e=>{
+    if((e.metaKey||e.ctrlKey) && e.key==="Enter"){ e.preventDefault(); BRIDGE ? sendToClaude() : copyJSON(); }
+  });
   function openIO(title,text,readonly){ $("io-title").textContent=title; $("io-text").value=text; $("io-text").readOnly=!!readonly; $("io-ok").style.display=readonly?"none":""; io.showModal(); }
   $("io-cancel").onclick=()=>io.close();
   $("io-ok").onclick=()=>{ try{ const o=JSON.parse($("io-text").value); if(!o.activities||!o.phases||!o.stories) throw 0; state=normalize(o); save(); render(); io.close(); toast(T("tLoaded")); }catch(e){ toast(T("badJson")); } };
@@ -1419,7 +1431,7 @@ window.VSScrub = (function () {
     if(BRIDGE && state.title) document.title = state.title + " · Visual Stack";
     // A map authored in Chinese opens in Chinese the first time, then the
     // reader's own choice sticks.
-    VSShell.init({ name: T("eyebrow"), eyebrow: state.title || "", defaultLang: state.lang || raw.lang });
+    VSShell.init({ name: T("eyebrow"), defaultLang: state.lang || raw.lang });
     lang = VSShell.lang;
     applyLang();
     render();

@@ -43,10 +43,7 @@ Read whatever exists — the wireframe (`design/<feature>.html` or wherever it l
       { "id": "s1",
         "title": "As a hiring manager, I want to see everyone who applied to a role, so that I can act on every application.",
         "themes": ["Reporting"], "notes": [],
-        "reqs": [
-          "Add a candidate list to the role page, newest application first",
-          "Search by name; filter by stage with a live count"
-        ],
+        "note": "Newest application first — the sort is the point, not a detail.",
         "crit": [
           { "id": "c1", "scenario": "Opening a role",
             "given": "Role 42 has applications",
@@ -59,14 +56,17 @@ Read whatever exists — the wireframe (`design/<feature>.html` or wherever it l
 }
 ```
 
-The model is the PRD's hierarchy — **Epic → User story → Requirement → Acceptance criteria →
-Definition of Ready** — inside one initiative (`title` + `goal`, the document itself), with
-Atlassian's themes spanning it as labels:
+The model is **Epic → User story → Acceptance criteria** inside one initiative (`title` + `goal`,
+the document itself), with Atlassian's themes spanning it as labels:
 
 - **Epics and user stories are both written as** *"As a [persona], I want to [goal], so that
   [benefit]"*. The story is the experience — what the person wants.
-- **`reqs` are the requirements** — functionality, what the product should do to deliver the story.
-  Plain bullets ("Add a page in User Settings to manage accounts"), as concrete as a build task.
+- **There is no separate requirements list.** A requirement that isn't checkable is an opinion, and
+  one that is checkable is a scenario — so it goes in `crit`, where `phase-build` will test it.
+  Writing both meant writing everything twice and letting the two drift.
+- **`note` is the margin** — one optional string per story for the aside that isn't a criterion: a
+  constraint, a decision already taken, a thing not to forget. It is never a hiding place for
+  behaviour that belongs in `crit`.
 - **`crit` are the acceptance criteria, as Gherkin scenarios** — `scenario` names the behaviour;
   `given` / `when` / `then` (and optional `and`) make it checkable with real values, not
   restatements. A criterion you can't write as Given/When/Then isn't done. This is also what
@@ -143,12 +143,11 @@ Re-running on a feature that already has a dated spec updates that file, never a
 
 ### As a …, I want to …, so that …  `<theme>`
 
-**Requirements**
-- <requirement>
-
 **Acceptance criteria**
 - **Scenario:** <scenario>
   **Given** <given> · **When** <when> · **Then** <then> · **And** <and>
+
+> <note>          ← only when the story has one
 ...
 ```
 

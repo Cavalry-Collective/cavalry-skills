@@ -285,10 +285,10 @@
          "Visual Stack" here said what the logo already says, and pushed the
          one thing you can't infer — which tool you are in — further right. -->
     <b id="pageName"></b>
+    <span class="wip" id="wip" hidden></span>
     <span class="eyebrow" id="pageEyebrow"></span>
   </div>
   <div class="spacer"></div>
-  <span class="wip" id="wip" hidden></span>
   <!-- The page's own controls: `tools` sits before the shared switches,
        `actions` after them, where the primary action belongs. -->
   <!-- vstack:slot tools -->
@@ -670,8 +670,8 @@ function layout () {
 
 function render () {
   const ph = doc.phase ?? '?';
-  // The tool is "Phase build"; which phase you are on is the eyebrow beside it.
-  VSShell.name('Phase build', t('title').replace('%n', ph));
+  // The bar names the tool; which phase you are on is on the board itself.
+  VSShell.name('Phase build');
   document.title = t('title').replace('%n', ph) + ' · Visual Stack';
   $('#tApi').textContent = t('api'); $('#tUi').textContent = t('ui'); $('#tInfra').textContent = t('infra');
   $('#kNew').textContent = t('kNew'); $('#kTouch').textContent = t('kTouch');

@@ -244,27 +244,31 @@ h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;fon
 /* the one destructive control, far right, on hover, two-step */
 .del{position:absolute;right:.1rem;top:50%;transform:translateY(-50%);color:var(--ink-3);
   font-size:12px;line-height:1;padding:3px 5px;border-radius:5px;opacity:0;white-space:nowrap}
-.ehead:hover .del,.shead:hover .del,.crow:hover .del,.req:hover .del,.del.armed{opacity:1}
+.ehead:hover .del,.shead:hover .del,.crow:hover .del,.del.armed{opacity:1}
 .del:hover{color:var(--brand);background:var(--surface-2)}
 .del.armed{font:700 10px/1 var(--mono);color:#fff;background:var(--brand)}
 
-/* ── expanded story — the PRD's two columns, side by side: what it should do,
-   and how you'd know. They are read against each other, so they sit against
-   each other; stacking made the second one look like a footnote to the first.
+/* ── expanded story — acceptance criteria, and a margin for anything that
+   isn't one. The criteria are the story's contract and take the width; the
+   note beside them is for the aside that would otherwise be lost in chat.
    The whole body is one panel, so an open story is visibly one thing. */
 .sbody{margin:.15rem 0 .8rem 1.75rem;padding:.7rem .9rem .8rem;
   background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
-  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,30%);
   column-gap:1.4rem;align-items:start}
 .sbody > .col{min-width:0}
+.sbody > .aside{border-left:1px solid var(--line);padding-left:1rem;min-height:3.2rem}
+.snote{font-size:12.5px;line-height:1.45;color:var(--ink-2);min-height:2.4rem;outline:0}
+.snote:empty::before{content:attr(data-ph);color:var(--ink-3);font-style:italic}
+.snote:focus{background:var(--surface);border-radius:6px;box-shadow:0 0 0 3px var(--surface)}
 /* one column each, until there isn't room for two */
-@media (max-width:1080px){ .sbody{grid-template-columns:minmax(0,1fr);row-gap:.2rem} }
+@media (max-width:1080px){
+  .sbody{grid-template-columns:minmax(0,1fr);row-gap:.2rem}
+  .sbody > .aside{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:.5rem}
+}
 .sect{font:800 8.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;
   color:var(--ink-3);margin:.65rem 0 .3rem}
 .sect:first-child{margin-top:0}
-.req{position:relative;display:flex;gap:.5rem;align-items:flex-start;padding:.15rem 1.7rem .15rem 0}
-.req::before{content:"–";color:var(--ink-3);flex:none}
-.reqtext{flex:1;min-width:0;font-size:12.5px;color:var(--ink-2)}
 .crow{position:relative;padding:.3rem 1.7rem .3rem 0}
 .crow + .crow{border-top:1px dashed var(--line)}
 .chead{display:flex;align-items:flex-start;gap:.5rem;cursor:pointer}
@@ -384,10 +388,10 @@ body.history .tagrow,body.history .kill{display:none!important}
          "Visual Stack" here said what the logo already says, and pushed the
          one thing you can't infer — which tool you are in — further right. -->
     <b id="pageName"></b>
+    <span class="wip" id="wip" hidden></span>
     <span class="eyebrow" id="pageEyebrow"></span>
   </div>
   <div class="spacer"></div>
-  <span class="wip" id="wip" hidden></span>
   <!-- The page's own controls: `tools` sits before the shared switches,
        `actions` after them, where the primary action belongs. -->
   <!-- vstack:slot tools -->
@@ -481,11 +485,6 @@ body.history .tagrow,body.history .kill{display:none!important}
             "Reporting"
           ],
           "notes": [],
-          "reqs": [
-            "Add a candidate list to the role page, newest application first",
-            "Show name, current stage and days waiting on each row",
-            "Search by name; filter by stage with a live count"
-          ],
           "crit": [
             {
               "id": "c1",
@@ -533,11 +532,6 @@ body.history .tagrow,body.history .kill{display:none!important}
               ]
             }
           ],
-          "reqs": [
-            "Add Advance and Reject actions to the candidate row",
-            "Reject requires a reason from the configured list",
-            "Every stage change stamps the timeline with actor and date"
-          ],
           "crit": [
             {
               "id": "c4",
@@ -573,10 +567,6 @@ body.history .tagrow,body.history .kill{display:none!important}
             "Auditability"
           ],
           "notes": [],
-          "reqs": [
-            "Generate a tokenised scorecard link per interviewer per candidate",
-            "Hide other interviewers' scorecards until mine is submitted"
-          ],
           "crit": [
             {
               "id": "c8",
@@ -831,14 +821,13 @@ const STR = {
   collapse: ['Collapse all', '全部收起'], expand: ['Expand all', '全部展开'],
   send: ['Send to Claude', '发送给 Claude'], sent: ['Sent ✓', '已发送 ✓'],
   linked: ['LINKED TO CLAUDE', '已连接 CLAUDE'], lost: ['LINK LOST', '连接断开'],
-  reqsLbl: ['Requirements', '需求'],
   acLbl: ['Acceptance criteria', '验收标准'],
+  noteLbl: ['Notes', '备注'],
+  notePh: ['Anything worth remembering about this story…', '关于这个故事值得记下的内容…'],
   scenario: ['Scenario', '场景'],
   given: ['Given', '前提'], when: ['When', '当'], then: ['Then', '则'], andLbl: ['And', '且'],
-  addReq: ['+ requirement', '+ 需求'],
   addScen: ['+ scenario', '+ 场景'],
   addS: ['+ story', '+ 故事'], addE: ['+ epic', '+ 史诗'],
-  newReq: ['What the product should do', '产品应该做什么'],
   newScen: ['New scenario', '新场景'],
   newStory: ['As a …, I want to …, so that …', '作为…，我想要…，以便…'],
   newEpic: ['As a …, I want to …, so that …', '作为…，我想要…，以便…'],
@@ -871,7 +860,10 @@ function migrate (d) {
   d.epics.forEach(ep => {
     ep.open ??= true; ep.stories ||= [];
     ep.stories.forEach(s => {
-      s.notes ||= []; s.crit ||= []; s.reqs ||= [];
+      s.notes ||= []; s.crit ||= [];
+      // requirements were folded into the criteria — an older document keeps
+      // what it said by moving them into the note rather than dropping them
+      if (s.reqs?.length) { s.note = [s.note, ...s.reqs].filter(Boolean).join(' · '); delete s.reqs }
       s.crit.forEach(c => {
         if (c.text !== undefined && c.scenario === undefined) {
           c.scenario = c.text; c.then = c.verify || '';
@@ -951,16 +943,6 @@ function storyHtml (s, ei, si) {
     </div>
     <div class="sbody" ${s.open ? '' : 'hidden'}>
       <div class="col">
-        <div class="sect">${t('reqsLbl')}</div>
-        ${(s.reqs || []).map((r, ri) => `
-          <div class="req" data-r="${ri}">
-            <span class="reqtext" contenteditable="${ce}" data-act="edit-req">${esc(r)}</span>
-            <button class="del" data-act="delr">×</button>
-          </div>`).join('')}
-        <div class="acts"><button class="act" data-act="addr">${t('addReq')}</button></div>
-      </div>
-
-      <div class="col">
         <div class="sect">${t('acLbl')}</div>
         ${s.crit.map((c, ci) => `
           <div class="crow" data-c="${ci}">
@@ -978,6 +960,12 @@ function storyHtml (s, ei, si) {
             <button class="del" data-act="delc">×</button>
           </div>`).join('')}
         <div class="acts"><button class="act" data-act="addc">${t('addScen')}</button></div>
+      </div>
+
+      <div class="col aside">
+        <div class="sect">${t('noteLbl')}</div>
+        <div class="snote" contenteditable="${ce}" data-act="edit-note"
+             data-ph="${esc(t('notePh'))}">${esc(s.note || '')}</div>
       </div>
     </div>
   </article>`;
@@ -1094,14 +1082,10 @@ $('#tree').addEventListener('click', e => {
   }
   if (card) {
     const s = ep.stories[si];
-    const req = e.target.closest('.req');
-    const ri = req ? +req.dataset.r : null;
     if (act === 'tog')  s.open = !s.open;
     if (act === 'togc') s.crit[ci].open = !s.crit[ci].open;
     if (act === 'del')  ep.stories.splice(si, 1);
     if (act === 'delc') s.crit.splice(ci, 1);
-    if (act === 'addr') (s.reqs ||= []).push(t('newReq'));
-    if (act === 'delr' && ri !== null) s.reqs.splice(ri, 1);
     if (act === 'addc') s.crit.push({ id:'c'+Date.now(), scenario:t('newScen'), given:'', when:'', then:'', and:'', open:true, notes:[] });
   }
   if (!expandOnly) dirty();
@@ -1121,10 +1105,7 @@ $('#tree').addEventListener('input', e => {
   if (el.dataset.act === 'edit-title') s.title = el.textContent.trim();
   else if (el.dataset.act === 'edit-scen' && crow) s.crit[+crow.dataset.c].scenario = el.textContent.trim();
   else if (el.dataset.g && crow) s.crit[+crow.dataset.c][el.dataset.g] = el.textContent.trim();
-  else if (el.dataset.act === 'edit-req') {
-    const req = el.closest('.req');
-    if (req) s.reqs[+req.dataset.r] = el.textContent.trim();
-  }
+  else if (el.dataset.act === 'edit-note') s.note = el.textContent.trim();
   dirty();
 });
 
