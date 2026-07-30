@@ -96,7 +96,9 @@ if (out === shell) {
    Artifact is catalogued by the <title> in the file — so a bundle that ships the
    placeholder gets filed under "Review" alongside every other one. Name it. */
 const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
-out = out.replace('<title>Review</title>', `<title>${esc(name)} — Review</title>`)
+const titled = out.replace(/<title>[^<]*<\/title>/i, `<title>${esc(name)} — Review · Visual Stack</title>`)
+if (titled === out) console.error('warning: no <title> to name — the Artifact will be filed under the workspace default')
+out = titled
 
 const dest = path.resolve(args.out || path.join(DIR, `${NAME}-review.html`))
 fs.mkdirSync(path.dirname(dest), { recursive: true })

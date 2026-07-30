@@ -21,8 +21,8 @@
   must be unique strings.
 -->
 <style>
-/* vstack:shell tokens
-   One palette for every vstack page. Roles, not colours: a page asks for
+/* vstack:shell tokens */
+/* One palette for every vstack page. Roles, not colours: a page asks for
    --surface, not for white, so light and dark are the same stylesheet.
 
    Page-specific hues (the story map's phase bands, the board's new/have/touch,
@@ -94,11 +94,16 @@
   body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);line-height:1.5;-webkit-font-smoothing:antialiased}
   .wrap{max-width:1600px;margin:0 auto;padding:clamp(1.2rem,3vw,2.4rem) clamp(.8rem,2.5vw,2rem) 3rem}
 
-/* vstack:shell css
-   The chrome every vstack page wears: the top bar and the controls that sit in
+/* vstack:shell css */
+/* The chrome every vstack page wears: the top bar and the controls that sit in
    it. Page layout stays in the page — some of these are app shells that fill
    the viewport, some are documents that scroll — but the bar, the buttons and
    the segmented controls are the same object everywhere. */
+/* The shell hides its own controls with `hidden` — the link dot when there is
+   no link, the primary action on a page that doesn't send. A class that sets
+   `display` outranks the browser's default [hidden] rule, and .btn/.linkdot
+   both do, so state this here rather than trusting each page's reset. */
+[hidden]{display:none!important}
 .vs-topbar{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
   background:var(--surface);border-bottom:1px solid var(--line);
   position:sticky;top:0;z-index:40}
@@ -435,8 +440,8 @@
 </script>
 
 <script>
-/* vstack:shell js
-   The behaviour behind the top bar: theme, language, the link dot, and the
+/* vstack:shell js */
+/* The behaviour behind the top bar: theme, language, the link dot, and the
    page's own name. Everything else — what the page does — is the page's.
 
    Nothing here touches the network or the document beyond the bar, so a page
@@ -472,7 +477,9 @@ window.VSShell = (function () {
   let lang = storedLang === 'zh' ? 'zh' : 'en';
   const langListeners = [];
   function applyLang () {
-    document.documentElement.lang = lang === 'zh' ? 'zh' : 'en';
+    // zh-CN, not zh: the specific tag is what picks the right font and
+    // line-breaking for simplified Chinese.
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
     document.querySelectorAll('#langSwitch button').forEach(b => {
       b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
     });

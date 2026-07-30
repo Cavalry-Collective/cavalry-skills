@@ -1,5 +1,4 @@
-/* vstack:shell tokens
-   One palette for every vstack page. Roles, not colours: a page asks for
+/* One palette for every vstack page. Roles, not colours: a page asks for
    --surface, not for white, so light and dark are the same stylesheet.
 
    Page-specific hues (the story map's phase bands, the board's new/have/touch,
@@ -56,4 +55,3 @@
   --window-shadow:0 2px 6px rgba(0,0,0,.5),0 18px 48px rgba(0,0,0,.6);
   color-scheme:dark;
 }
-/* /vstack:shell tokens */

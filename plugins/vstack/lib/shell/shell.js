@@ -1,5 +1,4 @@
-/* vstack:shell js
-   The behaviour behind the top bar: theme, language, the link dot, and the
+/* The behaviour behind the top bar: theme, language, the link dot, and the
    page's own name. Everything else — what the page does — is the page's.
 
    Nothing here touches the network or the document beyond the bar, so a page
@@ -96,4 +95,3 @@ window.VSShell = (function () {
   };
   return api;
 })();
-/* /vstack:shell js */

@@ -9,8 +9,8 @@
    Opens one HTML file in its own browser window and lets you comment on it.
    The wrapper knows nothing about the page inside it. Two modes, two kinds of
    comment, nothing else. */
-/* vstack:shell tokens
-   One palette for every vstack page. Roles, not colours: a page asks for
+/* vstack:shell tokens */
+/* One palette for every vstack page. Roles, not colours: a page asks for
    --surface, not for white, so light and dark are the same stylesheet.
 
    Page-specific hues (the story map's phase bands, the board's new/have/touch,
@@ -81,11 +81,16 @@ button{cursor:pointer;background:none;border:0;padding:0}
 #main{display:grid;grid-template-columns:1fr var(--panelw);min-height:0}
 @media (max-width:820px){ #main{grid-template-columns:1fr} #panel{display:none} }
 
-/* vstack:shell css
-   The chrome every vstack page wears: the top bar and the controls that sit in
+/* vstack:shell css */
+/* The chrome every vstack page wears: the top bar and the controls that sit in
    it. Page layout stays in the page — some of these are app shells that fill
    the viewport, some are documents that scroll — but the bar, the buttons and
    the segmented controls are the same object everywhere. */
+/* The shell hides its own controls with `hidden` — the link dot when there is
+   no link, the primary action on a page that doesn't send. A class that sets
+   `display` outranks the browser's default [hidden] rule, and .btn/.linkdot
+   both do, so state this here rather than trusting each page's reset. */
+[hidden]{display:none!important}
 .vs-topbar{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
   background:var(--surface);border-bottom:1px solid var(--line);
   position:sticky;top:0;z-index:40}
@@ -642,8 +647,8 @@ button{cursor:pointer;background:none;border:0;padding:0}
 
 <script id="bundle" type="application/json">null</script>
 <script>
-/* vstack:shell js
-   The behaviour behind the top bar: theme, language, the link dot, and the
+/* vstack:shell js */
+/* The behaviour behind the top bar: theme, language, the link dot, and the
    page's own name. Everything else — what the page does — is the page's.
 
    Nothing here touches the network or the document beyond the bar, so a page

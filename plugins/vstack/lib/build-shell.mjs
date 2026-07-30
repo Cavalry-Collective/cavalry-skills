@@ -47,16 +47,32 @@ const read = f => fs.readFileSync(f, 'utf8')
 
 /* Each block knows how it comments itself, because it lands inside <style>,
    <script> or the markup, and a comment that is wrong there is a page that
-   renders its own source. */
+   renders its own source. The markers belong to this script — the files in
+   shell/ are pure content, so a stamped page and its source never disagree
+   about where a block begins. */
 const BLOCKS = [
-  { name: 'tokens', file: 'tokens.css', open: '/* vstack:shell tokens */', close: '/* /vstack:shell tokens */' },
-  { name: 'css', file: 'shell.css', open: '/* vstack:shell css */', close: '/* /vstack:shell css */' },
-  { name: 'topbar', file: 'topbar.html', open: '<!-- vstack:shell topbar -->', close: '<!-- /vstack:shell topbar -->' },
-  { name: 'js', file: 'shell.js', open: '/* vstack:shell js */', close: '/* /vstack:shell js */' },
-]
+  { name: 'tokens', file: 'tokens.css', style: 'css' },
+  { name: 'css', file: 'shell.css', style: 'css' },
+  { name: 'topbar', file: 'topbar.html', style: 'html' },
+  { name: 'js', file: 'shell.js', style: 'css' },
+].map(b => ({
+  ...b,
+  open: b.style === 'html' ? `<!-- vstack:shell ${b.name} -->` : `/* vstack:shell ${b.name} */`,
+  close: b.style === 'html' ? `<!-- /vstack:shell ${b.name} -->` : `/* /vstack:shell ${b.name} */`,
+}))
 
 const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-const region = b => new RegExp(esc(b.open) + '[\\s\\S]*?' + esc(b.close))
+
+/* The opening marker is matched loosely — anything from `vstack:shell <name>`
+   to the end of that comment — so a page stamped by an older version of this
+   script, which let the block's own prose run on past the marker, is still
+   found and rewritten into the canonical form. The closing marker is exact. */
+const region = b => new RegExp(
+  (b.style === 'html'
+    ? '<!-- vstack:shell ' + b.name + '[\\s\\S]*?-->'
+    : '\\/\\* vstack:shell ' + b.name + '[\\s\\S]*?\\*\\/') +
+  '[\\s\\S]*?' + esc(b.close)
+)
 
 /** The page's own markup inside a slot, so a stamp never eats it. */
 function slots (text) {
@@ -82,7 +98,8 @@ function stampOne (file) {
   for (const b of BLOCKS) {
     const re = region(b)
     if (!re.test(after)) continue          // this page doesn't take this block
-    after = after.replace(re, () => withSlots(read(path.join(SHELL, b.file)).trimEnd(), keep))
+    const body = withSlots(read(path.join(SHELL, b.file)).replace(/\s+$/, ''), keep)
+    after = after.replace(re, () => `${b.open}\n${body}\n${b.close}`)
     applied.push(b.name)
   }
   return { file, before, after, applied, changed: before !== after }
