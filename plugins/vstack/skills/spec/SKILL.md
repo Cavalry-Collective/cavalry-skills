@@ -37,38 +37,50 @@ Read whatever exists — the wireframe (`design/<feature>.html` or wherever it l
   "source": ["design/candidate-pipeline.html", "specs/product.md"],
   "themes": ["Auditability", "Reporting"],
   "epics": [
-    { "id": "e1", "title": "Pipeline operations", "stories": [
-      { "id": "s1", "title": "See everyone who applied to a role",
+    { "id": "e1",
+      "title": "As a hiring manager, I want to run a role's pipeline in one place, so that no candidate stalls unseen.",
+      "stories": [
+      { "id": "s1",
+        "title": "As a hiring manager, I want to see everyone who applied to a role, so that I can act on every application.",
         "themes": ["Reporting"], "notes": [],
+        "reqs": [
+          "Add a candidate list to the role page, newest application first",
+          "Search by name; filter by stage with a live count"
+        ],
         "crit": [
-          { "id": "c1",
-            "text": "The list opens newest-first and shows name, stage and days waiting.",
-            "verify": "Open /roles/42 — top row is the most recent application.",
-            "notes": [] }
+          { "id": "c1", "scenario": "Opening a role",
+            "given": "Role 42 has applications",
+            "when": "I open /roles/42",
+            "then": "The top row is the most recent application",
+            "and": "", "notes": [] }
         ] }
     ] }
   ]
 }
 ```
 
-Traditional agile, mapped (per Atlassian's stories < epics < initiatives, with themes spanning
-them): the document **is one initiative** (`title` + `goal`); `epics` are its bodies of work, each
-holding its user stories; `doc.themes` is the initiative's **theme catalog** — plain labels — and
-each story's `themes` array tags it with the ones it serves. **The catalog is edited here, not on
-the page** — the page shows themes read-only and toggles them per story; add or rename themes in
-this JSON when the conversation calls for it. Themes carry no criteria of their own: a
-cross-cutting *requirement* still lives as a criterion in every story it constrains; the theme is
-how you see the span. A small feature is one epic; don't invent a second epic to look thorough.
+The model is the PRD's hierarchy — **Epic → User story → Requirement → Acceptance criteria →
+Definition of Ready** — inside one initiative (`title` + `goal`, the document itself), with
+Atlassian's themes spanning it as labels:
 
-- Every criterion carries **`verify`** — the concrete check, with real values, not a restatement of
-  the criterion. If you can't write how it's checked, the criterion isn't done.
+- **Epics and user stories are both written as** *"As a [persona], I want to [goal], so that
+  [benefit]"*. The story is the experience — what the person wants.
+- **`reqs` are the requirements** — functionality, what the product should do to deliver the story.
+  Plain bullets ("Add a page in User Settings to manage accounts"), as concrete as a build task.
+- **`crit` are the acceptance criteria, as Gherkin scenarios** — `scenario` names the behaviour;
+  `given` / `when` / `then` (and optional `and`) make it checkable with real values, not
+  restatements. A criterion you can't write as Given/When/Then isn't done. This is also what
+  `phase-build` later tests against. **Cover the flows, not just the demo path**: every story's
+  scenarios should span the happy flow, the sad flows (invalid input, refusals, failures), and the
+  edge cases (empty, duplicate, boundary). One happy scenario alone is a spec that lies by omission.
+- `doc.themes` is the initiative's **theme catalog** — plain labels, edited here, not on the page;
+  each story's `themes` array tags it. Keep the catalog short — a theme only one story wears isn't
+  spanning anything.
 - **No priorities here.** Which stories land first is a phasing decision, and phasing is
   `/vstack:user-story-map`'s job — the spec says *what*, the story map says *when*. Ids are stable —
   never renumber existing ones on a rewrite.
-- Keep the theme catalog short — a handful of focus areas, not a folksonomy. A theme only one story
-  wears isn't spanning anything.
-- **Keep the first pass lean.** The loop is how it gets rich; a bloated v1 wastes the user's first
-  round on deletions.
+- A small feature is one epic; don't invent a second epic to look thorough. **Keep the first pass
+  lean** — the loop is how it gets rich; a bloated v1 wastes the user's first round on deletions.
 
 ## 2 · Serve it
 
@@ -127,11 +139,16 @@ Re-running on a feature that already has a dated spec updates that file, never a
 
 **Themes:** <theme> · <theme>
 
-## Epic — <epic title>
+## Epic — As a …, I want to …, so that …
 
-### <story title>  `<theme>`
-- <criterion>
-  - *Verified by:* <verify>
+### As a …, I want to …, so that …  `<theme>`
+
+**Requirements**
+- <requirement>
+
+**Acceptance criteria**
+- **Scenario:** <scenario>
+  **Given** <given> · **When** <when> · **Then** <then> · **And** <and>
 ...
 ```
 
