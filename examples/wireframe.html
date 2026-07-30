@@ -429,7 +429,12 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .grouphd:first-child{margin-top:2px}
 .grouphd::after{content:"";flex:1;height:1px;background:var(--line)}
 
-/* ── timeline scrubber ── */
+/* vstack:shell scrubber-css */
+/* The scrubber: one control for moving along an ordered set of states.
+   `spec` and `wireframe` scrub versions, `phase-wireframe` scrubs release
+   phases — same control, different axis, so it lives here rather than being
+   written a third time. The page supplies the stops and decides what showing
+   one means; everything below is how it looks and behaves. */
 #timeline{border-top:1px solid var(--line);background:var(--surface);padding:9px 16px 12px;
   display:flex;align-items:center;gap:12px;z-index:20}
 #timeline .step{width:24px;height:24px;border-radius:6px;color:var(--ink-2);display:grid;place-items:center;flex:none}
@@ -446,13 +451,14 @@ button{cursor:pointer;background:none;border:0;padding:0}
 #tlTrack .tick .cap{position:absolute;top:14px;left:50%;transform:translateX(-50%);
   font:600 9.5px/1 var(--mono);color:var(--ink-3)}
 #tlHandle{position:absolute;top:4px;width:17px;height:17px;border-radius:50%;background:var(--brand);
-  border:3px solid var(--surface);box-shadow:0 1px 4px rgba(23,19,32,.3);transform:translateX(-50%);
+  border:3px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.3);transform:translateX(-50%);
   cursor:grab;z-index:3}
 #tlHandle:active{cursor:grabbing}
 #tlMeta{flex:none;max-width:330px;min-width:0;font-size:11.5px;color:var(--ink-3);line-height:1.35}
 #tlMeta b{color:var(--ink);font-weight:650;font-family:var(--mono);font-size:11px}
 #tlMeta .lab{color:var(--ink-2)}
 #tlMeta .row{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* /vstack:shell scrubber-css */
 
 /* ── floating banners ── */
 .banner{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:28;display:none;
@@ -614,12 +620,14 @@ button{cursor:pointer;background:none;border:0;padding:0}
         </div>
       </div>
 
-      <div id="timeline">
-        <button class="step" id="tlPrev" title="Previous version">‹</button>
-        <div id="tlTrack"><div id="tlFill"></div><div id="tlHandle"></div></div>
-        <button class="step" id="tlNext" title="Next version">›</button>
-        <div id="tlMeta"></div>
-      </div>
+<!-- vstack:shell scrubber -->
+<div id="timeline">
+  <button class="step" id="tlPrev" aria-label="Previous">‹</button>
+  <div id="tlTrack"><div id="tlFill"></div><div id="tlHandle"></div></div>
+  <button class="step" id="tlNext" aria-label="Next">›</button>
+  <div id="tlMeta"></div>
+</div>
+<!-- /vstack:shell scrubber -->
     </div>
 
     <div id="panel">
@@ -748,6 +756,104 @@ window.VSShell = (function () {
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
+  };
+  return api;
+})();
+
+/* ── the scrubber ──
+   An ordered set of states and a handle that moves between them: versions on
+   the spec and the review workspace, release phases on phase-wireframe. The
+   page says what the stops are and what showing one does; this owns the track,
+   the ticks, the drag, and the caption.
+
+     VSScrub.mount({ onPick: id => showThat(id) })
+     VSScrub.set({ items: [{ id, cap, label, sub }], active: id })
+
+   `cap` is the label under the tick (v3, P2), `label` names the stop, and
+   `sub` is the line beneath it — both are escaped here, so a page never has to
+   remember to. */
+window.VSScrub = (function () {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  let items = [];
+  let active = null;
+  let onPick = () => {};
+  let wired = false;
+
+  const index = () => Math.max(0, items.findIndex(i => i.id === active));
+  const pct = i => items.length < 2 ? 100 : (i / (items.length - 1)) * 100;
+
+  function pickAt (clientX) {
+    const track = $('#tlTrack');
+    if (!track || !items.length) return null;
+    const r = track.getBoundingClientRect();
+    return items[Math.round(clamp((clientX - r.left) / r.width, 0, 1) * (items.length - 1))]?.id;
+  }
+  function pick (id) {
+    if (id == null || id === active) return;
+    active = id;
+    paint();
+    onPick(id);
+  }
+  const step = d => { const n = items[index() + d]; if (n) pick(n.id) };
+
+  function paint () {
+    const track = $('#tlTrack');
+    if (!track) return;
+    const i = index();
+    track.querySelectorAll('.tick').forEach(t => t.remove());
+    items.forEach((it, k) => {
+      const t = document.createElement('div');
+      t.className = 'tick' + (k <= i ? ' past' : '');
+      t.style.left = pct(k) + '%';
+      t.innerHTML = `<span class="cap">${esc(it.cap)}</span>`;
+      if (it.label) t.title = it.label;
+      t.onclick = e => { e.stopPropagation(); pick(it.id) };
+      track.appendChild(t);
+    });
+    $('#tlHandle').style.left = pct(i) + '%';
+    $('#tlFill').style.width = pct(i) + '%';
+    const cur = items[i];
+    $('#tlMeta').innerHTML = cur
+      ? `<div class="row"><b>${esc(cur.cap)}</b> <span class="lab">${esc(cur.label)}</span></div>` +
+        `<div class="row">${esc(cur.sub)}</div>`
+      : '';
+    $('#tlPrev').disabled = i === 0;
+    $('#tlNext').disabled = i >= items.length - 1;
+  }
+
+  function mount (opts = {}) {
+    if (opts.onPick) onPick = opts.onPick;
+    if (wired || !$('#tlTrack')) return api;
+    wired = true;
+    $('#tlPrev').onclick = () => step(-1);
+    $('#tlNext').onclick = () => step(1);
+    $('#tlHandle').addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const mv = ev => pick(pickAt(ev.clientX));
+      const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up) };
+      addEventListener('pointermove', mv); addEventListener('pointerup', up);
+    });
+    $('#tlTrack').addEventListener('pointerdown', e => {
+      if (e.target.closest('#tlHandle, .tick')) return;
+      pick(pickAt(e.clientX));
+    });
+    return api;
+  }
+
+  const api = {
+    mount,
+    set ({ items: list, active: a }) {
+      if (list) items = list;
+      if (a !== undefined) active = a;
+      if (active == null && items.length) active = items[items.length - 1].id;
+      paint();
+      return api;
+    },
+    get active () { return active },
+    get items () { return items },
   };
   return api;
 })();
@@ -2213,7 +2319,6 @@ const versionList = () => {
   const ns = S.versions.map(v => v.n).sort((a, b) => a - b);
   return ns.length ? ns : [S.version];
 };
-const pctFor = (i, len) => len < 2 ? 100 : (i / (len - 1)) * 100;
 const labelFor = n => S.versions.find(v => v.n === n)?.label || `Version ${n}`;
 const dateFor = n => {
   const d = S.versions.find(v => v.n === n)?.date;
@@ -2222,32 +2327,26 @@ const dateFor = n => {
   return dt.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' ' +
          dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 };
+/** Each version's caption: what it was called, when, and what is still open on
+    it — the reasons someone scrubs back to look. */
+function subFor (n) {
+  const openN = (S.reviews[n]?.annotations || []).filter(a => a.status === 'open').length;
+  return dateFor(n)
+    + (openN ? ` · ${openN} open` : '')
+    + (n === S.version ? ' · ' + T('current') : '');
+}
 function buildTimeline () {
-  const track = $('#tlTrack');
-  $$('.tick', track).forEach(n => n.remove());
-  const ns = versionList();
-  ns.forEach((n, i) => {
-    const t = document.createElement('div');
-    t.className = 'tick';
-    t.style.left = pctFor(i, ns.length) + '%';
-    t.innerHTML = `<span class="cap">v${n}</span>`;
-    t.title = labelFor(n);
-    t.onclick = e => { e.stopPropagation(); gotoVersion(n) };
-    track.appendChild(t);
+  VSScrub.set({
+    items: versionList().map(n => ({ id: n, cap: `v${n}`, label: labelFor(n), sub: subFor(n) })),
+    active: S.viewing,
   });
   syncTimeline();
 }
 function syncTimeline () {
-  const ns = versionList(), i = Math.max(0, ns.indexOf(S.viewing)), pct = pctFor(i, ns.length);
-  $('#tlHandle').style.left = pct + '%';
-  $('#tlFill').style.width = pct + '%';
-  $$('#tlTrack .tick').forEach((t, k) => t.classList.toggle('past', k <= i));
-  const openN = (S.reviews[S.viewing]?.annotations || []).filter(a => a.status === 'open').length;
-  $('#tlMeta').innerHTML =
-    `<div class="row"><b>v${S.viewing}</b> <span class="lab">${esc(labelFor(S.viewing))}</span></div>` +
-    `<div class="row">${esc(dateFor(S.viewing))}${openN ? ` · ${openN} open` : ''}${S.viewing === S.version ? ' · ' + esc(T('current')) : ''}</div>`;
-  $('#tlPrev').disabled = i === 0;
-  $('#tlNext').disabled = i === ns.length - 1;
+  VSScrub.set({
+    items: versionList().map(n => ({ id: n, cap: `v${n}`, label: labelFor(n), sub: subFor(n) })),
+    active: S.viewing,
+  });
   $('#histBanner').classList.toggle('on', isHistory());
   $('#histText').textContent = T('viewingOld')(S.viewing);
 }
@@ -2259,26 +2358,7 @@ function gotoVersion (n) {
   setMode(n === S.version ? 'annotate' : 'view');
   loadFrame(); syncTimeline(); renderPanel();
 }
-const stepVersion = d => {
-  const ns = versionList(), i = ns.indexOf(S.viewing);
-  if (ns[i + d] !== undefined) gotoVersion(ns[i + d]);
-};
-$('#tlPrev').onclick = () => stepVersion(-1);
-$('#tlNext').onclick = () => stepVersion(1);
-const trackPick = clientX => {
-  const r = $('#tlTrack').getBoundingClientRect(), ns = versionList();
-  return ns[Math.round(clamp((clientX - r.left) / r.width, 0, 1) * (ns.length - 1))];
-};
-$('#tlHandle').addEventListener('pointerdown', e => {
-  e.preventDefault();
-  const mv = ev => gotoVersion(trackPick(ev.clientX));
-  const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up) };
-  addEventListener('pointermove', mv); addEventListener('pointerup', up);
-});
-$('#tlTrack').addEventListener('pointerdown', e => {
-  if (e.target.closest('#tlHandle, .tick')) return;
-  gotoVersion(trackPick(e.clientX));
-});
+VSScrub.mount({ onPick: gotoVersion });
 
 /* ───────────── the deliverable: instructions for Claude ───────────── */
 

@@ -53,7 +53,10 @@ const read = f => fs.readFileSync(f, 'utf8')
 const BLOCKS = [
   { name: 'tokens', file: 'tokens.css', style: 'css' },
   { name: 'css', file: 'shell.css', style: 'css' },
+  // Only the pages that scrub something carry these — the marker is the opt-in.
+  { name: 'scrubber-css', file: 'scrubber.css', style: 'css' },
   { name: 'topbar', file: 'topbar.html', style: 'html' },
+  { name: 'scrubber', file: 'scrubber.html', style: 'html' },
   { name: 'js', file: 'shell.js', style: 'css' },
 ].map(b => ({
   ...b,

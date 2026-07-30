@@ -3,12 +3,15 @@
 One top bar, one palette, one set of controls — for every page in the stack.
 
 ```
-tokens.css   the palette, as roles: --paper --surface --ink --line --brand --ok …
-             plus the dark ramp and the light/dark overrides
-shell.css    the top bar and what sits in it: .btn .seg .sep .linkdot .banner
-topbar.html  the bar itself — mark, page name, eyebrow, slots, theme, language,
-             link dot, primary action
-shell.js     window.VSShell — theme, language, the link dot, the page name
+tokens.css    the palette, as roles: --paper --surface --ink --line --brand --ok …
+              plus the dark ramp and the light/dark overrides
+shell.css     the top bar and what sits in it: .btn .seg .sep .linkdot .banner
+topbar.html   the bar itself — mark, page name, eyebrow, slots, theme, language,
+              link dot, primary action
+scrubber.css  the timeline control
+scrubber.html its markup — a page opts in by carrying the marker
+shell.js      window.VSShell (theme, language, link dot, page name)
+              window.VSScrub (the scrubber)
 ```
 
 ## Why it is stamped, not linked
@@ -46,6 +49,19 @@ VSShell.init({ name: 'Spec', eyebrow: 'checkout', send: true });
 VSShell.onLang(l => { LANG = l; render() });   // the switch is the shell's
 VSShell.setLink(true, { on: t('linked'), off: t('lost') });
 VSShell.name('Phase 2 build');                 // when the page renames itself
+```
+
+The scrubber is an ordered set of stops and a handle between them — versions on
+the spec and the review workspace, release phases on `phase-wireframe`. The page
+says what the stops are and what showing one does; the component owns the track,
+the ticks, the drag and the caption (and escapes what it renders):
+
+```js
+VSScrub.mount({ onPick: id => show(id) });
+VSScrub.set({
+  items: versions.map(v => ({ id: v.n, cap: `v${v.n}`, label: v.label, sub: whenOf(v) })),
+  active: viewing,
+});
 ```
 
 `init` returns the API and is safe to call once, late — after the document the

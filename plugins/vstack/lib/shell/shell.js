@@ -95,3 +95,101 @@ window.VSShell = (function () {
   };
   return api;
 })();
+
+/* ── the scrubber ──
+   An ordered set of states and a handle that moves between them: versions on
+   the spec and the review workspace, release phases on phase-wireframe. The
+   page says what the stops are and what showing one does; this owns the track,
+   the ticks, the drag, and the caption.
+
+     VSScrub.mount({ onPick: id => showThat(id) })
+     VSScrub.set({ items: [{ id, cap, label, sub }], active: id })
+
+   `cap` is the label under the tick (v3, P2), `label` names the stop, and
+   `sub` is the line beneath it — both are escaped here, so a page never has to
+   remember to. */
+window.VSScrub = (function () {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  let items = [];
+  let active = null;
+  let onPick = () => {};
+  let wired = false;
+
+  const index = () => Math.max(0, items.findIndex(i => i.id === active));
+  const pct = i => items.length < 2 ? 100 : (i / (items.length - 1)) * 100;
+
+  function pickAt (clientX) {
+    const track = $('#tlTrack');
+    if (!track || !items.length) return null;
+    const r = track.getBoundingClientRect();
+    return items[Math.round(clamp((clientX - r.left) / r.width, 0, 1) * (items.length - 1))]?.id;
+  }
+  function pick (id) {
+    if (id == null || id === active) return;
+    active = id;
+    paint();
+    onPick(id);
+  }
+  const step = d => { const n = items[index() + d]; if (n) pick(n.id) };
+
+  function paint () {
+    const track = $('#tlTrack');
+    if (!track) return;
+    const i = index();
+    track.querySelectorAll('.tick').forEach(t => t.remove());
+    items.forEach((it, k) => {
+      const t = document.createElement('div');
+      t.className = 'tick' + (k <= i ? ' past' : '');
+      t.style.left = pct(k) + '%';
+      t.innerHTML = `<span class="cap">${esc(it.cap)}</span>`;
+      if (it.label) t.title = it.label;
+      t.onclick = e => { e.stopPropagation(); pick(it.id) };
+      track.appendChild(t);
+    });
+    $('#tlHandle').style.left = pct(i) + '%';
+    $('#tlFill').style.width = pct(i) + '%';
+    const cur = items[i];
+    $('#tlMeta').innerHTML = cur
+      ? `<div class="row"><b>${esc(cur.cap)}</b> <span class="lab">${esc(cur.label)}</span></div>` +
+        `<div class="row">${esc(cur.sub)}</div>`
+      : '';
+    $('#tlPrev').disabled = i === 0;
+    $('#tlNext').disabled = i >= items.length - 1;
+  }
+
+  function mount (opts = {}) {
+    if (opts.onPick) onPick = opts.onPick;
+    if (wired || !$('#tlTrack')) return api;
+    wired = true;
+    $('#tlPrev').onclick = () => step(-1);
+    $('#tlNext').onclick = () => step(1);
+    $('#tlHandle').addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const mv = ev => pick(pickAt(ev.clientX));
+      const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up) };
+      addEventListener('pointermove', mv); addEventListener('pointerup', up);
+    });
+    $('#tlTrack').addEventListener('pointerdown', e => {
+      if (e.target.closest('#tlHandle, .tick')) return;
+      pick(pickAt(e.clientX));
+    });
+    return api;
+  }
+
+  const api = {
+    mount,
+    set ({ items: list, active: a }) {
+      if (list) items = list;
+      if (a !== undefined) active = a;
+      if (active == null && items.length) active = items[items.length - 1].id;
+      paint();
+      return api;
+    },
+    get active () { return active },
+    get items () { return items },
+  };
+  return api;
+})();

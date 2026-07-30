@@ -291,9 +291,14 @@ body.history .tagrow,body.history .kill{display:none!important}
 .qans:focus{border-color:var(--ok);border-style:solid}
 .qans:empty::before{content:attr(data-ph);color:var(--ink-3);font-style:italic}
 
-/* ── timeline scrubber — the workspace's, its own always-visible row ── */
-#timeline{border-top:1px solid var(--line);
-  background:var(--surface);padding:9px 16px 12px;display:flex;align-items:center;gap:12px}
+/* vstack:shell scrubber-css */
+/* The scrubber: one control for moving along an ordered set of states.
+   `spec` and `wireframe` scrub versions, `phase-wireframe` scrubs release
+   phases — same control, different axis, so it lives here rather than being
+   written a third time. The page supplies the stops and decides what showing
+   one means; everything below is how it looks and behaves. */
+#timeline{border-top:1px solid var(--line);background:var(--surface);padding:9px 16px 12px;
+  display:flex;align-items:center;gap:12px;z-index:20}
 #timeline .step{width:24px;height:24px;border-radius:6px;color:var(--ink-2);display:grid;place-items:center;flex:none}
 #timeline .step:hover{background:var(--surface-2);color:var(--ink)}
 #timeline .step[disabled]{opacity:.3;cursor:default}
@@ -308,13 +313,14 @@ body.history .tagrow,body.history .kill{display:none!important}
 #tlTrack .tick .cap{position:absolute;top:14px;left:50%;transform:translateX(-50%);
   font:600 9.5px/1 var(--mono);color:var(--ink-3)}
 #tlHandle{position:absolute;top:4px;width:17px;height:17px;border-radius:50%;background:var(--brand);
-  border:3px solid var(--surface);box-shadow:0 1px 4px rgba(23,19,32,.3);transform:translateX(-50%);
+  border:3px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.3);transform:translateX(-50%);
   cursor:grab;z-index:3}
 #tlHandle:active{cursor:grabbing}
 #tlMeta{flex:none;max-width:330px;min-width:0;font-size:11.5px;color:var(--ink-3);line-height:1.35}
 #tlMeta b{color:var(--ink);font-weight:650;font-family:var(--mono);font-size:11px}
 #tlMeta .lab{color:var(--ink-2)}
 #tlMeta .row{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* /vstack:shell scrubber-css */
 </style>
 
 <div id="app">
@@ -390,12 +396,14 @@ body.history .tagrow,body.history .kill{display:none!important}
   </div>
 </div>
 
+<!-- vstack:shell scrubber -->
 <div id="timeline">
-  <button class="step" id="tlPrev">‹</button>
+  <button class="step" id="tlPrev" aria-label="Previous">‹</button>
   <div id="tlTrack"><div id="tlFill"></div><div id="tlHandle"></div></div>
-  <button class="step" id="tlNext">›</button>
+  <button class="step" id="tlNext" aria-label="Next">›</button>
   <div id="tlMeta"></div>
 </div>
+<!-- /vstack:shell scrubber -->
 </div>
 
 <script id="fallback" type="application/json">
@@ -643,6 +651,104 @@ window.VSShell = (function () {
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
+  };
+  return api;
+})();
+
+/* ── the scrubber ──
+   An ordered set of states and a handle that moves between them: versions on
+   the spec and the review workspace, release phases on phase-wireframe. The
+   page says what the stops are and what showing one does; this owns the track,
+   the ticks, the drag, and the caption.
+
+     VSScrub.mount({ onPick: id => showThat(id) })
+     VSScrub.set({ items: [{ id, cap, label, sub }], active: id })
+
+   `cap` is the label under the tick (v3, P2), `label` names the stop, and
+   `sub` is the line beneath it — both are escaped here, so a page never has to
+   remember to. */
+window.VSScrub = (function () {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  let items = [];
+  let active = null;
+  let onPick = () => {};
+  let wired = false;
+
+  const index = () => Math.max(0, items.findIndex(i => i.id === active));
+  const pct = i => items.length < 2 ? 100 : (i / (items.length - 1)) * 100;
+
+  function pickAt (clientX) {
+    const track = $('#tlTrack');
+    if (!track || !items.length) return null;
+    const r = track.getBoundingClientRect();
+    return items[Math.round(clamp((clientX - r.left) / r.width, 0, 1) * (items.length - 1))]?.id;
+  }
+  function pick (id) {
+    if (id == null || id === active) return;
+    active = id;
+    paint();
+    onPick(id);
+  }
+  const step = d => { const n = items[index() + d]; if (n) pick(n.id) };
+
+  function paint () {
+    const track = $('#tlTrack');
+    if (!track) return;
+    const i = index();
+    track.querySelectorAll('.tick').forEach(t => t.remove());
+    items.forEach((it, k) => {
+      const t = document.createElement('div');
+      t.className = 'tick' + (k <= i ? ' past' : '');
+      t.style.left = pct(k) + '%';
+      t.innerHTML = `<span class="cap">${esc(it.cap)}</span>`;
+      if (it.label) t.title = it.label;
+      t.onclick = e => { e.stopPropagation(); pick(it.id) };
+      track.appendChild(t);
+    });
+    $('#tlHandle').style.left = pct(i) + '%';
+    $('#tlFill').style.width = pct(i) + '%';
+    const cur = items[i];
+    $('#tlMeta').innerHTML = cur
+      ? `<div class="row"><b>${esc(cur.cap)}</b> <span class="lab">${esc(cur.label)}</span></div>` +
+        `<div class="row">${esc(cur.sub)}</div>`
+      : '';
+    $('#tlPrev').disabled = i === 0;
+    $('#tlNext').disabled = i >= items.length - 1;
+  }
+
+  function mount (opts = {}) {
+    if (opts.onPick) onPick = opts.onPick;
+    if (wired || !$('#tlTrack')) return api;
+    wired = true;
+    $('#tlPrev').onclick = () => step(-1);
+    $('#tlNext').onclick = () => step(1);
+    $('#tlHandle').addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const mv = ev => pick(pickAt(ev.clientX));
+      const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up) };
+      addEventListener('pointermove', mv); addEventListener('pointerup', up);
+    });
+    $('#tlTrack').addEventListener('pointerdown', e => {
+      if (e.target.closest('#tlHandle, .tick')) return;
+      pick(pickAt(e.clientX));
+    });
+    return api;
+  }
+
+  const api = {
+    mount,
+    set ({ items: list, active: a }) {
+      if (list) items = list;
+      if (a !== undefined) active = a;
+      if (active == null && items.length) active = items[items.length - 1].id;
+      paint();
+      return api;
+    },
+    get active () { return active },
+    get items () { return items },
   };
   return api;
 })();
@@ -1057,38 +1163,25 @@ $('#pbody').addEventListener('input', e => {
   dirty();
 });
 
-/* ── version timeline — the workspace's, over spec snapshots ── */
-const pctFor = (i, len) => len < 2 ? 100 : (i / (len - 1)) * 100;
+/* ── version timeline — the shell's scrubber, over spec snapshots ── */
 const vAt = n => versions.find(v => v.n === n);
+const whenOf = v => {
+  const dt = v?.date ? new Date(v.date) : null;
+  return dt ? dt.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' ' +
+    dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
+};
 function buildTimeline () {
-  const track = $('#tlTrack');
-  track.querySelectorAll('.tick').forEach(el => el.remove());
-  versions.forEach((v, i) => {
-    const tick = document.createElement('div');
-    tick.className = 'tick';
-    tick.style.left = pctFor(i, versions.length) + '%';
-    tick.innerHTML = `<span class="cap">v${v.n}</span>`;
-    tick.title = v.label;
-    tick.onclick = e => { e.stopPropagation(); gotoVersion(v.n); };
-    track.appendChild(tick);
+  VSScrub.set({
+    items: versions.map(v => ({
+      id: v.n, cap: `v${v.n}`, label: v.label,
+      sub: whenOf(v) + (v.n === latest() ? ' · ' + t('current') : ''),
+    })),
+    active: viewing,
   });
   syncTimeline();
 }
 function syncTimeline () {
-  const i = Math.max(0, versions.findIndex(v => v.n === viewing));
-  const pct = pctFor(i, versions.length);
-  $('#tlHandle').style.left = pct + '%';
-  $('#tlFill').style.width = pct + '%';
-  $('#tlTrack').querySelectorAll('.tick').forEach((el, k) => el.classList.toggle('past', k <= i));
-  const v = vAt(viewing);
-  const dt = v ? new Date(v.date) : null;
-  const when = dt ? dt.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' ' +
-    dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
-  $('#tlMeta').innerHTML =
-    `<div class="row"><b>v${viewing}</b> <span class="lab">${esc(v?.label || '')}</span></div>` +
-    `<div class="row">${esc(when)}${viewing === latest() ? ' · ' + esc(t('current')) : ''}</div>`;
-  $('#tlPrev').disabled = i === 0;
-  $('#tlNext').disabled = i === versions.length - 1;
+  VSScrub.set({ active: viewing });
   $('#histBanner').classList.toggle('on', isHistory());
   $('#histText').textContent = t('viewingOld')(viewing);
   $('#btnNow').textContent = t('backToNow');
@@ -1114,23 +1207,7 @@ async function gotoVersion (n) {
   render();
 }
 $('#btnNow').addEventListener('click', () => gotoVersion(latest()));
-$('#tlPrev').addEventListener('click', () => { const i = versions.findIndex(v => v.n === viewing); if (versions[i - 1]) gotoVersion(versions[i - 1].n); });
-$('#tlNext').addEventListener('click', () => { const i = versions.findIndex(v => v.n === viewing); if (versions[i + 1]) gotoVersion(versions[i + 1].n); });
-const trackPick = clientX => {
-  const r = $('#tlTrack').getBoundingClientRect();
-  const i = Math.round(Math.min(1, Math.max(0, (clientX - r.left) / r.width)) * (versions.length - 1));
-  return versions[i]?.n;
-};
-$('#tlHandle').addEventListener('pointerdown', e => {
-  e.preventDefault();
-  const mv = ev => { const n = trackPick(ev.clientX); if (n) gotoVersion(n); };
-  const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); };
-  addEventListener('pointermove', mv); addEventListener('pointerup', up);
-});
-$('#tlTrack').addEventListener('pointerdown', e => {
-  if (e.target.closest('#tlHandle, .tick')) return;
-  const n = trackPick(e.clientX); if (n) gotoVersion(n);
-});
+VSScrub.mount({ onPick: gotoVersion });
 
 /* ── language — the switch is the shell's; this is what the spec does about it ── */
 VSShell.onLang(l => {
