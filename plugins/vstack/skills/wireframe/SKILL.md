@@ -165,10 +165,33 @@ away. Five outcomes:
 | | What it means | What you do |
 |---|---|---|
 | **`APPROVED`** | the design is signed off; the server has closed itself | don't re-arm. Say it's approved, note any `openComments` deliberately left, and carry on with whatever comes next |
-| **`CANCELLED`** | stop this round | finish or abandon cleanly, then tell the reviewer what you had already changed. Delete `cancel` and re-arm |
+| **`CANCELLED`** | the reviewer pressed **Stop** | don't publish what you had half-done. Say what you had already changed and what you hadn't, delete `cancel`, and re-arm — the review is still open |
 | **`SHARE`** | they want a link to send someone | publish the wireframe as an Artifact and hand the URL back (§6), then re-arm. The review carries on — this is not an ending |
 | a JSON blob | a review landed | apply it — the steps below |
 | **`review closed`** | the tab went away without a verdict | don't re-arm; say the review is closed |
+
+### Stopping a round in flight
+
+While you work, **no waiter is armed** — you are the only thing that can notice the reviewer changing
+their mind. The workspace's **Stop** button writes the `cancel` sentinel; nothing in it can interrupt
+a turn already running, so a round that never looks is a round that cannot be stopped.
+
+**Check at every checkpoint of a round** — after reading the feedback, between batches of edits, and
+always immediately before `publish`:
+
+```bash
+node "$SKILL/assets/review-server.mjs" check --file "$FILE" || STOP=1
+```
+
+Exit 2 means stop. Then:
+
+1. **Don't publish.** A half-applied version published as a new one is the worst outcome — the
+   reviewer now has to review your interrupted work.
+2. Leave the file as it is. Say plainly what you had already changed and what you hadn't.
+3. `rm "$STORE/cancel"` and re-arm the waiter. The review is still open; only this round ended.
+
+The longer the round, the more it matters: a check costs nothing, and one that never runs makes the
+button a lie.
 
 On a review landing:
 
@@ -247,5 +270,6 @@ node "$SKILL/assets/bundle-artifact.mjs" --file "$FILE" --out review.html
 - State lives in `<dir>/.ui-review/<name>/` beside the file — versions, reviews, threads, and the sentinels. The page itself stays clean.
 - **`.ui-review/` and the `ui-review:*` `localStorage` keys keep the old name on purpose.** They are the engine's own paths, not the skill's; renaming them would orphan every review already on disk and every comment already in a browser, for no visible gain. Not an oversight.
 - The server binds to `127.0.0.1` only. Port 7788 busy usually means a review server is already running — pass `--port`.
-- `node "$SKILL/assets/review-server.mjs" status --file "$FILE"` prints the current version, whether a review is waiting, and any cancel / sign-off / share request outstanding.
+- `node "$SKILL/assets/review-server.mjs" status --file "$FILE"` prints the current version, whether a review is waiting, and any stop / sign-off / share request outstanding.
+- `check --file "$FILE"` is the same question reduced to an exit code — 0 carry on, 2 stop. Use it inside a round, where `status` is too much output to read repeatedly.
 - Full command reference and troubleshooting: `references/workflow.md`.

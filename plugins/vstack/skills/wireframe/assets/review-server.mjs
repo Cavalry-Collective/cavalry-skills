@@ -14,6 +14,7 @@
  *   node review-server.mjs reply   --file <page.html> --comment <id> --text "…"
  *   node review-server.mjs share   --file <page.html> --url <artifact-url>
  *   node review-server.mjs status  --file <page.html>
+ *   node review-server.mjs check   --file <page.html>   (exit 2 = stop asked)
  *
  * State lives in a sibling directory, out of the way of the page:
  *   <dir>/.ui-review/<name>/
@@ -208,6 +209,30 @@ function cmdShare () {
   fs.rmSync(P.share(), { force: true })
   console.log(`Shareable link recorded for v${state.shareVersion} — it is now in the workspace`)
   touch()
+}
+
+/**
+ * "Should I still be doing this?" — one cheap call, made between steps of a
+ * round. Exit 2 means the reviewer pressed Stop while you were working.
+ *
+ * This is the whole mechanism behind Stop, and it only works if it is actually
+ * called: nothing here can interrupt a turn that is already running, so a round
+ * that never checks cannot be stopped until it ends.
+ */
+function cmdCheck () {
+  const req = fs.existsSync(P.cancel()) ? readJSON(P.cancel(), {}) : null
+  if (!req) {
+    if (!args.quiet) console.log('carry on')
+    process.exit(0)
+  }
+  console.log('STOP — the reviewer asked you to stop this round.')
+  console.log(`  asked at   ${req.at || 'unknown'}`)
+  if (req.comments?.length) console.log(`  in flight  ${req.comments.join(', ')}`)
+  console.log(`  reason     ${req.reason || '(none given)'}`)
+  console.log('\nStop where you are. Do not publish a half-applied version. Tell the')
+  console.log('reviewer what you had already changed and what you left alone, then:')
+  console.log(`  rm "${P.cancel()}"    # and re-arm the waiter`)
+  process.exit(2)
 }
 
 function cmdStatus () {
@@ -519,8 +544,9 @@ switch (args._) {
   case 'reply': cmdReply(); break
   case 'share': cmdShare(); break
   case 'status': cmdStatus(); break
+  case 'check': cmdCheck(); break
   case 'serve': cmdServe(); break
   default:
-    console.error(`Unknown command "${args._}". Use: serve | publish | reply | share | status`)
+    console.error(`Unknown command "${args._}". Use: serve | publish | reply | share | status | check`)
     process.exit(1)
 }

@@ -160,6 +160,12 @@ button{cursor:pointer;background:none;border:0;padding:0}
 
 /* the workspace bar sits above the window it wraps, not sticky over a scroll */
 .vs-topbar{position:relative}
+/* Send becomes Stop while a round is out. Not red-on-red: a stop is a quiet
+   correction, not a second call to action competing with the one it replaces. */
+#btnSend.stop{background:var(--surface);border-color:var(--brand-line);color:var(--brand)}
+#btnSend.stop:hover{background:var(--brand);border-color:var(--brand);color:#fff;filter:none}
+#btnSend.stop[disabled]{opacity:1;color:var(--ink-3);border-color:var(--line-2)}
+.split #btnSend.stop + .caret{border-left-color:var(--brand-line)}
 .btn .kbd{font:500 10px/1 var(--mono);opacity:.6}
 .seg .kbd{font:500 10px/1 var(--mono);opacity:.65}
 /* icon-only sizes: a control, not a call to action */
@@ -798,6 +804,9 @@ const STR = {
     hintLocal: 'Sending writes the review and wakes Claude.', hintArtifact: 'Copy this and paste it into the Claude conversation.',
     copyClose: 'Copy & close', copied: 'Copied', sendFail: 'Could not reach the server',
     working: n => `Sent ${n} comment${n > 1 ? 's' : ''} — Claude is working…`,
+    stop: 'Stop', stopping: 'Stopping…',
+    stopTitle: 'Ask Claude to stop this round at its next checkpoint',
+    stopAsked: 'Asked Claude to stop — it stops at its next checkpoint',
     editing: 'Claude is editing the page…', ready: v => `<b>v${v} is ready</b>`, changed: '<b>The page changed</b> — reload to see it',
     reviewChanges: 'Review changes', later: 'Later', backToCurrent: 'Back to current',
     viewingOld: v => `Viewing v${v} — read only`, readOnly: v => `read-only · v${v}`,
@@ -861,6 +870,9 @@ const STR = {
     hintLocal: '发送后会写入评审并唤醒 Claude。', hintArtifact: '复制后粘贴到 Claude 对话中。',
     copyClose: '复制并关闭', copied: '已复制', sendFail: '无法连接服务器',
     working: n => `已发送 ${n} 条批注 — Claude 处理中…`,
+    stop: '停止', stopping: '正在停止…',
+    stopTitle: '请求 Claude 在下一个检查点停止本轮',
+    stopAsked: '已请求 Claude 停止 — 将在下一个检查点停下',
     editing: 'Claude 正在修改页面…', ready: v => `<b>v${v} 已就绪</b>`, changed: '<b>页面已更新</b> — 重新加载查看',
     reviewChanges: '查看更新', later: '稍后', backToCurrent: '回到最新版本',
     viewingOld: v => `正在查看 v${v} — 只读`, readOnly: v => `只读 · v${v}`,
@@ -936,6 +948,8 @@ const S = {
   awaiting: false, pendingUpdate: null, sentSig: null,
   // Which comments went out with the last send and have not come back yet.
   working: new Set(),
+  // A stop has been asked for and the round has not ended yet.
+  stopping: false,
   linked: null,   // null until the connection has actually said one way or other
   // The shareable Artifact: asked for here, published by Claude, link comes back.
   share: { url: null, version: null, pending: false },
@@ -1076,27 +1090,48 @@ function renderWork () {
     if (!a || a.status !== 'open') S.working.delete(id);
   }
   const n = S.working.size;
+  // Claude answering or addressing the last comment in flight ends the round
+  // just as surely as publishing does — the button has to come back.
+  if (!n && S.stopping) { S.stopping = false; S.awaiting = false }
   $('#pwork').hidden = !n;
-  if (n) $('#pworkText').textContent = T('workingOn')(n);
+  if (n) $('#pworkText').textContent = S.stopping ? T('stopping') : T('workingOn')(n);
+  $('#btnCancel').disabled = S.stopping;
   composer.classList.toggle('working', !!S.sel && S.working.has(S.sel));
 }
 
-/** Stop, rather than let Claude finish something the reviewer no longer wants. */
+/** Stop, rather than let Claude finish something the reviewer no longer wants.
+    This raises a request; it cannot reach into a turn already running. Claude
+    checks for it at each checkpoint in the round and stops there — so the
+    button says "Stopping…" until the round actually ends, rather than
+    pretending the work died the instant it was pressed. */
 async function cancelWork () {
+  if (S.stopping || !S.working.size) return;
   const ids = [...S.working];
-  clearWorking();
-  S.awaiting = false;
-  if (S.runtime !== 'local') return;
+  if (S.runtime !== 'local') { clearWorking(); S.awaiting = false; return }
+  S.stopping = true;
+  renderCounts(); renderWork();
   try {
     await fetch('/api/cancel', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ version: S.version, comments: ids, reason: 'The reviewer cancelled this round from the workspace.' }),
+      body: JSON.stringify({ version: S.version, comments: ids, reason: 'The reviewer stopped this round from the workspace.' }),
     });
     // Sending the same review again has to be possible after calling it off.
     S.sentSig = null;
-    renderCounts();
-    toast(T('cancelled'));
-  } catch { toast(T('cancelFail')) }
+    toast(T('stopAsked'));
+  } catch {
+    S.stopping = false;
+    renderCounts(); renderWork();
+    toast(T('cancelFail'));
+  }
+}
+
+/** The round is over — however it ended. Claude publishing, replying or
+    closing the review all land here, and the button goes back to Send. */
+function roundEnded () {
+  S.stopping = false;
+  S.awaiting = false;
+  clearWorking();
+  renderCounts();
 }
 
 /** Server-side thread state wins; whatever the reviewer is typing does not. */
@@ -1125,7 +1160,7 @@ function mergeThreads (serverAnn) {
 
 function adoptUpdate () {
   const data = S.pendingUpdate;
-  S.pendingUpdate = null; S.awaiting = false; hideWork(); clearWorking();
+  S.pendingUpdate = null; hideWork(); roundEnded();
   if (!data) { loadFrame(true); return }
   const bumped = (data.currentVersion || 1) !== S.version;
   S.html = data.html; S.versions = data.versions; S.reviews = data.reviews;
@@ -1180,7 +1215,7 @@ function applyLang () {
   setLink(S.linked);
   renderWork();
   $('#phead').querySelector('b').textContent = T('comments');
-  $('#btnSend').innerHTML = (S.runtime === 'artifact' ? T('copyFor') : T('send')) + ' <span class="kbd">⌘⏎</span>';
+  renderCounts();   // the primary button says Send or Stop depending on the round
   const st = $('#fStatus');
   [['open', 'open'], ['question', 'asked'], ['', 'all'], ['addressed', 'addressed']]
     .forEach(([v, k], i) => { st.options[i].textContent = T(k) });
@@ -2143,8 +2178,33 @@ function renderCounts () {
   const clear = $('#btnClear');
   if (!clear.classList.contains('armed')) clear.textContent = T('clearAll');
   clear.disabled = !S.ann.some(hasSubstance);
+  renderSendButton(open);
+}
+
+/* While a round is out, the button that started it is the button that stops it.
+   The panel strip still says *which* comments are in flight, but it is the
+   wrong place for the control: it is out of sight under 820px, and it is not
+   where the hand already is a second after pressing Send. */
+function renderSendButton (open) {
+  const btn = $('#btnSend');
+  const inFlight = S.runtime === 'local' && S.working.size > 0;
+  btn.classList.toggle('stop', inFlight || S.stopping);
+  if (S.stopping) {
+    btn.innerHTML = esc(T('stopping'));
+    btn.disabled = true;
+    btn.title = '';
+    return;
+  }
+  if (inFlight) {
+    btn.innerHTML = esc(T('stop'));
+    btn.disabled = false;
+    btn.title = T('stopTitle');
+    return;
+  }
+  btn.innerHTML = (S.runtime === 'artifact' ? T('copyFor') : T('send')) + ' <span class="kbd">⌘⏎</span>';
+  btn.title = '';
   const nothing = !open.length && !S.carried.length;
-  $('#btnSend').disabled = nothing || reviewSignature() === S.sentSig;
+  btn.disabled = nothing || reviewSignature() === S.sentSig;
 }
 
 /* ─────────────── version timeline ─────────────── */
@@ -2368,7 +2428,7 @@ async function openSend () {
     toast(T('working')(pending.counts.total));
   } catch { toast(T('sendFail')) }
 }
-$('#btnSend').onclick = openSend;
+$('#btnSend').onclick = () => (S.working.size ? cancelWork() : openSend());
 
 /* ─────────────── approve: the way out of the loop ───────────────
    Send says "one more round". Approve says the design is done — it closes the
