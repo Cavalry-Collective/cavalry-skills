@@ -1,60 +1,134 @@
 <title>Spec · Visual Stack</title>
 <style>
 /* ══════════════════════════ spec chrome ══════════════════════════
-   The chrome is the wireframe workspace's — same tokens, same topbar, same
-   panel, same timeline — serving a different artifact: the spec tree. */
+   The shell is stamped from lib/shell — same tokens, same topbar, same
+   controls as every other vstack page. Below it, only what the spec adds. */
+/* vstack:shell tokens
+   One palette for every vstack page. Roles, not colours: a page asks for
+   --surface, not for white, so light and dark are the same stylesheet.
+
+   Page-specific hues (the story map's phase bands, the board's new/have/touch,
+   the spec's priorities) stay in the page, below this block — they mean
+   something only there. Everything here is shared, and is the reason a board
+   and a spec look like the same product.
+
+   Three states, in this order: the OS preference, then an explicit choice.
+   `data-theme` absent means auto. */
 :root{
-  --bg:#f4f3f6; --panel:#ffffff; --sunken:#eceaf0; --ink:#171320; --ink-2:#665e72;
-  --ink-3:#8f889c; --line:#e2dfe8; --line-2:#cfc9d8;
-  --accent:#e02b20; --accent-soft:#fff1f0; --accent-line:#ffb3ad;
-  --ok:#12805c; --ok-soft:#e9f9f2;
-  --shadow:0 1px 2px rgba(23,19,32,.06),0 8px 24px rgba(23,19,32,.08);
-  --panelw:320px;
-  --font:ui-sans-serif,-apple-system,"Segoe UI",Inter,system-ui,sans-serif;
-  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+  --paper:#eef0f3; --surface:#ffffff; --surface-2:#f7f8fa;
+  --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+  --line:#e2e4e9; --line-2:#d0d2d9;
+  --brand:#d23b2e; --brand-soft:#fdefed; --brand-line:#f3b3ac;
+  --ok:#10876e; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(16,17,22,.06);
+  --shadow-pop:0 1px 2px rgba(16,17,22,.06),0 8px 24px rgba(16,17,22,.10);
+  --window-shadow:0 2px 6px rgba(16,17,22,.10),0 18px 48px rgba(16,17,22,.16);
+  --radius:9px;
+  --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
   color-scheme:light;
-  /* the spec's own hues, on top of the workspace palette */
-  --p1:#e02b20; --p2:#b0761a; --p3:#4a5fce; --note:#8a53c0; --th:#0e7f8a;
 }
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0e0f12; --surface:#17191e; --surface-2:#1d1f25;
+  --ink:#f1f2f4; --ink-2:#bcbfc7; --ink-3:#8b8e97;
+  --line:#282a31; --line-2:#363942;
+  --brand:#f0685c; --brand-soft:rgba(240,104,92,.14); --brand-line:rgba(240,104,92,.38);
+  --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5);
+  --window-shadow:0 2px 6px rgba(0,0,0,.5),0 18px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}}
+:root[data-theme=light]{
+  --paper:#eef0f3; --surface:#ffffff; --surface-2:#f7f8fa;
+  --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+  --line:#e2e4e9; --line-2:#d0d2d9;
+  --brand:#d23b2e; --brand-soft:#fdefed; --brand-line:#f3b3ac;
+  --ok:#10876e; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(16,17,22,.06);
+  --shadow-pop:0 1px 2px rgba(16,17,22,.06),0 8px 24px rgba(16,17,22,.10);
+  --window-shadow:0 2px 6px rgba(16,17,22,.10),0 18px 48px rgba(16,17,22,.16);
+  color-scheme:light;
+}
+:root[data-theme=dark]{
+  --paper:#0e0f12; --surface:#17191e; --surface-2:#1d1f25;
+  --ink:#f1f2f4; --ink-2:#bcbfc7; --ink-3:#8b8e97;
+  --line:#282a31; --line-2:#363942;
+  --brand:#f0685c; --brand-soft:rgba(240,104,92,.14); --brand-line:rgba(240,104,92,.38);
+  --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5);
+  --window-shadow:0 2px 6px rgba(0,0,0,.5),0 18px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+/* /vstack:shell tokens */
+:root{
+  --panelw:320px;
+  /* the spec's own hues, on top of the shared palette */
+  --p1:#d23b2e; --p2:#b0761a; --p3:#4a5fce; --note:#8a53c0; --th:#0e7f8a;
+}
+@media (prefers-color-scheme:dark){:root{
+  --p1:#f0685c; --p2:#d29a3f; --p3:#7d90ee; --note:#b98cec; --th:#3fb6d6;
+}}
+:root[data-theme=light]{--p1:#d23b2e;--p2:#b0761a;--p3:#4a5fce;--note:#8a53c0;--th:#0e7f8a}
+:root[data-theme=dark]{--p1:#f0685c;--p2:#d29a3f;--p3:#7d90ee;--note:#b98cec;--th:#3fb6d6}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.5 var(--font);
+body{margin:0;background:var(--paper);color:var(--ink);font:13px/1.5 var(--font);
   -webkit-font-smoothing:antialiased;overflow:hidden}
 button,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0;padding:0}
-:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
 [contenteditable]{outline:0}
-/* the workspace's shell: topbar / content / timeline, always all visible */
-#app{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100%}
-#mid{display:flex;min-height:0}
 
-/* ── topbar — the workspace's ── */
-#top{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
-  background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40}
-.brand{display:flex;align-items:center;gap:8px;min-width:0}
-.vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
+/* vstack:shell css
+   The chrome every vstack page wears: the top bar and the controls that sit in
+   it. Page layout stays in the page — some of these are app shells that fill
+   the viewport, some are documents that scroll — but the bar, the buttons and
+   the segmented controls are the same object everywhere. */
+.vs-topbar{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
+  background:var(--surface);border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:40}
+.vs-topbar .brand{display:flex;align-items:center;gap:8px;min-width:0}
 .vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
+.vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
 .vslink:hover .vsmark{opacity:.8}
 .brand .ws{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink-3);white-space:nowrap}
-.brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+.brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:280px}
+.brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
 .spacer{flex:1}
 .sep{width:1px;height:20px;background:var(--line);flex:none}
+
+/* buttons — one shape, three sizes of intent */
 .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
-  border:1px solid var(--line-2);background:var(--panel);color:var(--ink);font-weight:550;white-space:nowrap}
-.btn:hover{background:var(--sunken)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  border:1px solid var(--line-2);background:var(--surface);color:var(--ink);font-weight:550;
+  white-space:nowrap;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
 .btn.primary:hover{filter:brightness(1.08)}
 .btn.primary[disabled]{opacity:.45;cursor:default;filter:none;pointer-events:none}
+.btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
 .btn.sm{height:25px;padding:0 9px;font-size:11.5px}
-.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;background:var(--panel)}
+
+/* segmented control — modes, sizes, language, theme */
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
+  background:var(--surface);flex:none}
 .seg button{height:30px;padding:0 12px;font-weight:550;color:var(--ink-2);display:inline-flex;
-  align-items:center;gap:6px;border-right:1px solid var(--line-2)}
+  align-items:center;gap:6px;border:0;border-right:1px solid var(--line-2);background:none;
+  cursor:pointer;font:inherit;font-weight:550}
 .seg button:last-child{border-right:0}
-.seg button:hover{background:var(--sunken)}
-.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
-#langSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
+.seg button:hover{background:var(--surface-2)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+.seg.sm button{height:25px;padding:0 9px;font-size:11.5px}
+#langSwitch button,#themeSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
+#themeSwitch button{padding:0 8px}
+#themeSwitch svg{width:13px;height:13px;display:block}
+
+/* the live link, stated rather than implied */
 .linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
   letter-spacing:.03em;color:var(--ink-3);white-space:nowrap}
 .linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);
@@ -62,32 +136,43 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .linkdot.on{color:var(--ok)}
 .linkdot.on::before{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
 
-/* ── floating banners — the workspace's ── */
+/* floating banners — the page talking back, never blocking the work */
 .banner{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:38;display:none;
-  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow);
+  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow-pop);
   font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
 .banner.on{display:flex}
-#histBanner{background:var(--ink);color:#fff}
-#histBanner .btn{background:rgba(255,255,255,.14);border-color:transparent;color:#fff}
-#histBanner .btn:hover{background:rgba(255,255,255,.26)}
-#workBanner{background:var(--ok-soft);border:1px solid var(--ok)}
-#workBanner .tick{color:var(--ok);font-weight:700}
+.banner.dark{background:var(--ink);color:var(--surface)}
+.banner.dark .btn{background:color-mix(in srgb,var(--surface) 16%,transparent);
+  border-color:transparent;color:var(--surface)}
+.banner.dark .btn:hover{background:color-mix(in srgb,var(--surface) 28%,transparent)}
+.banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
+.banner.good .tick{color:var(--ok);font-weight:700}
+
+@media (max-width:720px){
+  .brand .ws,.brand .eyebrow{display:none}
+  .vs-topbar{gap:8px;padding:0 8px}
+}
+/* /vstack:shell css */
+
+/* the page's own shell: topbar / content / timeline, always all visible */
+#app{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100%}
+#mid{display:flex;min-height:0}
 
 /* ── the spec fills the whole content area ── */
-#sheet{flex:1;min-width:0;overflow:auto;background:var(--panel);
+#sheet{flex:1;min-width:0;overflow:auto;background:var(--surface);
   padding:clamp(1.2rem,3vw,2.2rem) clamp(1.4rem,4vw,3rem) 3rem}
 
 /* ── initiative header ── */
 .eyebrow2{font:700 10.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
-  color:var(--accent);margin:0 0 .55rem;display:inline-flex;align-items:center;gap:.5rem}
-.eyebrow2::before{content:"";width:1.4rem;height:2px;background:var(--accent);border-radius:2px}
+  color:var(--brand);margin:0 0 .55rem;display:inline-flex;align-items:center;gap:.5rem}
+.eyebrow2::before{content:"";width:1.4rem;height:2px;background:var(--brand);border-radius:2px}
 h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;font-weight:750;margin:0 0 .3rem}
 .goal{color:var(--ink-2);margin:0;max-width:64ch;font-size:13.5px}
 .meta{margin-top:.55rem;font:500 10.5px/1.5 var(--mono);color:var(--ink-3);display:flex;gap:.6rem;flex-wrap:wrap}
 #themesRow{display:flex;align-items:baseline;gap:.4rem;margin-top:.8rem;flex-wrap:wrap}
 #themesRow .lbl{font:700 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
 .tpill{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;color:var(--th);
-  background:color-mix(in srgb,var(--th) 9%,var(--panel));
+  background:color-mix(in srgb,var(--th) 9%,var(--surface));
   border:1px solid color-mix(in srgb,var(--th) 26%,transparent)}
 
 /* ── epics: headings with a rule ── */
@@ -107,7 +192,7 @@ h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;fon
 .srow + .srow .shead{border-top:1px solid var(--line)}
 .shead{display:flex;align-items:center;gap:.55rem;padding:.5rem .1rem;cursor:pointer;
   position:relative;padding-right:1.7rem}
-.shead:hover{background:color-mix(in srgb,var(--sunken) 55%,transparent)}
+.shead:hover{background:color-mix(in srgb,var(--surface-2) 55%,transparent)}
 .shead .ttl{font-weight:600;font-size:13px;min-width:0;flex:1}
 /* the row's right-side cluster shares one metric so nothing floats */
 .stag,.qmark,.shead .count{font:600 10px/16px var(--mono);flex:none;align-self:center;
@@ -120,8 +205,8 @@ h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;fon
 .del{position:absolute;right:.1rem;top:50%;transform:translateY(-50%);color:var(--ink-3);
   font-size:12px;line-height:1;padding:3px 5px;border-radius:5px;opacity:0;white-space:nowrap}
 .ehead:hover .del,.shead:hover .del,.crow:hover .del,.req:hover .del,.del.armed{opacity:1}
-.del:hover{color:var(--accent);background:var(--sunken)}
-.del.armed{font:700 10px/1 var(--mono);color:#fff;background:var(--accent)}
+.del:hover{color:var(--brand);background:var(--surface-2)}
+.del.armed{font:700 10px/1 var(--mono);color:#fff;background:var(--brand)}
 
 /* ── expanded story — the PRD's columns, stacked: requirements, acceptance
    criteria as Given/When/Then scenarios, and the Definition-of-Ready row ── */
@@ -151,7 +236,7 @@ h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;fon
    options are choices, not tags — radios, stacked */
 .opts{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
 .opt{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-2);text-align:left;
-  padding:3px 8px 3px 6px;border:1px solid var(--line);border-radius:7px;background:var(--panel)}
+  padding:3px 8px 3px 6px;border:1px solid var(--line);border-radius:7px;background:var(--surface)}
 .opt .rad{width:12px;height:12px;border-radius:50%;border:2px solid var(--line-2);flex:none}
 .opt:hover{border-color:var(--ok);color:var(--ink)}
 .opt:hover .rad{border-color:var(--ok)}
@@ -165,11 +250,11 @@ h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;fon
 .tagtog{font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:999px;color:var(--ink-3);
   border:1px solid var(--line-2)}
 .tagtog:hover{border-color:var(--th);color:var(--th)}
-.tagtog.on{color:var(--th);background:color-mix(in srgb,var(--th) 9%,var(--panel));
+.tagtog.on{color:var(--th);background:color-mix(in srgb,var(--th) 9%,var(--surface));
   border-color:color-mix(in srgb,var(--th) 30%,transparent)}
 .acts{display:flex;gap:1rem;margin:.45rem 0 0}
 .act{font-size:11.5px;font-weight:600;color:var(--ink-3)}
-.act:hover{color:var(--accent)}
+.act:hover{color:var(--brand)}
 .toolrow{display:flex;justify-content:flex-end;margin:1.2rem 0 -1.2rem}
 .act.n:hover{color:var(--note)}
 .eacts{margin:.4rem 0 0 2.25rem}
@@ -179,21 +264,21 @@ body.history .del,body.history .acts,body.history .eacts,body.history #addEpic,
 body.history .tagrow,body.history .kill{display:none!important}
 
 /* ── the clarifications panel — the workspace's comment panel ── */
-#panel{width:var(--panelw);flex:none;background:var(--panel);border-left:1px solid var(--line);
+#panel{width:var(--panelw);flex:none;background:var(--surface);border-left:1px solid var(--line);
   display:flex;flex-direction:column;min-height:0}
 #phead{display:flex;align-items:center;gap:8px;padding:10px 12px 8px;border-bottom:1px solid var(--line);flex:none}
 #phead b{font-size:13px}
 #phead .scope{margin-left:auto;font-size:11px;color:var(--ink-3)}
 #pbody{flex:1;overflow:auto;padding:8px 10px 14px;min-height:0}
 .item{position:relative;border:1px solid var(--line);border-radius:8px;padding:7px 9px;
-  margin-bottom:6px;cursor:pointer;transition:border-color .12s;background:var(--panel)}
+  margin-bottom:6px;cursor:pointer;transition:border-color .12s;background:var(--surface)}
 .item:hover{border-color:var(--line-2)}
 .item .ih{display:flex;align-items:center;gap:6px}
 .item .n{font:700 10px/1 var(--mono);color:#fff;background:var(--note);padding:3px 5px;border-radius:4px}
 .item .kind{font-size:11px;color:var(--ink-3);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item .ikill{color:var(--ink-3);font-size:12px;line-height:1;flex:none;opacity:0;padding:1px 3px;border-radius:4px}
 .item:hover .ikill{opacity:1}
-.item .ikill:hover{color:var(--accent);background:var(--sunken)}
+.item .ikill:hover{color:var(--brand);background:var(--surface-2)}
 .item .note2{font-size:12.5px;line-height:1.4;margin-top:4px;color:var(--ink-2)}
 .item .opts{margin-top:5px}
 .qans{display:block;margin-top:5px;padding:4px 7px;border-radius:6px;
@@ -203,22 +288,22 @@ body.history .tagrow,body.history .kill{display:none!important}
 
 /* ── timeline scrubber — the workspace's, its own always-visible row ── */
 #timeline{border-top:1px solid var(--line);
-  background:var(--panel);padding:9px 16px 12px;display:flex;align-items:center;gap:12px}
+  background:var(--surface);padding:9px 16px 12px;display:flex;align-items:center;gap:12px}
 #timeline .step{width:24px;height:24px;border-radius:6px;color:var(--ink-2);display:grid;place-items:center;flex:none}
-#timeline .step:hover{background:var(--sunken);color:var(--ink)}
+#timeline .step:hover{background:var(--surface-2);color:var(--ink)}
 #timeline .step[disabled]{opacity:.3;cursor:default}
 #timeline .step[disabled]:hover{background:none}
 #tlTrack{flex:1;position:relative;height:26px;min-width:120px;cursor:pointer}
 #tlTrack::before{content:"";position:absolute;left:0;right:0;top:11px;height:3px;border-radius:2px;background:var(--line)}
-#tlFill{position:absolute;left:0;top:11px;height:3px;border-radius:2px;background:var(--accent-line)}
-#tlTrack .tick{position:absolute;top:7px;width:11px;height:11px;border-radius:50%;background:var(--panel);
+#tlFill{position:absolute;left:0;top:11px;height:3px;border-radius:2px;background:var(--brand-line)}
+#tlTrack .tick{position:absolute;top:7px;width:11px;height:11px;border-radius:50%;background:var(--surface);
   border:2px solid var(--line-2);transform:translateX(-50%)}
-#tlTrack .tick.past{border-color:var(--accent-line)}
-#tlTrack .tick:hover{border-color:var(--accent)}
+#tlTrack .tick.past{border-color:var(--brand-line)}
+#tlTrack .tick:hover{border-color:var(--brand)}
 #tlTrack .tick .cap{position:absolute;top:14px;left:50%;transform:translateX(-50%);
   font:600 9.5px/1 var(--mono);color:var(--ink-3)}
-#tlHandle{position:absolute;top:4px;width:17px;height:17px;border-radius:50%;background:var(--accent);
-  border:3px solid var(--panel);box-shadow:0 1px 4px rgba(23,19,32,.3);transform:translateX(-50%);
+#tlHandle{position:absolute;top:4px;width:17px;height:17px;border-radius:50%;background:var(--brand);
+  border:3px solid var(--surface);box-shadow:0 1px 4px rgba(23,19,32,.3);transform:translateX(-50%);
   cursor:grab;z-index:3}
 #tlHandle:active{cursor:grabbing}
 #tlMeta{flex:none;max-width:330px;min-width:0;font-size:11.5px;color:var(--ink-3);line-height:1.35}
@@ -228,33 +313,55 @@ body.history .tagrow,body.history .kill{display:none!important}
 </style>
 
 <div id="app">
-<div id="top">
+<!-- vstack:shell topbar -->
+<div class="vs-topbar" id="top">
   <div class="brand">
     <a class="vslink" href="https://cavalry.sg/visual-stack" target="_blank" rel="noopener"
        title="Visual Stack">
       <svg class="vsmark" viewBox="0 0 64 64" aria-hidden="true">
         <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
-        <rect x="46" y="4" width="12" height="16" fill="var(--accent)"/>
+        <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
       </svg>
       <span class="ws">Visual Stack</span>
     </a>
-    <b id="pageName">Spec</b>
+    <b id="pageName"></b>
+    <span class="eyebrow" id="pageEyebrow"></span>
   </div>
   <div class="spacer"></div>
+  <!-- The page's own controls: `tools` sits before the shared switches,
+       `actions` after them, where the primary action belongs. -->
+  <!-- vstack:slot tools -->
+  <!-- /vstack:slot tools -->
+  <div class="seg" id="themeSwitch">
+    <button data-theme-set="auto" aria-pressed="true" title="Match the system">A</button>
+    <button data-theme-set="light" aria-pressed="false" title="Light">
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="8" cy="8" r="3.1"/><path d="M8 .9v2M8 13.1v2M.9 8h2M13.1 8h2M3 3l1.4 1.4M11.6 11.6 13 13M13 3l-1.4 1.4M4.4 11.6 3 13" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button data-theme-set="dark" aria-pressed="false" title="Dark">
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.8 5.8 0 1 0 7 7Z" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
   <div class="seg" id="langSwitch">
     <button data-lang="en" aria-pressed="true">EN</button>
     <button data-lang="zh" aria-pressed="false">中文</button>
   </div>
   <div class="sep"></div>
-  <span class="linkdot" id="linkDot"></span>
-  <button class="btn primary" id="send" disabled></button>
+  <span class="linkdot" id="linkDot" hidden></span>
+  <button class="btn primary" id="send" disabled hidden></button>
+  <!-- vstack:slot actions -->
+  <!-- /vstack:slot actions -->
 </div>
+<!-- /vstack:shell topbar -->
 
-<div class="banner" id="histBanner">
+<div class="banner dark" id="histBanner">
   <span id="histText"></span>
   <button class="btn sm" id="btnNow"></button>
 </div>
-<div class="banner" id="workBanner">
+<div class="banner good" id="workBanner">
   <span class="tick">✓</span><span id="workText"></span>
   <button class="btn sm primary" id="rbApply"></button>
   <button class="btn sm" id="rbDismiss"></button>
@@ -436,6 +543,98 @@ body.history .tagrow,body.history .kill{display:none!important}
 </script>
 
 <script>
+/* vstack:shell js
+   The behaviour behind the top bar: theme, language, the link dot, and the
+   page's own name. Everything else — what the page does — is the page's.
+
+   Nothing here touches the network or the document beyond the bar, so a page
+   works identically served, opened off disk, or published as an Artifact. */
+window.VSShell = (function () {
+  const $ = s => document.querySelector(s);
+  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang' };
+  const store = {
+    get (k, d) { try { return localStorage.getItem(k) ?? d } catch { return d } },
+    set (k, v) { try { localStorage.setItem(k, v) } catch {} },
+  };
+
+  /* ── theme: auto (whatever the OS says) / light / dark ──
+     Auto is the absence of an override, so the page keeps following the system
+     if it changes while open — and an Artifact viewer's own toggle still wins
+     the same way it does on a page that never had this control. */
+  let theme = store.get(KEY.theme, 'auto');
+  function applyTheme () {
+    if (theme === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('#themeSwitch button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.themeSet === theme));
+    });
+  }
+  function setTheme (next) {
+    theme = ['auto', 'light', 'dark'].includes(next) ? next : 'auto';
+    store.set(KEY.theme, theme);
+    applyTheme();
+  }
+
+  /* ── language: chrome only. Page content stays as authored. ── */
+  let lang = store.get(KEY.lang, 'en') === 'zh' ? 'zh' : 'en';
+  const langListeners = [];
+  function applyLang () {
+    document.documentElement.lang = lang === 'zh' ? 'zh' : 'en';
+    document.querySelectorAll('#langSwitch button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+    });
+    langListeners.forEach(fn => { try { fn(lang) } catch {} });
+  }
+  function setLang (next) {
+    lang = next === 'zh' ? 'zh' : 'en';
+    store.set(KEY.lang, lang);
+    applyLang();
+  }
+
+  /* ── the live link, said out loud ── */
+  function setLink (up, labels) {
+    const el = $('#linkDot');
+    if (!el) return;
+    el.hidden = false;
+    el.classList.toggle('on', !!up);
+    el.textContent = up ? (labels?.on ?? 'LINKED TO CLAUDE') : (labels?.off ?? 'LINK LOST');
+    el.title = up ? '' : (labels?.offTitle ?? '');
+  }
+  const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  function name (pageName, eyebrow) {
+    const n = $('#pageName'); const e = $('#pageEyebrow');
+    if (n && pageName != null) n.textContent = pageName;
+    if (e && eyebrow != null) e.textContent = eyebrow;
+  }
+
+  function init (opts = {}) {
+    document.querySelectorAll('#themeSwitch button').forEach(b => {
+      b.addEventListener('click', () => setTheme(b.dataset.themeSet));
+    });
+    document.querySelectorAll('#langSwitch button').forEach(b => {
+      b.addEventListener('click', () => setLang(b.dataset.lang));
+    });
+    if (opts.onLang) langListeners.push(opts.onLang);
+    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang) }
+    name(opts.name, opts.eyebrow);
+    applyTheme();
+    applyLang();
+    return api;
+  }
+
+  const api = {
+    init, setTheme, setLang, setLink, hideLink, name,
+    get theme () { return theme },
+    get lang () { return lang },
+    onLang (fn) { langListeners.push(fn) },
+  };
+  return api;
+})();
+/* /vstack:shell js */
+</script>
+
+<script>
 /* The tree IS the spec — one initiative, its epics, their user stories, and
    themes as the labels that span them. specs/…md is generated from this, never
    the other way. Served through json-bridge.mjs the document comes from /doc
@@ -444,8 +643,7 @@ const BRIDGE = window.__VSTACK_BRIDGE__ || null;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-let LANG = 'en';
-try { LANG = localStorage.getItem('vstack-spec:lang') === 'zh' ? 'zh' : 'en' } catch {}
+let LANG = VSShell.lang;   // the shell owns the choice; every page shares it
 const STR = {
   eyebrow: ['Initiative', '举措'],
   themesLbl: ['Themes', '主题'],
@@ -919,16 +1117,13 @@ $('#tlTrack').addEventListener('pointerdown', e => {
   const n = trackPick(e.clientX); if (n) gotoVersion(n);
 });
 
-/* ── language ── */
-$('#langSwitch').addEventListener('click', e => {
-  const b = e.target.closest('[data-lang]'); if (!b) return;
-  LANG = b.dataset.lang === 'zh' ? 'zh' : 'en';
-  try { localStorage.setItem('vstack-spec:lang', LANG) } catch {}
-  document.documentElement.lang = LANG;
-  $('#langSwitch button[data-lang=en]').setAttribute('aria-pressed', String(LANG === 'en'));
-  $('#langSwitch button[data-lang=zh]').setAttribute('aria-pressed', String(LANG === 'zh'));
+/* ── language — the switch is the shell's; this is what the spec does about it ── */
+VSShell.onLang(l => {
+  LANG = l;
+  if (!doc) return;        // the shell announces the language before boot loads one
   renderLink(linkUp);
   if (pendingPush) offerRefresh();
+  buildTimeline();
   render();
 });
 
@@ -936,8 +1131,7 @@ $('#langSwitch').addEventListener('click', e => {
 let linkUp = false;
 function renderLink (up) {
   linkUp = up;
-  $('#linkDot').classList.toggle('on', up);
-  $('#linkDot').textContent = up ? t('linked') : t('lost');
+  VSShell.setLink(up, { on: t('linked'), off: t('lost') });
 }
 
 function offerRefresh () {
@@ -979,10 +1173,8 @@ $('#send').addEventListener('click', async () => {
 
 /* ── boot ── */
 (async function boot () {
-  document.documentElement.lang = LANG;
-  $('#langSwitch button[data-lang=en]').setAttribute('aria-pressed', String(LANG === 'en'));
-  $('#langSwitch button[data-lang=zh]').setAttribute('aria-pressed', String(LANG === 'zh'));
-  renderLink(false);
+  VSShell.init({ name: 'Spec', eyebrow: BRIDGE ? BRIDGE.name : '', send: true });
+  if (BRIDGE) renderLink(false); else VSShell.hideLink();
   if (BRIDGE) {
     try {
       doc = migrate(await (await fetch(`${BRIDGE.doc}?t=${BRIDGE.token}`)).json());

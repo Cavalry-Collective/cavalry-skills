@@ -1,21 +1,73 @@
 <title>Phase build · Visual Stack</title>
 <style>
+/* vstack:shell tokens
+   One palette for every vstack page. Roles, not colours: a page asks for
+   --surface, not for white, so light and dark are the same stylesheet.
+
+   Page-specific hues (the story map's phase bands, the board's new/have/touch,
+   the spec's priorities) stay in the page, below this block — they mean
+   something only there. Everything here is shared, and is the reason a board
+   and a spec look like the same product.
+
+   Three states, in this order: the OS preference, then an explicit choice.
+   `data-theme` absent means auto. */
+:root{
+  --paper:#eef0f3; --surface:#ffffff; --surface-2:#f7f8fa;
+  --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+  --line:#e2e4e9; --line-2:#d0d2d9;
+  --brand:#d23b2e; --brand-soft:#fdefed; --brand-line:#f3b3ac;
+  --ok:#10876e; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(16,17,22,.06);
+  --shadow-pop:0 1px 2px rgba(16,17,22,.06),0 8px 24px rgba(16,17,22,.10);
+  --window-shadow:0 2px 6px rgba(16,17,22,.10),0 18px 48px rgba(16,17,22,.16);
+  --radius:9px;
+  --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0e0f12; --surface:#17191e; --surface-2:#1d1f25;
+  --ink:#f1f2f4; --ink-2:#bcbfc7; --ink-3:#8b8e97;
+  --line:#282a31; --line-2:#363942;
+  --brand:#f0685c; --brand-soft:rgba(240,104,92,.14); --brand-line:rgba(240,104,92,.38);
+  --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5);
+  --window-shadow:0 2px 6px rgba(0,0,0,.5),0 18px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}}
+:root[data-theme=light]{
+  --paper:#eef0f3; --surface:#ffffff; --surface-2:#f7f8fa;
+  --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+  --line:#e2e4e9; --line-2:#d0d2d9;
+  --brand:#d23b2e; --brand-soft:#fdefed; --brand-line:#f3b3ac;
+  --ok:#10876e; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(16,17,22,.06);
+  --shadow-pop:0 1px 2px rgba(16,17,22,.06),0 8px 24px rgba(16,17,22,.10);
+  --window-shadow:0 2px 6px rgba(16,17,22,.10),0 18px 48px rgba(16,17,22,.16);
+  color-scheme:light;
+}
+:root[data-theme=dark]{
+  --paper:#0e0f12; --surface:#17191e; --surface-2:#1d1f25;
+  --ink:#f1f2f4; --ink-2:#bcbfc7; --ink-3:#8b8e97;
+  --line:#282a31; --line-2:#363942;
+  --brand:#f0685c; --brand-soft:rgba(240,104,92,.14); --brand-line:rgba(240,104,92,.38);
+  --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5);
+  --window-shadow:0 2px 6px rgba(0,0,0,.5),0 18px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+/* /vstack:shell tokens */
   :root{
-    --paper:#eef0f3; --surface:#fff; --surface-2:#f7f8fa; --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
-    --line:#e2e4e9; --line-2:#d0d2d9; --brand:#d23b2e; --keep:#10876e;
-    --new:#d23b2e; --have:#71737c; --touch:#b0761a; --fail:#c22f4d;
-    --shadow:0 1px 2px rgba(16,17,22,.06);
-    --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    /* what the board colours mean — its own vocabulary, on the shared palette */
+    --keep:#10876e; --new:#d23b2e; --have:#71737c; --touch:#b0761a; --fail:#c22f4d;
   }
   @media (prefers-color-scheme:dark){:root{
-    --paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;
-    --line:#282a31;--line-2:#363942;--brand:#f0685c;--keep:#2fb89b;
-    --new:#f0685c;--have:#8b8e97;--touch:#d29a3f;--fail:#e05575;
-    --shadow:0 1px 2px rgba(0,0,0,.4);
+    --keep:#2fb89b; --new:#f0685c; --have:#8b8e97; --touch:#d29a3f; --fail:#e05575;
   }}
-  :root[data-theme="light"]{--paper:#eef0f3;--surface:#fff;--surface-2:#f7f8fa;--ink:#16171c;--ink-2:#43454d;--ink-3:#71737c;--line:#e2e4e9;--line-2:#d0d2d9;--brand:#d23b2e;--keep:#10876e;--new:#d23b2e;--have:#71737c;--touch:#b0761a;--fail:#c22f4d}
-  :root[data-theme="dark"]{--paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;--line:#282a31;--line-2:#363942;--brand:#f0685c;--keep:#2fb89b;--new:#f0685c;--have:#8b8e97;--touch:#d29a3f;--fail:#e05575}
+  :root[data-theme="light"]{--keep:#10876e;--new:#d23b2e;--have:#71737c;--touch:#b0761a;--fail:#c22f4d}
+  :root[data-theme="dark"]{--keep:#2fb89b;--new:#f0685c;--have:#8b8e97;--touch:#d29a3f;--fail:#e05575}
 
   *{box-sizing:border-box}
   [hidden]{display:none!important}
@@ -26,41 +78,80 @@
 
   #app{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;min-height:100vh}
 
-  /* ── the standard vstack top bar ── */
-  #top{display:flex;align-items:center;gap:10px;padding:0 14px;height:50px;background:var(--surface);
-    border-bottom:1px solid var(--line)}
-  .brand{display:flex;align-items:baseline;gap:8px;min-width:0}
-  /* Visual Stack mark — geometry matches docs/brand/ */
-  .vsmark{width:15px;height:15px;flex:none;align-self:center;color:var(--ink)}
-  /* the mark links to the Visual Stack page */
-  .vslink{display:inline-flex;align-items:center;align-self:center;gap:0;
-    text-decoration:none;color:inherit}
-  .vslink:hover .vsmark{opacity:.8}
-  .brand b{font-size:13px;font-weight:650;white-space:nowrap}
-  .brand .eyebrow{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--ink-3);font-weight:700}
-  .spacer{flex:1}
-  .linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
-    letter-spacing:.03em;color:var(--ink-3);white-space:nowrap}
-  .linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);
-    box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
-  .linkdot.on{color:var(--keep)}
-  .linkdot.on::before{background:var(--keep);box-shadow:0 0 0 3px color-mix(in srgb,var(--keep) 22%,transparent)}
-  .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;background:var(--surface)}
-  .seg button{height:30px;padding:0 13px;font-weight:600;font-size:.8rem;color:var(--ink-3);
-    border-right:1px solid var(--line-2);display:inline-flex;align-items:center;gap:6px}
-  .seg button:last-child{border-right:0}
-  .seg button:hover{background:var(--surface-2);color:var(--ink)}
-  .seg button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+/* vstack:shell css
+   The chrome every vstack page wears: the top bar and the controls that sit in
+   it. Page layout stays in the page — some of these are app shells that fill
+   the viewport, some are documents that scroll — but the bar, the buttons and
+   the segmented controls are the same object everywhere. */
+.vs-topbar{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
+  background:var(--surface);border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:40}
+.vs-topbar .brand{display:flex;align-items:center;gap:8px;min-width:0}
+.vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
+.vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
+.vslink:hover .vsmark{opacity:.8}
+.brand .ws{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
+.brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:280px}
+.brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
+.spacer{flex:1}
+.sep{width:1px;height:20px;background:var(--line);flex:none}
+
+/* buttons — one shape, three sizes of intent */
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+  border:1px solid var(--line-2);background:var(--surface);color:var(--ink);font-weight:550;
+  white-space:nowrap;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.primary[disabled]{opacity:.45;cursor:default;filter:none;pointer-events:none}
+.btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
+.btn.sm{height:25px;padding:0 9px;font-size:11.5px}
+
+/* segmented control — modes, sizes, language, theme */
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
+  background:var(--surface);flex:none}
+.seg button{height:30px;padding:0 12px;font-weight:550;color:var(--ink-2);display:inline-flex;
+  align-items:center;gap:6px;border:0;border-right:1px solid var(--line-2);background:none;
+  cursor:pointer;font:inherit;font-weight:550}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--surface-2)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+.seg.sm button{height:25px;padding:0 9px;font-size:11.5px}
+#langSwitch button,#themeSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
+#themeSwitch button{padding:0 8px}
+#themeSwitch svg{width:13px;height:13px;display:block}
+
+/* the live link, stated rather than implied */
+.linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
+  letter-spacing:.03em;color:var(--ink-3);white-space:nowrap}
+.linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
+.linkdot.on{color:var(--ok)}
+.linkdot.on::before{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+
+/* floating banners — the page talking back, never blocking the work */
+.banner{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:38;display:none;
+  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow-pop);
+  font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
+.banner.on{display:flex}
+.banner.dark{background:var(--ink);color:var(--surface)}
+.banner.dark .btn{background:color-mix(in srgb,var(--surface) 16%,transparent);
+  border-color:transparent;color:var(--surface)}
+.banner.dark .btn:hover{background:color-mix(in srgb,var(--surface) 28%,transparent)}
+.banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
+.banner.good .tick{color:var(--ok);font-weight:700}
+
+@media (max-width:720px){
+  .brand .ws,.brand .eyebrow{display:none}
+  .vs-topbar{gap:8px;padding:0 8px}
+}
+/* /vstack:shell css */
+
+  /* the board's subject tabs carry counts */
   .seg .c{font-family:var(--mono);font-size:.62rem;opacity:.7}
-  .seg.lang button{height:26px;padding:0 10px;font-size:11.5px}
-  .seg.lang button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
-  .btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
-    border:1px solid var(--line-2);background:var(--surface);font-weight:600;font-size:.8rem}
-  .btn:hover{background:var(--surface-2)}
-  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
-  .btn.primary:hover{background:color-mix(in srgb,var(--brand) 88%,#000)}
-  .btn.primary[disabled]{opacity:.45;pointer-events:none}
 
   /* ── legend strip ── */
   #legend{display:flex;align-items:center;gap:1.1rem;padding:.5rem 1rem;background:var(--surface-2);
@@ -142,30 +233,54 @@
 </style>
 
 <div id="app">
-  <div id="top">
-    <span class="brand">
-      <a class="vslink" href="https://cavalry.sg/visual-stack" target="_blank" rel="noopener"
-         title="Visual Stack">
-        <svg class="vsmark" viewBox="0 0 64 64" aria-hidden="true">
-          <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
-          <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
-        </svg>
-      </a>
-      <b id="tbTitle">Phase build</b>
-      <span class="eyebrow" id="tbEyebrow">Visual Stack · stages 6–8</span></span>
-    <span class="spacer"></span>
-    <span class="linkdot" id="linkDot"></span>
-    <div class="seg lang" id="langSwitch">
-      <button data-lang="en" aria-pressed="true">EN</button>
-      <button data-lang="zh" aria-pressed="false">中文</button>
-    </div>
-    <div class="seg" id="subjects">
-      <button aria-pressed="true"  data-s="api"><span id="tApi"></span> <span class="c" id="capi"></span></button>
-      <button aria-pressed="false" data-s="ui"><span id="tUi"></span> <span class="c" id="cui"></span></button>
-      <button aria-pressed="false" data-s="infra"><span id="tInfra"></span> <span class="c" id="cinfra"></span></button>
-    </div>
-    <button class="btn primary" id="send" disabled></button>
+<!-- vstack:shell topbar -->
+<div class="vs-topbar" id="top">
+  <div class="brand">
+    <a class="vslink" href="https://cavalry.sg/visual-stack" target="_blank" rel="noopener"
+       title="Visual Stack">
+      <svg class="vsmark" viewBox="0 0 64 64" aria-hidden="true">
+        <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
+        <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
+      </svg>
+      <span class="ws">Visual Stack</span>
+    </a>
+    <b id="pageName"></b>
+    <span class="eyebrow" id="pageEyebrow"></span>
   </div>
+  <div class="spacer"></div>
+  <!-- The page's own controls: `tools` sits before the shared switches,
+       `actions` after them, where the primary action belongs. -->
+  <!-- vstack:slot tools -->
+  <div class="seg" id="subjects">
+    <button aria-pressed="true"  data-s="api"><span id="tApi"></span> <span class="c" id="capi"></span></button>
+    <button aria-pressed="false" data-s="ui"><span id="tUi"></span> <span class="c" id="cui"></span></button>
+    <button aria-pressed="false" data-s="infra"><span id="tInfra"></span> <span class="c" id="cinfra"></span></button>
+  </div>
+<!-- /vstack:slot tools -->
+  <div class="seg" id="themeSwitch">
+    <button data-theme-set="auto" aria-pressed="true" title="Match the system">A</button>
+    <button data-theme-set="light" aria-pressed="false" title="Light">
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="8" cy="8" r="3.1"/><path d="M8 .9v2M8 13.1v2M.9 8h2M13.1 8h2M3 3l1.4 1.4M11.6 11.6 13 13M13 3l-1.4 1.4M4.4 11.6 3 13" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button data-theme-set="dark" aria-pressed="false" title="Dark">
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.8 5.8 0 1 0 7 7Z" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+  <div class="seg" id="langSwitch">
+    <button data-lang="en" aria-pressed="true">EN</button>
+    <button data-lang="zh" aria-pressed="false">中文</button>
+  </div>
+  <div class="sep"></div>
+  <span class="linkdot" id="linkDot" hidden></span>
+  <button class="btn primary" id="send" disabled hidden></button>
+  <!-- vstack:slot actions -->
+  <!-- /vstack:slot actions -->
+</div>
+<!-- /vstack:shell topbar -->
 
   <div>
     <div id="refreshBar" hidden>
@@ -231,6 +346,98 @@
 </script>
 
 <script>
+/* vstack:shell js
+   The behaviour behind the top bar: theme, language, the link dot, and the
+   page's own name. Everything else — what the page does — is the page's.
+
+   Nothing here touches the network or the document beyond the bar, so a page
+   works identically served, opened off disk, or published as an Artifact. */
+window.VSShell = (function () {
+  const $ = s => document.querySelector(s);
+  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang' };
+  const store = {
+    get (k, d) { try { return localStorage.getItem(k) ?? d } catch { return d } },
+    set (k, v) { try { localStorage.setItem(k, v) } catch {} },
+  };
+
+  /* ── theme: auto (whatever the OS says) / light / dark ──
+     Auto is the absence of an override, so the page keeps following the system
+     if it changes while open — and an Artifact viewer's own toggle still wins
+     the same way it does on a page that never had this control. */
+  let theme = store.get(KEY.theme, 'auto');
+  function applyTheme () {
+    if (theme === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('#themeSwitch button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.themeSet === theme));
+    });
+  }
+  function setTheme (next) {
+    theme = ['auto', 'light', 'dark'].includes(next) ? next : 'auto';
+    store.set(KEY.theme, theme);
+    applyTheme();
+  }
+
+  /* ── language: chrome only. Page content stays as authored. ── */
+  let lang = store.get(KEY.lang, 'en') === 'zh' ? 'zh' : 'en';
+  const langListeners = [];
+  function applyLang () {
+    document.documentElement.lang = lang === 'zh' ? 'zh' : 'en';
+    document.querySelectorAll('#langSwitch button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+    });
+    langListeners.forEach(fn => { try { fn(lang) } catch {} });
+  }
+  function setLang (next) {
+    lang = next === 'zh' ? 'zh' : 'en';
+    store.set(KEY.lang, lang);
+    applyLang();
+  }
+
+  /* ── the live link, said out loud ── */
+  function setLink (up, labels) {
+    const el = $('#linkDot');
+    if (!el) return;
+    el.hidden = false;
+    el.classList.toggle('on', !!up);
+    el.textContent = up ? (labels?.on ?? 'LINKED TO CLAUDE') : (labels?.off ?? 'LINK LOST');
+    el.title = up ? '' : (labels?.offTitle ?? '');
+  }
+  const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  function name (pageName, eyebrow) {
+    const n = $('#pageName'); const e = $('#pageEyebrow');
+    if (n && pageName != null) n.textContent = pageName;
+    if (e && eyebrow != null) e.textContent = eyebrow;
+  }
+
+  function init (opts = {}) {
+    document.querySelectorAll('#themeSwitch button').forEach(b => {
+      b.addEventListener('click', () => setTheme(b.dataset.themeSet));
+    });
+    document.querySelectorAll('#langSwitch button').forEach(b => {
+      b.addEventListener('click', () => setLang(b.dataset.lang));
+    });
+    if (opts.onLang) langListeners.push(opts.onLang);
+    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang) }
+    name(opts.name, opts.eyebrow);
+    applyTheme();
+    applyLang();
+    return api;
+  }
+
+  const api = {
+    init, setTheme, setLang, setLink, hideLink, name,
+    get theme () { return theme },
+    get lang () { return lang },
+    onLang (fn) { langListeners.push(fn) },
+  };
+  return api;
+})();
+/* /vstack:shell js */
+</script>
+
+<script>
 /* The plan JSON is the artifact. Adjust it here, press Start, and watch the
    build colour in — Claude reports per-node progress through json-bridge.mjs
    patch, and every change lands here over SSE. Opened off disk this falls back
@@ -239,8 +446,7 @@ const BRIDGE = window.__VSTACK_BRIDGE__ || null;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-let LANG = 'en';
-try { LANG = localStorage.getItem('vstack-build:lang') === 'zh' ? 'zh' : 'en' } catch {}
+let LANG = VSShell.lang;   // the shell owns the choice; every page shares it
 const STR = {
   title: ['Phase %n build', '第 %n 期构建'],
   api: ['Endpoints', '接口'], ui: ['Components', '组件'], infra: ['Resources', '资源'],
@@ -306,7 +512,7 @@ function layout () {
 
 function render () {
   const ph = doc.phase ?? '?';
-  $('#tbTitle').textContent = t('title').replace('%n', ph);
+  VSShell.name(t('title').replace('%n', ph));
   document.title = t('title').replace('%n', ph) + ' · Visual Stack';
   $('#tApi').textContent = t('api'); $('#tUi').textContent = t('ui'); $('#tInfra').textContent = t('infra');
   $('#kNew').textContent = t('kNew'); $('#kTouch').textContent = t('kTouch');
@@ -448,14 +654,10 @@ $('#nodes').addEventListener('dragend', () => {
   NODES().querySelectorAll('.drop').forEach(x => x.classList.remove('drop')); dragId = null;
 });
 
-/* ── language ── */
-$('#langSwitch').addEventListener('click', e => {
-  const b = e.target.closest('[data-lang]'); if (!b) return;
-  LANG = b.dataset.lang === 'zh' ? 'zh' : 'en';
-  try { localStorage.setItem('vstack-build:lang', LANG) } catch {}
-  document.documentElement.lang = LANG;
-  $('#langSwitch button[data-lang=en]').setAttribute('aria-pressed', String(LANG === 'en'));
-  $('#langSwitch button[data-lang=zh]').setAttribute('aria-pressed', String(LANG === 'zh'));
+/* ── language — the switch is the shell's; this is what the board does about it ── */
+VSShell.onLang(l => {
+  LANG = l;
+  if (!doc) return;      // the shell announces the language before boot loads one
   renderLink(linkUp); render();
 });
 
@@ -463,8 +665,7 @@ $('#langSwitch').addEventListener('click', e => {
 let linkUp = false;
 function renderLink (up) {
   linkUp = up;
-  $('#linkDot').classList.toggle('on', up);
-  $('#linkDot').textContent = up ? t('linked') : t('lost');
+  VSShell.setLink(up, { on: t('linked'), off: t('lost') });
 }
 
 async function save (extra) {
@@ -526,10 +727,8 @@ $('#rbDismiss').addEventListener('click', () => { $('#refreshBar').hidden = true
 
 /* ── boot ── */
 (async function boot () {
-  document.documentElement.lang = LANG;
-  $('#langSwitch button[data-lang=en]').setAttribute('aria-pressed', String(LANG === 'en'));
-  $('#langSwitch button[data-lang=zh]').setAttribute('aria-pressed', String(LANG === 'zh'));
-  renderLink(false);
+  VSShell.init({ name: 'Phase build', eyebrow: BRIDGE ? BRIDGE.name : '', send: true });
+  if (BRIDGE) renderLink(false); else VSShell.hideLink();
   if (BRIDGE) {
     try { doc = await (await fetch(`${BRIDGE.doc}?t=${BRIDGE.token}`)).json() }
     catch { doc = JSON.parse($('#fallback').textContent); }

@@ -9,78 +9,158 @@
    Opens one HTML file in its own browser window and lets you comment on it.
    The wrapper knows nothing about the page inside it. Two modes, two kinds of
    comment, nothing else. */
+/* vstack:shell tokens
+   One palette for every vstack page. Roles, not colours: a page asks for
+   --surface, not for white, so light and dark are the same stylesheet.
+
+   Page-specific hues (the story map's phase bands, the board's new/have/touch,
+   the spec's priorities) stay in the page, below this block — they mean
+   something only there. Everything here is shared, and is the reason a board
+   and a spec look like the same product.
+
+   Three states, in this order: the OS preference, then an explicit choice.
+   `data-theme` absent means auto. */
 :root{
-  --bg:#f4f3f6; --panel:#ffffff; --sunken:#eceaf0; --ink:#171320; --ink-2:#665e72;
-  --ink-3:#8f889c; --line:#e2dfe8; --line-2:#cfc9d8;
-  --accent:#e02b20; --accent-soft:#fff1f0; --accent-line:#ffb3ad;
-  --ok:#12805c; --ok-soft:#e9f9f2;
-  --shadow:0 1px 2px rgba(23,19,32,.06),0 8px 24px rgba(23,19,32,.08);
-  --window-shadow:0 2px 6px rgba(23,19,32,.10),0 18px 48px rgba(23,19,32,.16);
-  --panelw:320px;
-  --font:ui-sans-serif,-apple-system,"Segoe UI",Inter,system-ui,sans-serif;
-  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+  --paper:#eef0f3; --surface:#ffffff; --surface-2:#f7f8fa;
+  --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+  --line:#e2e4e9; --line-2:#d0d2d9;
+  --brand:#d23b2e; --brand-soft:#fdefed; --brand-line:#f3b3ac;
+  --ok:#10876e; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(16,17,22,.06);
+  --shadow-pop:0 1px 2px rgba(16,17,22,.06),0 8px 24px rgba(16,17,22,.10);
+  --window-shadow:0 2px 6px rgba(16,17,22,.10),0 18px 48px rgba(16,17,22,.16);
+  --radius:9px;
+  --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
   color-scheme:light;
 }
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0e0f12; --surface:#17191e; --surface-2:#1d1f25;
+  --ink:#f1f2f4; --ink-2:#bcbfc7; --ink-3:#8b8e97;
+  --line:#282a31; --line-2:#363942;
+  --brand:#f0685c; --brand-soft:rgba(240,104,92,.14); --brand-line:rgba(240,104,92,.38);
+  --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5);
+  --window-shadow:0 2px 6px rgba(0,0,0,.5),0 18px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}}
+:root[data-theme=light]{
+  --paper:#eef0f3; --surface:#ffffff; --surface-2:#f7f8fa;
+  --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+  --line:#e2e4e9; --line-2:#d0d2d9;
+  --brand:#d23b2e; --brand-soft:#fdefed; --brand-line:#f3b3ac;
+  --ok:#10876e; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(16,17,22,.06);
+  --shadow-pop:0 1px 2px rgba(16,17,22,.06),0 8px 24px rgba(16,17,22,.10);
+  --window-shadow:0 2px 6px rgba(16,17,22,.10),0 18px 48px rgba(16,17,22,.16);
+  color-scheme:light;
+}
+:root[data-theme=dark]{
+  --paper:#0e0f12; --surface:#17191e; --surface-2:#1d1f25;
+  --ink:#f1f2f4; --ink-2:#bcbfc7; --ink-3:#8b8e97;
+  --line:#282a31; --line-2:#363942;
+  --brand:#f0685c; --brand-soft:rgba(240,104,92,.14); --brand-line:rgba(240,104,92,.38);
+  --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5);
+  --window-shadow:0 2px 6px rgba(0,0,0,.5),0 18px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+/* /vstack:shell tokens */
+:root{ --panelw:320px }
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.45 var(--font);
+body{margin:0;background:var(--paper);color:var(--ink);font:13px/1.45 var(--font);
   -webkit-font-smoothing:antialiased;overflow:hidden}
 button,input,textarea,select{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0;padding:0}
-:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
 
 #app{display:grid;grid-template-rows:auto 1fr;height:100%}
-#top{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
-  background:var(--panel);border-bottom:1px solid var(--line);position:relative;z-index:40}
 #main{display:grid;grid-template-columns:1fr var(--panelw);min-height:0}
 @media (max-width:820px){ #main{grid-template-columns:1fr} #panel{display:none} }
 
-/* ── topbar ── */
-.brand{display:flex;align-items:center;gap:8px;min-width:0}
-/* Visual Stack mark — geometry matches docs/brand/ */
+/* vstack:shell css
+   The chrome every vstack page wears: the top bar and the controls that sit in
+   it. Page layout stays in the page — some of these are app shells that fill
+   the viewport, some are documents that scroll — but the bar, the buttons and
+   the segmented controls are the same object everywhere. */
+.vs-topbar{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
+  background:var(--surface);border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:40}
+.vs-topbar .brand{display:flex;align-items:center;gap:8px;min-width:0}
+.vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
 .vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
-/* the mark links to the Visual Stack page */
-.vslink{display:inline-flex;align-items:center;align-self:center;gap:8px;
-  text-decoration:none;color:inherit}
 .vslink:hover .vsmark{opacity:.8}
-.vslink:hover .ws{color:var(--ink)}
-.brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
-.brand .ws{font:700 10px/1 var(--mono);letter-spacing:.14em;
-  text-transform:uppercase;color:var(--ink-3);white-space:nowrap}
-.sep{width:1px;height:20px;background:var(--line);flex:none}
+.brand .ws{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
+.brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:280px}
+.brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
 .spacer{flex:1}
-.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
-  border:1px solid var(--line-2);background:var(--panel);color:var(--ink);font-weight:550;white-space:nowrap}
-.btn:hover{background:var(--sunken)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn.primary:hover{filter:brightness(1.08)}
-.btn.primary[disabled]{opacity:.45;cursor:default;filter:none}
-.btn.sm{height:26px;padding:0 9px;font-size:12px}
-.btn .kbd{font:500 10px/1 var(--mono);opacity:.6}
+.sep{width:1px;height:20px;background:var(--line);flex:none}
 
-/* segmented controls */
-.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;background:var(--panel)}
+/* buttons — one shape, three sizes of intent */
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+  border:1px solid var(--line-2);background:var(--surface);color:var(--ink);font-weight:550;
+  white-space:nowrap;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.primary[disabled]{opacity:.45;cursor:default;filter:none;pointer-events:none}
+.btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
+.btn.sm{height:25px;padding:0 9px;font-size:11.5px}
+
+/* segmented control — modes, sizes, language, theme */
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
+  background:var(--surface);flex:none}
 .seg button{height:30px;padding:0 12px;font-weight:550;color:var(--ink-2);display:inline-flex;
-  align-items:center;gap:6px;border-right:1px solid var(--line-2)}
+  align-items:center;gap:6px;border:0;border-right:1px solid var(--line-2);background:none;
+  cursor:pointer;font:inherit;font-weight:550}
 .seg button:last-child{border-right:0}
-.seg button:hover{background:var(--sunken)}
-/* The mode switch is a control, not a call to action — the accent belongs to
-   Send to Claude alone. */
-.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
-.seg .kbd{font:500 10px/1 var(--mono);opacity:.65}
-.seg.icons button{width:36px;padding:0;justify-content:center;color:var(--ink-3)}
-.seg.icons button:hover{color:var(--ink)}
-.seg.icons button[aria-pressed=true]{background:var(--sunken);color:var(--ink)}
-#modeSwitch button[aria-pressed=true]{background:var(--ink);color:#fff}
-/* Live link to the Claude session — the same tell the story map carries, so
-   "is anyone still listening?" is answered before Send is pressed, not after. */
+.seg button:hover{background:var(--surface-2)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+.seg.sm button{height:25px;padding:0 9px;font-size:11.5px}
+#langSwitch button,#themeSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
+#themeSwitch button{padding:0 8px}
+#themeSwitch svg{width:13px;height:13px;display:block}
+
+/* the live link, stated rather than implied */
 .linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
   letter-spacing:.03em;color:var(--ink-3);white-space:nowrap}
-.linkdot[hidden]{display:none}
 .linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);
   box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
 .linkdot.on{color:var(--ok)}
 .linkdot.on::before{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+
+/* floating banners — the page talking back, never blocking the work */
+.banner{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:38;display:none;
+  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow-pop);
+  font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
+.banner.on{display:flex}
+.banner.dark{background:var(--ink);color:var(--surface)}
+.banner.dark .btn{background:color-mix(in srgb,var(--surface) 16%,transparent);
+  border-color:transparent;color:var(--surface)}
+.banner.dark .btn:hover{background:color-mix(in srgb,var(--surface) 28%,transparent)}
+.banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
+.banner.good .tick{color:var(--ok);font-weight:700}
+
+@media (max-width:720px){
+  .brand .ws,.brand .eyebrow{display:none}
+  .vs-topbar{gap:8px;padding:0 8px}
+}
+/* /vstack:shell css */
+
+/* the workspace bar sits above the window it wraps, not sticky over a scroll */
+.vs-topbar{position:relative}
+.btn .kbd{font:500 10px/1 var(--mono);opacity:.6}
+.seg .kbd{font:500 10px/1 var(--mono);opacity:.65}
+/* icon-only sizes: a control, not a call to action */
+.seg.icons button{width:36px;padding:0;justify-content:center;color:var(--ink-3)}
+.seg.icons button:hover{color:var(--ink)}
+.seg.icons button[aria-pressed=true]{background:var(--surface-2);color:var(--ink)}
 
 /* Send is the loop; approve is the way out of it. Same control, because they
    are the same decision made two ways — one more round, or done. */
@@ -89,16 +169,16 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .split .caret{border-radius:0 7px 7px 0;border-left:1px solid rgba(255,255,255,.28);padding:0 8px;width:28px;
   justify-content:center}
 .split .btn[disabled]+.caret{border-left-color:rgba(255,255,255,.28)}
-#sendMenu{position:absolute;top:42px;right:12px;z-index:60;width:266px;background:var(--panel);
-  border:1px solid var(--line-2);border-radius:10px;box-shadow:var(--shadow);padding:5px;display:none}
+#sendMenu{position:absolute;top:42px;right:12px;z-index:60;width:266px;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:10px;box-shadow:var(--shadow-pop);padding:5px;display:none}
 #sendMenu.on{display:block}
 #sendMenu button{display:block;width:100%;text-align:left;padding:8px 9px;border-radius:7px}
-#sendMenu button:hover{background:var(--sunken)}
+#sendMenu button:hover{background:var(--surface-2)}
 #sendMenu .t{display:block;font-weight:600;font-size:12.5px}
 #sendMenu .d{display:block;font-size:11.5px;color:var(--ink-3);line-height:1.35;margin-top:3px}
 #sendMenu .d:empty{display:none}
-#sendMenu button.armed{background:var(--accent-soft)}
-#sendMenu button.armed .t{color:var(--accent)}
+#sendMenu button.armed{background:var(--brand-soft)}
+#sendMenu button.armed .t{color:var(--brand)}
 #sendMenu button[disabled]{cursor:default}
 #sendMenu button[disabled]:hover{background:none}
 #sendMenu .warn{color:#b7791f;font-weight:600}
@@ -107,13 +187,13 @@ button{cursor:pointer;background:none;border:0;padding:0}
 /* A link waiting under the caret is easy to miss — mark the caret itself. */
 .split .caret{position:relative}
 .split .caret.flag::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;
-  border-radius:50%;background:#fff;box-shadow:0 0 0 2px var(--accent)}
+  border-radius:50%;background:#fff;box-shadow:0 0 0 2px var(--brand)}
 
 /* The end of the review, said once and plainly. */
 #doneScreen{position:fixed;inset:0;z-index:200;display:none;place-items:center;
   background:color-mix(in srgb,var(--ink) 34%,transparent);backdrop-filter:blur(2px)}
 #doneScreen.on{display:grid}
-#doneScreen .card{background:var(--panel);border-radius:14px;box-shadow:var(--window-shadow);
+#doneScreen .card{background:var(--surface);border-radius:14px;box-shadow:var(--window-shadow);
   padding:26px 28px;max-width:380px;text-align:center}
 #doneScreen .tick{width:42px;height:42px;border-radius:50%;background:var(--ok-soft);color:var(--ok);
   display:grid;place-items:center;font-size:20px;font-weight:700;margin:0 auto 12px}
@@ -127,7 +207,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
 #canvasArea{display:grid;grid-template-rows:minmax(0,1fr) auto;min-width:0}
 /* The dots live on the non-scrolling frame so they are painted once, instead of
    being repainted across the whole scrollable canvas on every scroll. */
-#stageArea{position:relative;overflow:hidden;background:var(--sunken);
+#stageArea{position:relative;overflow:hidden;background:var(--surface-2);
   background-image:radial-gradient(circle at 1px 1px,var(--line-2) 1px,transparent 0);
   background-size:22px 22px}
 #canvasWrap{position:absolute;inset:0;overflow:auto}
@@ -135,21 +215,21 @@ button{cursor:pointer;background:none;border:0;padding:0}
 
 /* transform-origin is top-left so the negative margins in setZoom() shrink the
    layout box to exactly the scaled size — anything else and the window drifts. */
-#browser{background:var(--panel);border-radius:11px;box-shadow:var(--window-shadow);
+#browser{background:var(--surface);border-radius:11px;box-shadow:var(--window-shadow);
   transform-origin:top left;flex:none;overflow:hidden;border:1px solid var(--line-2);
   will-change:transform;backface-visibility:hidden}
 .window-bar{display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;
-  background:linear-gradient(var(--panel),var(--sunken));border-bottom:1px solid var(--line-2)}
+  background:linear-gradient(var(--surface),var(--surface-2));border-bottom:1px solid var(--line-2)}
 .window-bar .reload{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;
   color:var(--ink-3);font-size:13px;flex:none}
 .window-bar .reload:hover{background:var(--line);color:var(--ink)}
-.window-bar .url{flex:1;height:22px;border-radius:11px;background:var(--bg);border:1px solid var(--line);
+.window-bar .url{flex:1;height:22px;border-radius:11px;background:var(--paper);border:1px solid var(--line);
   display:flex;align-items:center;padding:0 9px;font:600 11px/1 var(--mono);color:var(--ink-2);
   min-width:0;overflow:hidden;white-space:nowrap}
 .window-bar .size{font:500 10.5px/1 var(--mono);color:var(--ink-3);flex:none}
 .window-bar .vlabel{font:600 10px/1 var(--mono);padding:3px 6px;border-radius:5px;
-  background:var(--sunken);color:var(--ink-2);flex:none}
-.window-bar .vlabel.hist{background:var(--accent-soft);color:var(--accent)}
+  background:var(--surface-2);color:var(--ink-2);flex:none}
+.window-bar .vlabel.hist{background:var(--brand-soft);color:var(--brand)}
 #viewportBox{position:relative;overflow:auto;background:#fff;contain:paint}
 #scroller{position:relative}
 #frame{display:block;border:0;width:100%;background:#fff}
@@ -190,70 +270,70 @@ button{cursor:pointer;background:none;border:0;padding:0}
 /* The page was rebuilt and the element could not be found again: the mark falls
    back to where it was drawn, and says so by looking unsure of itself. */
 .mark.loose{opacity:.5;filter:saturate(.5)}
-#drag{position:absolute;border:2px dashed var(--accent);border-radius:3px;display:none;
-  background:color-mix(in srgb,var(--accent) 8%,transparent);pointer-events:none}
+#drag{position:absolute;border:2px dashed var(--brand);border-radius:3px;display:none;
+  background:color-mix(in srgb,var(--brand) 8%,transparent);pointer-events:none}
 
 /* ── on-canvas composer ── */
-#composer{position:absolute;z-index:30;width:280px;background:var(--panel);border:1px solid var(--line-2);
-  border-radius:10px;box-shadow:var(--shadow);display:none;overflow:hidden}
+#composer{position:absolute;z-index:30;width:280px;background:var(--surface);border:1px solid var(--line-2);
+  border-radius:10px;box-shadow:var(--shadow-pop);display:none;overflow:hidden}
 #composer.on{display:block}
 #composer .chead{display:flex;align-items:center;gap:7px;padding:8px 9px 6px}
-#composer .cnum{font:700 10px/1 var(--mono);color:#fff;background:var(--mk,var(--accent));
+#composer .cnum{font:700 10px/1 var(--mono);color:#fff;background:var(--mk,var(--brand));
   padding:3px 5px;border-radius:4px}
 #composer .ckind{font-size:11.5px;color:var(--ink-3);flex:1}
 #composer .chead button{width:20px;height:20px;border-radius:4px;color:var(--ink-3);
   display:grid;place-items:center;font-size:12px}
-#composer .chead button:hover{background:var(--sunken);color:var(--accent)}
+#composer .chead button:hover{background:var(--surface-2);color:var(--brand)}
 #composer .cstatus{font:600 9.5px/1 var(--font);letter-spacing:.04em;text-transform:uppercase;
-  padding:3px 5px;border-radius:4px;background:var(--sunken);color:var(--ink-3)}
+  padding:3px 5px;border-radius:4px;background:var(--surface-2);color:var(--ink-3)}
 #composer .cstatus.addressed{background:var(--ok-soft);color:var(--ok)}
-#composer .cstatus.question{background:var(--accent-soft);color:var(--accent)}
+#composer .cstatus.question{background:var(--brand-soft);color:var(--brand)}
 #composer .cstatus:empty{display:none}
 /* What this comment is attached to, said back to the reviewer as they type it. */
 #composer .canchor{display:none;margin:0 9px 6px;font:500 11px/1.4 var(--mono);color:var(--ink-3);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #composer .canchor.on{display:block}
 #composer .canchor b{color:var(--ink-2);font-weight:650}
-#composer .canchor.gone{color:var(--accent)}
+#composer .canchor.gone{color:var(--brand)}
 #composer textarea{width:calc(100% - 18px);margin:0 9px;border:1px solid var(--line-2);border-radius:7px;
-  padding:6px 7px;font-size:12.5px;line-height:1.45;resize:vertical;min-height:58px;background:var(--panel)}
-#composer textarea:focus{outline:none;border-color:var(--accent);
-  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+  padding:6px 7px;font-size:12.5px;line-height:1.45;resize:vertical;min-height:58px;background:var(--surface)}
+#composer textarea:focus{outline:none;border-color:var(--brand);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 12%,transparent)}
 #composer .cthread{margin:8px 9px 0;display:none;flex-direction:column;gap:7px;
   max-height:190px;overflow:auto}
 #composer .cthread.on{display:flex}
 #composer .msg{border-left:2px solid var(--line-2);padding-left:8px}
-#composer .msg.claude{border-left-color:var(--accent)}
+#composer .msg.claude{border-left-color:var(--brand)}
 #composer .msg .who{font:600 10px/1 var(--font);letter-spacing:.04em;text-transform:uppercase;
   color:var(--ink-3);margin-bottom:3px}
-#composer .msg.claude .who{color:var(--accent)}
+#composer .msg.claude .who{color:var(--brand)}
 #composer .msg .body{font-size:12.5px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
 #composer .creply{display:none;margin-top:8px;min-height:44px}
 #composer .creply.on{display:block}
 #composer .cfoot{display:flex;align-items:center;gap:5px;padding:8px 9px;margin-top:8px;
-  border-top:1px solid var(--line);background:var(--bg)}
+  border-top:1px solid var(--line);background:var(--paper)}
 #composer .cfoot .hint{flex:1;font-size:11px;color:var(--ink-3)}
 #composer .csave{height:26px;padding:0 11px;border-radius:6px;background:var(--ink);color:#fff;
   font-weight:600;font-size:11.5px;flex:none}
 #composer .csave:hover{filter:brightness(1.25)}
 #composer .csave .kbd{font:500 9.5px/1 var(--mono);opacity:.6;margin-left:4px}
 /* A comment Claude is working on keeps its own progress, wherever it is shown. */
-#composer.working{border-color:var(--accent-line)}
-#composer.working::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--accent-soft)}
-#composer.working::before{content:"";position:absolute;bottom:0;height:2px;width:38%;background:var(--accent);
+#composer.working{border-color:var(--brand-line)}
+#composer.working::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--brand-soft)}
+#composer.working::before{content:"";position:absolute;bottom:0;height:2px;width:38%;background:var(--brand);
   z-index:1;animation:sweep 1.15s ease-in-out infinite}
 
 /* ── right panel: the index ── */
 /* Flex rather than a fixed row template: the working strip comes and goes, and
    a display:none grid child would silently reshuffle every other row. */
-#panel{background:var(--panel);border-left:1px solid var(--line);display:flex;
+#panel{background:var(--surface);border-left:1px solid var(--line);display:flex;
   flex-direction:column;min-height:0}
 #phead,#pfilter,#pwork,#pfoot{flex:none}
 #phead{display:flex;align-items:center;gap:8px;padding:10px 12px 8px}
 #phead b{font-size:13px}
 #phead .scope{margin-left:auto;font-size:11px;color:var(--ink-3)}
 #pfilter{display:flex;flex-wrap:wrap;gap:5px;padding:0 10px 8px;border-bottom:1px solid var(--line)}
-#pfilter select{height:26px;border:1px solid var(--line-2);border-radius:6px;background:var(--panel);
+#pfilter select{height:26px;border:1px solid var(--line-2);border-radius:6px;background:var(--surface);
   padding:0 3px;font-size:11.5px;color:var(--ink-2);flex:1 1 auto;min-width:0}
 #pbody{flex:1;overflow:auto;padding:8px 10px 14px;min-height:0}
 
@@ -261,31 +341,31 @@ button{cursor:pointer;background:none;border:0;padding:0}
    Progress lives on the comments themselves, so it is obvious *which* ones are
    being worked on — and cancel sits next to them, where the doubt is. */
 #pwork{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);
-  background:var(--accent-soft)}
+  background:var(--brand-soft)}
 #pwork[hidden]{display:none}
-#pwork .spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--accent-line);
-  border-top-color:var(--accent);animation:spin .7s linear infinite;flex:none}
+#pwork .spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--brand-line);
+  border-top-color:var(--brand);animation:spin .7s linear infinite;flex:none}
 #pwork .ptxt{flex:1;min-width:0;font-size:11.5px;color:var(--ink-2);line-height:1.35}
-#pwork .pcancel{font-size:11.5px;font-weight:600;color:var(--accent);white-space:nowrap;flex:none;
-  border:1px solid var(--accent-line);border-radius:6px;padding:3px 8px;background:var(--panel)}
-#pwork .pcancel:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+#pwork .pcancel{font-size:11.5px;font-weight:600;color:var(--brand);white-space:nowrap;flex:none;
+  border:1px solid var(--brand-line);border-radius:6px;padding:3px 8px;background:var(--surface)}
+#pwork .pcancel:hover{background:var(--brand);border-color:var(--brand);color:#fff}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes sweep{0%{left:-38%}55%{left:100%}100%{left:100%}}
 #pfoot{border-top:1px solid var(--line);padding:9px 10px;display:flex;gap:7px;align-items:center}
 #pfoot .count{flex:1;font-size:11.5px;color:var(--ink-3);line-height:1.3}
 #pfoot .count b{color:var(--ink);font-weight:650}
 #pfoot .clear{font-size:11.5px;color:var(--ink-3);text-decoration:underline;white-space:nowrap;flex:none}
-#pfoot .clear:hover{color:var(--accent)}
-#pfoot .clear.armed{color:var(--accent);font-weight:600;text-decoration:none}
+#pfoot .clear:hover{color:var(--brand)}
+#pfoot .clear.armed{color:var(--brand);font-weight:600;text-decoration:none}
 #pfoot .clear:disabled{opacity:.35;cursor:default;text-decoration:none}
 #pfoot .clear:disabled:hover{color:var(--ink-3)}
 
 .item{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:8px;padding:7px 9px;
   margin-bottom:6px;cursor:pointer;transition:border-color .12s}
 .item:hover{border-color:var(--line-2)}
-.item.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.item.sel{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-soft)}
 .item .ih{display:flex;align-items:center;gap:6px}
-.item .n{font:700 10px/1 var(--mono);color:#fff;background:var(--mk,var(--accent));padding:3px 5px;border-radius:4px}
+.item .n{font:700 10px/1 var(--mono);color:#fff;background:var(--mk,var(--brand));padding:3px 5px;border-radius:4px}
 .item .kind{font-size:11px;color:var(--ink-3);flex:1}
 .item .note{font-size:12.5px;line-height:1.4;margin-top:4px;overflow:hidden;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
@@ -294,7 +374,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .item.off:hover{opacity:1}
 .item .kind .offtag{color:var(--ink-3);font-style:italic}
 .item .thread{font-size:11px;color:var(--ink-3);margin-top:4px;display:flex;align-items:center;gap:5px}
-.item .thread.asked{color:var(--accent);font-weight:600}
+.item .thread.asked{color:var(--brand);font-weight:600}
 /* The conversation lives where the comment is listed, not only on the mark —
    answering Claude should not mean hunting for a pin on the page. */
 .item .thread.tog{width:100%;text-align:left}
@@ -302,23 +382,23 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .item .tbox{margin-top:7px;padding-top:7px;border-top:1px solid var(--line);
   display:flex;flex-direction:column;gap:7px;cursor:default}
 .item .tmsg{font-size:11.5px;line-height:1.4;border-left:2px solid var(--line-2);padding-left:7px}
-.item .tmsg.claude{border-left-color:var(--accent)}
+.item .tmsg.claude{border-left-color:var(--brand)}
 .item .tmsg .who{display:block;font:600 9.5px/1 var(--font);letter-spacing:.04em;
   text-transform:uppercase;color:var(--ink-3);margin-bottom:3px}
-.item .tmsg.claude .who{color:var(--accent)}
+.item .tmsg.claude .who{color:var(--brand)}
 .item .tmsg .body{display:block;white-space:pre-wrap;word-break:break-word}
 .item .treply{width:100%;border:1px solid var(--line-2);border-radius:6px;padding:5px 6px;
-  font-size:12px;line-height:1.4;resize:vertical;min-height:40px;background:var(--panel)}
-.item .treply:focus{outline:none;border-color:var(--accent);
-  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+  font-size:12px;line-height:1.4;resize:vertical;min-height:40px;background:var(--surface)}
+.item .treply:focus{outline:none;border-color:var(--brand);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 12%,transparent)}
 .item .trow{display:flex;justify-content:flex-end}
 .item .tsend{font:600 10.5px/1 var(--font);padding:5px 9px;border-radius:5px;background:var(--ink);color:#fff}
 .item .tsend:hover{filter:brightness(1.25)}
 /* Indeterminate on purpose: Claude gives no percentage, and a fake one would be
    a lie. It says "this one, right now" and nothing more. */
-.item.working{border-color:var(--accent-line)}
-.item .bar{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--accent-soft);overflow:hidden}
-.item .bar::after{content:"";position:absolute;top:0;bottom:0;width:38%;background:var(--accent);
+.item.working{border-color:var(--brand-line)}
+.item .bar{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--brand-soft);overflow:hidden}
+.item .bar::after{content:"";position:absolute;top:0;bottom:0;width:38%;background:var(--brand);
   animation:sweep 1.15s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){
   .item .bar::after,#composer.working::before{animation:none;left:0;width:100%;opacity:.55}
@@ -330,8 +410,8 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .item.done:hover{opacity:1}
 .item .acts{display:flex;gap:5px;margin-top:6px}
 .item .acts button{font:600 10.5px/1 var(--font);padding:4px 7px;border-radius:5px;
-  border:1px solid var(--line-2);color:var(--ink-2);background:var(--panel)}
-.item .acts button:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  border:1px solid var(--line-2);color:var(--ink-2);background:var(--surface)}
+.item .acts button:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-soft)}
 .empty{color:var(--ink-3);font-size:12.5px;text-align:center;padding:30px 14px;line-height:1.6}
 .grouphd{font:650 10.5px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
   margin:12px 2px 7px;display:flex;align-items:center;gap:6px}
@@ -339,23 +419,23 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .grouphd::after{content:"";flex:1;height:1px;background:var(--line)}
 
 /* ── timeline scrubber ── */
-#timeline{border-top:1px solid var(--line);background:var(--panel);padding:9px 16px 12px;
+#timeline{border-top:1px solid var(--line);background:var(--surface);padding:9px 16px 12px;
   display:flex;align-items:center;gap:12px;z-index:20}
 #timeline .step{width:24px;height:24px;border-radius:6px;color:var(--ink-2);display:grid;place-items:center;flex:none}
-#timeline .step:hover{background:var(--sunken);color:var(--ink)}
+#timeline .step:hover{background:var(--surface-2);color:var(--ink)}
 #timeline .step[disabled]{opacity:.3;cursor:default}
 #timeline .step[disabled]:hover{background:none}
 #tlTrack{flex:1;position:relative;height:26px;min-width:120px;cursor:pointer}
 #tlTrack::before{content:"";position:absolute;left:0;right:0;top:11px;height:3px;border-radius:2px;background:var(--line)}
-#tlFill{position:absolute;left:0;top:11px;height:3px;border-radius:2px;background:var(--accent-line)}
-#tlTrack .tick{position:absolute;top:7px;width:11px;height:11px;border-radius:50%;background:var(--panel);
+#tlFill{position:absolute;left:0;top:11px;height:3px;border-radius:2px;background:var(--brand-line)}
+#tlTrack .tick{position:absolute;top:7px;width:11px;height:11px;border-radius:50%;background:var(--surface);
   border:2px solid var(--line-2);transform:translateX(-50%)}
-#tlTrack .tick.past{border-color:var(--accent-line)}
-#tlTrack .tick:hover{border-color:var(--accent)}
+#tlTrack .tick.past{border-color:var(--brand-line)}
+#tlTrack .tick:hover{border-color:var(--brand)}
 #tlTrack .tick .cap{position:absolute;top:14px;left:50%;transform:translateX(-50%);
   font:600 9.5px/1 var(--mono);color:var(--ink-3)}
-#tlHandle{position:absolute;top:4px;width:17px;height:17px;border-radius:50%;background:var(--accent);
-  border:3px solid var(--panel);box-shadow:0 1px 4px rgba(23,19,32,.3);transform:translateX(-50%);
+#tlHandle{position:absolute;top:4px;width:17px;height:17px;border-radius:50%;background:var(--brand);
+  border:3px solid var(--surface);box-shadow:0 1px 4px rgba(23,19,32,.3);transform:translateX(-50%);
   cursor:grab;z-index:3}
 #tlHandle:active{cursor:grabbing}
 #tlMeta{flex:none;max-width:330px;min-width:0;font-size:11.5px;color:var(--ink-3);line-height:1.35}
@@ -365,7 +445,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
 
 /* ── floating banners ── */
 .banner{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:28;display:none;
-  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow);
+  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow-pop);
   font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
 .banner.on{display:flex}
 /* Two pieces of news can land at once — a version and a link. Stack them
@@ -376,19 +456,19 @@ button{cursor:pointer;background:none;border:0;padding:0}
 #histBanner{background:var(--ink);color:#fff}
 #histBanner .btn{background:rgba(255,255,255,.14);border-color:transparent;color:#fff}
 #histBanner .btn:hover{background:rgba(255,255,255,.26)}
-#workBanner{background:var(--panel);border:1px solid var(--line-2)}
+#workBanner{background:var(--surface);border:1px solid var(--line-2)}
 #workBanner .spin{width:13px;height:13px;border-radius:50%;border:2px solid var(--line-2);
-  border-top-color:var(--accent);animation:spin .7s linear infinite;flex:none}
+  border-top-color:var(--brand);animation:spin .7s linear infinite;flex:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 #workBanner.ready,#shareBanner{border-color:var(--ok);background:var(--ok-soft)}
 #shareBanner{border:1px solid var(--ok)}
 #workBanner .tick,#shareBanner .tick{color:var(--ok);font-weight:700}
 #workBanner .txt,#shareBanner .txt{min-width:0;overflow:hidden;text-overflow:ellipsis}
 
-#zoombar{position:absolute;left:12px;bottom:12px;display:flex;gap:2px;align-items:center;background:var(--panel);
-  border:1px solid var(--line-2);border-radius:8px;padding:3px;box-shadow:var(--shadow);z-index:20}
+#zoombar{position:absolute;left:12px;bottom:12px;display:flex;gap:2px;align-items:center;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:8px;padding:3px;box-shadow:var(--shadow-pop);z-index:20}
 #zoombar button{width:26px;height:24px;border-radius:5px;color:var(--ink-2);display:grid;place-items:center;font-size:14px}
-#zoombar button:hover{background:var(--sunken);color:var(--ink)}
+#zoombar button:hover{background:var(--surface-2);color:var(--ink)}
 #zoombar .z{min-width:44px;text-align:center;font:600 11px/1 var(--mono);color:var(--ink-2)}
 
 /* ── modal / toast ── */
@@ -399,34 +479,52 @@ button{cursor:pointer;background:none;border:0;padding:0}
 </head>
 <body>
 <div id="app">
-  <div id="top">
-    <div class="brand">
-      <a class="vslink" href="https://cavalry.sg/visual-stack" target="_blank" rel="noopener"
-         title="Visual Stack">
-        <svg class="vsmark" viewBox="0 0 64 64" aria-hidden="true">
-          <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
-          <rect x="46" y="4" width="12" height="16" fill="var(--accent)"/>
-        </svg>
-        <span class="ws">Visual Stack</span>
-      </a>
-      <b id="pageName">Review</b>
-    </div>
-    <div class="spacer"></div>
-
+<!-- vstack:shell topbar -->
+<div class="vs-topbar" id="top">
+  <div class="brand">
+    <a class="vslink" href="https://cavalry.sg/visual-stack" target="_blank" rel="noopener"
+       title="Visual Stack">
+      <svg class="vsmark" viewBox="0 0 64 64" aria-hidden="true">
+        <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
+        <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
+      </svg>
+      <span class="ws">Visual Stack</span>
+    </a>
+    <b id="pageName"></b>
+    <span class="eyebrow" id="pageEyebrow"></span>
+  </div>
+  <div class="spacer"></div>
+  <!-- The page's own controls: `tools` sits before the shared switches,
+       `actions` after them, where the primary action belongs. -->
+  <!-- vstack:slot tools -->
     <div class="seg" id="modeSwitch">
       <button data-mode="view" aria-pressed="false"></button>
       <button data-mode="annotate" aria-pressed="true"></button>
     </div>
 
     <div class="seg icons" id="sizeSwitch"></div>
-
-    <div class="seg" id="langSwitch">
-      <button data-lang="en" aria-pressed="true">EN</button>
-      <button data-lang="zh" aria-pressed="false">中文</button>
-    </div>
-
-    <div class="sep"></div>
-    <span class="linkdot" id="linkdot" hidden></span>
+<!-- /vstack:slot tools -->
+  <div class="seg" id="themeSwitch">
+    <button data-theme-set="auto" aria-pressed="true" title="Match the system">A</button>
+    <button data-theme-set="light" aria-pressed="false" title="Light">
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="8" cy="8" r="3.1"/><path d="M8 .9v2M8 13.1v2M.9 8h2M13.1 8h2M3 3l1.4 1.4M11.6 11.6 13 13M13 3l-1.4 1.4M4.4 11.6 3 13" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button data-theme-set="dark" aria-pressed="false" title="Dark">
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.8 5.8 0 1 0 7 7Z" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+  <div class="seg" id="langSwitch">
+    <button data-lang="en" aria-pressed="true">EN</button>
+    <button data-lang="zh" aria-pressed="false">中文</button>
+  </div>
+  <div class="sep"></div>
+  <span class="linkdot" id="linkDot" hidden></span>
+  <button class="btn primary" id="send" disabled hidden></button>
+  <!-- vstack:slot actions -->
     <div class="split">
       <button class="btn primary" id="btnSend"></button>
       <button class="btn primary caret" id="btnSendMore" aria-haspopup="true" aria-expanded="false"
@@ -437,7 +535,9 @@ button{cursor:pointer;background:none;border:0;padding:0}
       <div class="mrule"></div>
       <button id="btnApprove"><span class="t"></span><span class="d"></span></button>
     </div>
-  </div>
+<!-- /vstack:slot actions -->
+</div>
+<!-- /vstack:shell topbar -->
 
   <div id="main">
     <div id="canvasArea">
@@ -542,6 +642,107 @@ button{cursor:pointer;background:none;border:0;padding:0}
 
 <script id="bundle" type="application/json">null</script>
 <script>
+/* vstack:shell js
+   The behaviour behind the top bar: theme, language, the link dot, and the
+   page's own name. Everything else — what the page does — is the page's.
+
+   Nothing here touches the network or the document beyond the bar, so a page
+   works identically served, opened off disk, or published as an Artifact. */
+window.VSShell = (function () {
+  const $ = s => document.querySelector(s);
+  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang' };
+  const store = {
+    get (k, d) { try { return localStorage.getItem(k) ?? d } catch { return d } },
+    set (k, v) { try { localStorage.setItem(k, v) } catch {} },
+  };
+
+  /* ── theme: auto (whatever the OS says) / light / dark ──
+     Auto is the absence of an override, so the page keeps following the system
+     if it changes while open — and an Artifact viewer's own toggle still wins
+     the same way it does on a page that never had this control. */
+  let theme = store.get(KEY.theme, 'auto');
+  function applyTheme () {
+    if (theme === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('#themeSwitch button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.themeSet === theme));
+    });
+  }
+  function setTheme (next) {
+    theme = ['auto', 'light', 'dark'].includes(next) ? next : 'auto';
+    store.set(KEY.theme, theme);
+    applyTheme();
+  }
+
+  /* ── language: chrome only. Page content stays as authored. ── */
+  const storedLang = store.get(KEY.lang, null);
+  let lang = storedLang === 'zh' ? 'zh' : 'en';
+  const langListeners = [];
+  function applyLang () {
+    // zh-CN, not zh: the specific tag is what picks the right font and
+    // line-breaking for simplified Chinese.
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+    document.querySelectorAll('#langSwitch button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+    });
+    langListeners.forEach(fn => { try { fn(lang) } catch {} });
+  }
+  function setLang (next) {
+    lang = next === 'zh' ? 'zh' : 'en';
+    store.set(KEY.lang, lang);
+    applyLang();
+  }
+
+  /* ── the live link, said out loud ── */
+  function setLink (up, labels) {
+    const el = $('#linkDot');
+    if (!el) return;
+    el.hidden = false;
+    el.classList.toggle('on', !!up);
+    el.textContent = up ? (labels?.on ?? 'LINKED TO CLAUDE') : (labels?.off ?? 'LINK LOST');
+    el.title = up ? '' : (labels?.offTitle ?? '');
+  }
+  const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  function name (pageName, eyebrow) {
+    const n = $('#pageName'); const e = $('#pageEyebrow');
+    if (n && pageName != null) n.textContent = pageName;
+    if (e && eyebrow != null) e.textContent = eyebrow;
+  }
+
+  function init (opts = {}) {
+    document.querySelectorAll('#themeSwitch button').forEach(b => {
+      b.addEventListener('click', () => setTheme(b.dataset.themeSet));
+    });
+    document.querySelectorAll('#langSwitch button').forEach(b => {
+      b.addEventListener('click', () => setLang(b.dataset.lang));
+    });
+    if (opts.onLang) langListeners.push(opts.onLang);
+    // `defaultLang` is what the artifact was authored in — it opens that way
+    // once, and after that the reader's own choice is the one that sticks.
+    if (opts.defaultLang && !storedLang) lang = opts.defaultLang === 'zh' ? 'zh' : 'en';
+    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang) }
+    // Not every page sends something back — the form doesn't — so the primary
+    // action stays out of the bar unless a page asks for it.
+    const send = $('#send');
+    if (send && opts.send) send.hidden = false;
+    name(opts.name, opts.eyebrow);
+    applyTheme();
+    applyLang();
+    return api;
+  }
+
+  const api = {
+    init, setTheme, setLang, setLink, hideLink, name,
+    get theme () { return theme },
+    get lang () { return lang },
+    onLang (fn) { langListeners.push(fn) },
+  };
+  return api;
+})();
+/* /vstack:shell js */
+</script>
+<script>
 "use strict";
 /* ══════════════════════════════════════════════════════════════════════
    wireframe · review workspace
@@ -564,7 +765,7 @@ const uid = () => 'c' + Math.random().toString(36).slice(2, 8);
 
 /* One severity: everything the reviewer writes is something to do. The mark
    colour is the accent, and nothing on screen has to be decoded. */
-const MARK = 'var(--accent)';
+const MARK = 'var(--brand)';
 
 /* ── language ─────────────────────────────────────────────────────────
    The workspace chrome speaks two languages; the page under review is
@@ -759,10 +960,10 @@ async function boot () {
   adoptShare(data);
 
   loadAnnotations();
-  $('#pageName').textContent = S.name;
+  VSShell.init({ name: S.name, eyebrow: 'Review' });
   document.title = S.name + ' — Review · Visual Stack';
   $('#urlBar').textContent = S.fileName;
-  LANG = (localStorage.getItem('ui-review:lang') === 'zh') ? 'zh' : 'en';
+  LANG = VSShell.lang;
   buildSizes(); wireChrome(); wireComposer(); buildTimeline(); applyLang();
   setMode('annotate'); loadFrame(); render();
   if (S.runtime === 'local') liveReload();
@@ -849,12 +1050,8 @@ const hideWork = () => $('#workBanner').classList.remove('on');
     that says "lost" during the first handshake is just wrong. */
 function setLink (up) {
   S.linked = up;
-  const el = $('#linkdot');
-  if (S.runtime !== 'local' || up === null) { el.hidden = true; return }
-  el.hidden = false;
-  el.classList.toggle('on', up);
-  el.textContent = up ? T('linkOn') : T('linkOff');
-  el.title = up ? '' : T('linkOffTitle');
+  if (S.runtime !== 'local' || up === null) { VSShell.hideLink(); return }
+  VSShell.setLink(up, { on: T('linkOn'), off: T('linkOff'), offTitle: T('linkOffTitle') });
 }
 
 /* ─────────────── work in flight ───────────────
@@ -930,7 +1127,7 @@ function adoptUpdate () {
   S.version = data.currentVersion; S.name = data.name || S.name;
   if (bumped) { S.viewing = S.version; loadAnnotations(); S.sentSig = null }
   closeComposer();
-  $('#pageName').textContent = S.name;
+  VSShell.name(S.name);
   buildTimeline(); loadFrame(); render();
   if (bumped) toast(T('nowReviewing')(S.version));
 }
@@ -961,8 +1158,6 @@ function setSize (id) {
 }
 /** Re-label every static surface. Comment text is the reviewer's, never ours. */
 function applyLang () {
-  document.documentElement.lang = LANG === 'zh' ? 'zh' : 'en';
-  $$('#langSwitch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === LANG)));
   const mv = $('#modeSwitch [data-mode=view]'), ma = $('#modeSwitch [data-mode=annotate]');
   mv.textContent = T('viewLabel'); mv.title = T('view');
   ma.innerHTML = esc(T('annotateLabel')) + ' <span class="kbd">space</span>'; ma.title = T('annotate');
@@ -991,13 +1186,12 @@ function applyLang () {
 function setLang (l) {
   if (l === LANG) return;
   LANG = l;
-  try { localStorage.setItem('ui-review:lang', l) } catch {}
   applyLang();
 }
 
 function wireChrome () {
   $$('#modeSwitch button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
-  $$('#langSwitch button').forEach(b => b.onclick = () => setLang(b.dataset.lang));
+  VSShell.onLang(setLang);   /* the switch is the shell's; this is the workspace's answer */
   $('#fStatus').onchange = e => { S.filter.status = e.target.value; renderPanel() };
   $('#btnReload').onclick = () => S.pendingUpdate ? adoptUpdate() : loadFrame(true);
   // Two clicks, because throwing away a whole review by accident would sting.

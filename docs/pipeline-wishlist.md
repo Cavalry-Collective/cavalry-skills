@@ -303,19 +303,31 @@ push*. Merging them would either strip what the review loop needs or grow the sh
 superset of both, which is more places to drift, not fewer. Two engines with different jobs is the
 honest answer.
 
+**The page shell.** **Built**, as `lib/shell/` — and it turned out to be the biggest duplication in
+the repo, because it was not one component copied five times but *two design systems drifting*.
+`wireframe` and `spec` were on `--bg / --panel / --accent`, light-only; `phase-build`,
+`user-story-map` and `start` on `--paper / --surface / --brand` with a dark ramp. Same roles,
+different names, two different reds. The top bar was copy-pasted three ways and absent from the
+fourth. One merged palette now serves all five, every page is theme-aware, and the bar — mark, page
+name, theme, language, link dot, primary action — comes from one file.
+
+**The scrubber.** `phase-wireframe`'s phase slider and `wireframe`'s version timeline are the same
+control over different axes. Not extracted yet: `spec` and `wireframe` still carry their own
+timeline. It is the obvious next thing to pull into the shell, and doing it *is* most of
+`phase-wireframe`'s slider.
+
 **The mind map.** Three stages (6–8) plus `requirements` want a directed graph with inline editing,
 drag-to-reparent, and a two-state colour scheme. That is one component fed four datasets, not four
 components.
 
-**The scrubber.** `phase-wireframe`'s phase slider and `wireframe`'s version timeline are the same
-control over different axes.
-
-One constraint shapes all three: these pages are **self-contained, no external requests** — it's what
-lets the same file work served locally, opened off disk, and published as an Artifact under CSP.
-Every existing skill in this repo is dependency-free for that reason. A graph layout engine is the
-first thing in this plan that genuinely tempts a dependency, and the honest options are to hand-roll
-a simple layered layout or to inline a small one. Worth deciding deliberately rather than discovering
-it halfway through building `requirements`.
+One constraint shapes all of them: these pages are **self-contained, no external requests** — it's
+what lets the same file work served locally, opened off disk, and published as an Artifact under
+CSP. It also decides *how* a shared component can exist at all: nothing can be linked at runtime, so
+the shell is stamped into each page by `lib/build-shell.mjs`, with a `check` mode that fails when a
+page has drifted from it. Every existing skill in this repo is dependency-free for the same reason.
+A graph layout engine is the first thing in this plan that genuinely tempts a dependency, and the
+honest options are to hand-roll a simple layered layout or to inline a small one. Worth deciding
+deliberately rather than discovering it halfway through building `requirements`.
 
 ## Standalone stays first-class
 
@@ -529,10 +541,13 @@ Items 1–3 shipped on 2026-07-29 with plugin 4.0.0.
 
 5. **The visual screens link into one flow.** Someone using the stack end-to-end should transition
    smoothly from one stage's screen to the next, not open a fresh page per skill — plus a
-   **multi-step progress bar** showing where in the pipeline they are. *(This leans hard on
-   [One engine, not eight](#one-engine-not-eight): a shared shell with a pipeline progress bar is the
-   natural home for stage-to-stage transitions, and another reason to build the shared engine before
-   more standalone pages exist.)*
+   **multi-step progress bar** showing where in the pipeline they are.
+
+   **Half of this now exists.** `lib/shell/` gives all five pages one bar, one palette and one set of
+   controls, and the language and theme a reviewer picks follow them from stage to stage. What is
+   still missing is the *flow*: a pipeline progress bar in the bar's eyebrow slot reading
+   `.vstack/pipeline.json`, and a way for one stage's page to hand off to the next without going back
+   to the terminal. The shell is where both belong — the slot and the stamper are already there.
 
 6. **A README section on coexistence: "can I use this with Superpowers / gstack / speckit / …?"**
    People will arrive already using another skill stack, and the README should answer whether these

@@ -158,7 +158,9 @@ generated file, and the next round will overwrite them.
 ## Notes
 
 - **Never edit `assets/spec-tree.html` or `lib/json-bridge.mjs`** to fit a project — they're the
-  engine. Only the JSON document is yours.
+  engine. Only the JSON document is yours. The top bar, palette and controls are stamped in from
+  `lib/shell/` and marked as such; changing them there and re-stamping changes every page at once,
+  which is the point.
 - The bridge binds `127.0.0.1` and dies when the tab closes (90s grace). Port busy → another spec
   page is up; pass `--port`.
 - **The version timeline is kept on disk**, in `.vstack-bridge/<feature>.history/` beside the JSON —

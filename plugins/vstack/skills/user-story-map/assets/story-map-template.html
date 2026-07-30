@@ -5,8 +5,10 @@
 
   TO USE: served by lib/json-bridge.mjs the map lives in a JSON file beside the
   page and this file needs no editing at all. To publish an Artifact instead,
-  copy it and replace the <title> and the <script id="data"> block below with
-  the real content. Everything else is the engine. Schema:
+  copy it and replace the title element and the script#data block below with
+  the real content — written as names, not tags, so that anything scanning this
+  file for the real block doesn't match this sentence. Everything else is the
+  engine. Schema:
     { title,                                       // the product/initiative name only — no "Story Map" suffix
       lang,                                        // optional: "en" (default) or "zh" — initial UI language; users can toggle
       tags:       ["AI"],                          // cross-cutting themes; stories reference them by name
@@ -19,51 +21,157 @@
   must be unique strings.
 -->
 <style>
+/* vstack:shell tokens
+   One palette for every vstack page. Roles, not colours: a page asks for
+   --surface, not for white, so light and dark are the same stylesheet.
+
+   Page-specific hues (the story map's phase bands, the board's new/have/touch,
+   the spec's priorities) stay in the page, below this block — they mean
+   something only there. Everything here is shared, and is the reason a board
+   and a spec look like the same product.
+
+   Three states, in this order: the OS preference, then an explicit choice.
+   `data-theme` absent means auto. */
+:root{
+  --paper:#eef0f3; --surface:#ffffff; --surface-2:#f7f8fa;
+  --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+  --line:#e2e4e9; --line-2:#d0d2d9;
+  --brand:#d23b2e; --brand-soft:#fdefed; --brand-line:#f3b3ac;
+  --ok:#10876e; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(16,17,22,.06);
+  --shadow-pop:0 1px 2px rgba(16,17,22,.06),0 8px 24px rgba(16,17,22,.10);
+  --window-shadow:0 2px 6px rgba(16,17,22,.10),0 18px 48px rgba(16,17,22,.16);
+  --radius:9px;
+  --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0e0f12; --surface:#17191e; --surface-2:#1d1f25;
+  --ink:#f1f2f4; --ink-2:#bcbfc7; --ink-3:#8b8e97;
+  --line:#282a31; --line-2:#363942;
+  --brand:#f0685c; --brand-soft:rgba(240,104,92,.14); --brand-line:rgba(240,104,92,.38);
+  --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5);
+  --window-shadow:0 2px 6px rgba(0,0,0,.5),0 18px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}}
+:root[data-theme=light]{
+  --paper:#eef0f3; --surface:#ffffff; --surface-2:#f7f8fa;
+  --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+  --line:#e2e4e9; --line-2:#d0d2d9;
+  --brand:#d23b2e; --brand-soft:#fdefed; --brand-line:#f3b3ac;
+  --ok:#10876e; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(16,17,22,.06);
+  --shadow-pop:0 1px 2px rgba(16,17,22,.06),0 8px 24px rgba(16,17,22,.10);
+  --window-shadow:0 2px 6px rgba(16,17,22,.10),0 18px 48px rgba(16,17,22,.16);
+  color-scheme:light;
+}
+:root[data-theme=dark]{
+  --paper:#0e0f12; --surface:#17191e; --surface-2:#1d1f25;
+  --ink:#f1f2f4; --ink-2:#bcbfc7; --ink-3:#8b8e97;
+  --line:#282a31; --line-2:#363942;
+  --brand:#f0685c; --brand-soft:rgba(240,104,92,.14); --brand-line:rgba(240,104,92,.38);
+  --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5);
+  --window-shadow:0 2px 6px rgba(0,0,0,.5),0 18px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+/* /vstack:shell tokens */
   :root{
-    --paper:#eef0f3; --surface:#fff; --surface-2:#f7f8fa; --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
-    --line:#e2e4e9; --line-2:#d0d2d9; --brand:#d23b2e;
+    /* the phase bands — six hues that cycle, and how strongly a cell is tinted */
     --p0:#d23b2e; --p1:#b0761a; --p2:#10876e; --p3:#4a5fce; --p4:#8a53c0; --p5:#0f7f9c; --band:8%;
-    --shadow:0 1px 2px rgba(16,17,22,.06);--radius:9px;
-    --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
   }
   @media (prefers-color-scheme:dark){:root{
-    --paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;
-    --line:#282a31;--line-2:#363942;--brand:#f0685c;
-    --p0:#ef6a5e;--p1:#d29a3f;--p2:#2fb89b;--p3:#7d90ee;--p4:#b98cec;--p5:#3fb6d6;--band:15%;--shadow:0 1px 2px rgba(0,0,0,.4);
+    --p0:#ef6a5e;--p1:#d29a3f;--p2:#2fb89b;--p3:#7d90ee;--p4:#b98cec;--p5:#3fb6d6;--band:15%;
   }}
-  :root[data-theme="light"]{--paper:#eef0f3;--surface:#fff;--surface-2:#f7f8fa;--ink:#16171c;--ink-2:#43454d;--ink-3:#71737c;--line:#e2e4e9;--line-2:#d0d2d9;--brand:#d23b2e;--p0:#d23b2e;--p1:#b0761a;--p2:#10876e;--p3:#4a5fce;--p4:#8a53c0;--p5:#0f7f9c;--band:8%;--shadow:0 1px 2px rgba(16,17,22,.06);}
-  :root[data-theme="dark"]{--paper:#0e0f12;--surface:#17191e;--surface-2:#1d1f25;--ink:#f1f2f4;--ink-2:#bcbfc7;--ink-3:#8b8e97;--line:#282a31;--line-2:#363942;--brand:#f0685c;--p0:#ef6a5e;--p1:#d29a3f;--p2:#2fb89b;--p3:#7d90ee;--p4:#b98cec;--p5:#3fb6d6;--band:15%;--shadow:0 1px 2px rgba(0,0,0,.4);}
+  :root[data-theme="light"]{--p0:#d23b2e;--p1:#b0761a;--p2:#10876e;--p3:#4a5fce;--p4:#8a53c0;--p5:#0f7f9c;--band:8%}
+  :root[data-theme="dark"]{--p0:#ef6a5e;--p1:#d29a3f;--p2:#2fb89b;--p3:#7d90ee;--p4:#b98cec;--p5:#3fb6d6;--band:15%}
 
   *{box-sizing:border-box}
   body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);line-height:1.5;-webkit-font-smoothing:antialiased}
   .wrap{max-width:1600px;margin:0 auto;padding:clamp(1.2rem,3vw,2.4rem) clamp(.8rem,2.5vw,2rem) 3rem}
 
+/* vstack:shell css
+   The chrome every vstack page wears: the top bar and the controls that sit in
+   it. Page layout stays in the page — some of these are app shells that fill
+   the viewport, some are documents that scroll — but the bar, the buttons and
+   the segmented controls are the same object everywhere. */
+.vs-topbar{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
+  background:var(--surface);border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:40}
+.vs-topbar .brand{display:flex;align-items:center;gap:8px;min-width:0}
+.vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
+.vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
+.vslink:hover .vsmark{opacity:.8}
+.brand .ws{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
+.brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:280px}
+.brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
+.spacer{flex:1}
+.sep{width:1px;height:20px;background:var(--line);flex:none}
+
+/* buttons — one shape, three sizes of intent */
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+  border:1px solid var(--line-2);background:var(--surface);color:var(--ink);font-weight:550;
+  white-space:nowrap;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.primary[disabled]{opacity:.45;cursor:default;filter:none;pointer-events:none}
+.btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
+.btn.sm{height:25px;padding:0 9px;font-size:11.5px}
+
+/* segmented control — modes, sizes, language, theme */
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
+  background:var(--surface);flex:none}
+.seg button{height:30px;padding:0 12px;font-weight:550;color:var(--ink-2);display:inline-flex;
+  align-items:center;gap:6px;border:0;border-right:1px solid var(--line-2);background:none;
+  cursor:pointer;font:inherit;font-weight:550}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--surface-2)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+.seg.sm button{height:25px;padding:0 9px;font-size:11.5px}
+#langSwitch button,#themeSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
+#themeSwitch button{padding:0 8px}
+#themeSwitch svg{width:13px;height:13px;display:block}
+
+/* the live link, stated rather than implied */
+.linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
+  letter-spacing:.03em;color:var(--ink-3);white-space:nowrap}
+.linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
+.linkdot.on{color:var(--ok)}
+.linkdot.on::before{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+
+/* floating banners — the page talking back, never blocking the work */
+.banner{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:38;display:none;
+  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow-pop);
+  font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
+.banner.on{display:flex}
+.banner.dark{background:var(--ink);color:var(--surface)}
+.banner.dark .btn{background:color-mix(in srgb,var(--surface) 16%,transparent);
+  border-color:transparent;color:var(--surface)}
+.banner.dark .btn:hover{background:color-mix(in srgb,var(--surface) 28%,transparent)}
+.banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
+.banner.good .tick{color:var(--ok);font-weight:700}
+
+@media (max-width:720px){
+  .brand .ws,.brand .eyebrow{display:none}
+  .vs-topbar{gap:8px;padding:0 8px}
+}
+/* /vstack:shell css */
+
   header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
   header .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);font-weight:600;margin:0 0 .5rem;display:inline-flex;align-items:center;gap:.5rem}
-  /* Visual Stack mark — geometry matches docs/brand/ */
-  .vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
-  /* the mark links to the Visual Stack page */
-  .vslink{display:inline-flex;align-items:center;align-self:center;gap:.5rem;
-    text-decoration:none;color:inherit}
-  .vslink:hover .vsmark{opacity:.8}
-  .vslink:hover .ws{color:var(--ink)}
-  .eyebrow .ws{color:var(--ink-3)}
   h1{font-size:clamp(1.5rem,3.5vw,2.3rem);line-height:1.05;letter-spacing:-.03em;font-weight:800;margin:0 0 .5rem;text-wrap:balance}
-  .controls{display:flex;flex-direction:column;align-items:flex-end;gap:.45rem;flex:none;margin-top:.2rem}
-  .crow{display:flex;gap:.4rem}
-  .lang-toggle{display:inline-flex;flex:none;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;background:var(--surface);box-shadow:var(--shadow)}
-  .lang-toggle button{border:0;background:none;font:inherit;font-size:.7rem;font-weight:600;color:var(--ink-3);padding:.24rem .5rem;cursor:pointer}
-  .lang-toggle button+button{border-left:1px solid var(--line-2)}
-  .lang-toggle button.on{background:var(--brand);color:#fff}
-
-  .btn{display:inline-flex;align-items:center;gap:.35rem;font:inherit;font-size:.74rem;font-weight:500;color:var(--ink-2);background:var(--surface);border:1px solid var(--line-2);border-radius:7px;padding:.28rem .55rem;cursor:pointer}
-  .btn:hover{background:var(--surface-2);color:var(--ink)}
-  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
-  .btn.primary:hover{background:color-mix(in srgb,var(--brand) 88%,#000);color:#fff}
+  /* the map's own buttons sit in the bar, at the bar's scale */
   .btn.on{background:color-mix(in srgb,var(--brand) 12%,var(--surface));border-color:var(--brand);color:var(--brand)}
   .btn.on:hover{background:color-mix(in srgb,var(--brand) 18%,var(--surface));color:var(--brand)}
-  .btn:disabled{opacity:.45;cursor:default;pointer-events:none}
   .selmode .card,.selmode .card [contenteditable]{cursor:pointer}
   .selmode .card .ctrls{display:none}
   .selmode .card::after{content:"";position:absolute;top:4px;right:4px;width:12px;height:12px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--surface)}
@@ -71,7 +179,7 @@
   .btn svg{width:15px;height:15px}
   .split{position:relative;display:inline-flex}
   .split #export{border-top-right-radius:0;border-bottom-right-radius:0}
-  .split .caret{border-top-left-radius:0;border-bottom-left-radius:0;border-left:1px solid color-mix(in srgb,#fff 30%,var(--brand));padding:.28rem .4rem}
+  .split .caret{border-top-left-radius:0;border-bottom-left-radius:0;border-left:1px solid color-mix(in srgb,#fff 30%,var(--brand));padding:0 .4rem}
   .menu{position:absolute;top:calc(100% + 4px);right:0;z-index:70;background:var(--surface);border:1px solid var(--line-2);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:.25rem;min-width:150px}
   .menu[hidden]{display:none}
   .menu button{display:flex;align-items:center;gap:.45rem;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:.74rem;color:var(--ink-2);padding:.35rem .5rem;border-radius:6px;cursor:pointer;white-space:nowrap}
@@ -173,11 +281,6 @@
   .bulkbar[hidden]{display:none}
   .bulkbar .cnt{font-size:.74rem;font-weight:600;color:var(--ink);margin-right:.2rem;white-space:nowrap}
   /* live link to the Claude session (only when served by lib/json-bridge.mjs) */
-  .linkdot{display:inline-flex;align-items:center;gap:.35rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.04em;color:var(--ink-3);white-space:nowrap;margin-right:.1rem}
-  .linkdot[hidden]{display:none}
-  .linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
-  .linkdot.on{color:var(--p2)}
-  .linkdot.on::before{background:var(--p2);box-shadow:0 0 0 3px color-mix(in srgb,var(--p2) 22%,transparent)}
   .pushbar{position:fixed;top:1rem;left:50%;transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:.5rem;background:var(--surface);border:1px solid var(--line-2);border-left:3px solid var(--p2);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.2);padding:.45rem .6rem}
   .pushbar[hidden]{display:none}
   .pushbar .msg{font-size:.76rem;color:var(--ink);white-space:nowrap}
@@ -186,42 +289,68 @@
   @media (prefers-reduced-motion:no-preference){.card{transition:box-shadow .12s,transform .12s}.card:hover{box-shadow:0 3px 8px rgba(16,17,22,.10)}}
 </style>
 
+<!-- vstack:shell topbar -->
+<div class="vs-topbar" id="top">
+  <div class="brand">
+    <a class="vslink" href="https://cavalry.sg/visual-stack" target="_blank" rel="noopener"
+       title="Visual Stack">
+      <svg class="vsmark" viewBox="0 0 64 64" aria-hidden="true">
+        <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
+        <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
+      </svg>
+      <span class="ws">Visual Stack</span>
+    </a>
+    <b id="pageName"></b>
+    <span class="eyebrow" id="pageEyebrow"></span>
+  </div>
+  <div class="spacer"></div>
+  <!-- The page's own controls: `tools` sits before the shared switches,
+       `actions` after them, where the primary action belongs. -->
+  <!-- vstack:slot tools -->
+  <button class="btn" id="selmode">Select</button>
+  <button class="btn" id="import">Import</button>
+<!-- /vstack:slot tools -->
+  <div class="seg" id="themeSwitch">
+    <button data-theme-set="auto" aria-pressed="true" title="Match the system">A</button>
+    <button data-theme-set="light" aria-pressed="false" title="Light">
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="8" cy="8" r="3.1"/><path d="M8 .9v2M8 13.1v2M.9 8h2M13.1 8h2M3 3l1.4 1.4M11.6 11.6 13 13M13 3l-1.4 1.4M4.4 11.6 3 13" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button data-theme-set="dark" aria-pressed="false" title="Dark">
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.8 5.8 0 1 0 7 7Z" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+  <div class="seg" id="langSwitch">
+    <button data-lang="en" aria-pressed="true">EN</button>
+    <button data-lang="zh" aria-pressed="false">中文</button>
+  </div>
+  <div class="sep"></div>
+  <span class="linkdot" id="linkDot" hidden></span>
+  <button class="btn primary" id="send" disabled hidden></button>
+  <!-- vstack:slot actions -->
+  <div class="split">
+    <button class="btn primary" id="export">Copy to Clipboard</button>
+    <button class="btn primary caret" id="export-more" aria-haspopup="true" aria-label="More export options">▾</button>
+    <div class="menu" id="export-menu" hidden>
+      <button id="copy" hidden>Copy to Clipboard</button>
+      <button id="download">Download JSON</button>
+      <button id="jira" disabled>Export to JIRA <span class="soon">Coming soon</span></button>
+    </div>
+  </div>
+<!-- /vstack:slot actions -->
+</div>
+<!-- /vstack:shell topbar -->
+
 <div class="wrap">
   <header>
     <div>
-      <p class="eyebrow">
-        <a class="vslink" href="https://cavalry.sg/visual-stack" target="_blank" rel="noopener"
-           title="Visual Stack">
-          <svg class="vsmark" viewBox="0 0 64 64" aria-hidden="true">
-            <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
-            <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
-          </svg>
-          <span class="ws">Visual Stack</span>
-        </a>
-        · <span id="eyebrow">User story map</span>
-      </p>
+      <p class="eyebrow"><span id="eyebrow">User story map</span></p>
       <div class="trow">
         <h1 id="title" contenteditable spellcheck="false"></h1>
         <div class="legend" id="legend"></div>
-      </div>
-    </div>
-    <div class="controls">
-      <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language">
-        <button data-lang="en">EN</button><button data-lang="zh">中文</button>
-      </div>
-      <div class="crow">
-        <span class="linkdot" id="linkdot" hidden></span>
-        <button class="btn" id="selmode">Select</button>
-        <button class="btn" id="import">Import</button>
-        <div class="split">
-          <button class="btn primary" id="export">Copy to Clipboard</button>
-          <button class="btn primary caret" id="export-more" aria-haspopup="true" aria-label="More export options">▾</button>
-          <div class="menu" id="export-menu" hidden>
-            <button id="copy" hidden>Copy to Clipboard</button>
-            <button id="download">Download JSON</button>
-            <button id="jira" disabled>Export to JIRA <span class="soon">Coming soon</span></button>
-          </div>
-        </div>
       </div>
     </div>
   </header>
@@ -306,6 +435,106 @@
 </script>
 
 <script>
+/* vstack:shell js
+   The behaviour behind the top bar: theme, language, the link dot, and the
+   page's own name. Everything else — what the page does — is the page's.
+
+   Nothing here touches the network or the document beyond the bar, so a page
+   works identically served, opened off disk, or published as an Artifact. */
+window.VSShell = (function () {
+  const $ = s => document.querySelector(s);
+  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang' };
+  const store = {
+    get (k, d) { try { return localStorage.getItem(k) ?? d } catch { return d } },
+    set (k, v) { try { localStorage.setItem(k, v) } catch {} },
+  };
+
+  /* ── theme: auto (whatever the OS says) / light / dark ──
+     Auto is the absence of an override, so the page keeps following the system
+     if it changes while open — and an Artifact viewer's own toggle still wins
+     the same way it does on a page that never had this control. */
+  let theme = store.get(KEY.theme, 'auto');
+  function applyTheme () {
+    if (theme === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('#themeSwitch button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.themeSet === theme));
+    });
+  }
+  function setTheme (next) {
+    theme = ['auto', 'light', 'dark'].includes(next) ? next : 'auto';
+    store.set(KEY.theme, theme);
+    applyTheme();
+  }
+
+  /* ── language: chrome only. Page content stays as authored. ── */
+  const storedLang = store.get(KEY.lang, null);
+  let lang = storedLang === 'zh' ? 'zh' : 'en';
+  const langListeners = [];
+  function applyLang () {
+    document.documentElement.lang = lang === 'zh' ? 'zh' : 'en';
+    document.querySelectorAll('#langSwitch button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+    });
+    langListeners.forEach(fn => { try { fn(lang) } catch {} });
+  }
+  function setLang (next) {
+    lang = next === 'zh' ? 'zh' : 'en';
+    store.set(KEY.lang, lang);
+    applyLang();
+  }
+
+  /* ── the live link, said out loud ── */
+  function setLink (up, labels) {
+    const el = $('#linkDot');
+    if (!el) return;
+    el.hidden = false;
+    el.classList.toggle('on', !!up);
+    el.textContent = up ? (labels?.on ?? 'LINKED TO CLAUDE') : (labels?.off ?? 'LINK LOST');
+    el.title = up ? '' : (labels?.offTitle ?? '');
+  }
+  const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  function name (pageName, eyebrow) {
+    const n = $('#pageName'); const e = $('#pageEyebrow');
+    if (n && pageName != null) n.textContent = pageName;
+    if (e && eyebrow != null) e.textContent = eyebrow;
+  }
+
+  function init (opts = {}) {
+    document.querySelectorAll('#themeSwitch button').forEach(b => {
+      b.addEventListener('click', () => setTheme(b.dataset.themeSet));
+    });
+    document.querySelectorAll('#langSwitch button').forEach(b => {
+      b.addEventListener('click', () => setLang(b.dataset.lang));
+    });
+    if (opts.onLang) langListeners.push(opts.onLang);
+    // `defaultLang` is what the artifact was authored in — it opens that way
+    // once, and after that the reader's own choice is the one that sticks.
+    if (opts.defaultLang && !storedLang) lang = opts.defaultLang === 'zh' ? 'zh' : 'en';
+    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang) }
+    // Not every page sends something back — the form doesn't — so the primary
+    // action stays out of the bar unless a page asks for it.
+    const send = $('#send');
+    if (send && opts.send) send.hidden = false;
+    name(opts.name, opts.eyebrow);
+    applyTheme();
+    applyLang();
+    return api;
+  }
+
+  const api = {
+    init, setTheme, setLang, setLink, hideLink, name,
+    get theme () { return theme },
+    get lang () { return lang },
+    onLang (fn) { langListeners.push(fn) },
+  };
+  return api;
+})();
+/* /vstack:shell js */
+</script>
+
+<script>
 (function(){
   "use strict";
   const raw = JSON.parse(document.getElementById("data").textContent);
@@ -376,11 +605,11 @@
       badJson:"这看起来不是有效的故事地图 JSON（需要 activities、phases、stories）。"
     }
   };
-  let lang = (function(){ try{ return localStorage.getItem("usm:lang"); }catch(e){ return null; } })() || raw.lang || "en";
+  // the shell owns the choice; a map authored in Chinese sets the first one
+  let lang = VSShell.lang;
   if(!I18N[lang]) lang = "en";
   const T = (k,...a)=>{ const v=I18N[lang][k]; return typeof v==="function"?v(...a):v; };
   function applyLang(){
-    document.documentElement.lang = lang==="zh" ? "zh-CN" : "en";
     $("eyebrow").textContent=T("eyebrow");
     $("import").textContent=T("import");
     $("export").textContent = BRIDGE ? T("send") : T("copy");
@@ -390,7 +619,6 @@
     if(BRIDGE) setLink(linkUp);
     $("download").textContent=T("download"); $("export-more").setAttribute("aria-label",T("moreExport"));
     $("jira").innerHTML=esc(T("jira"))+`<span class="soon">${esc(T("soon"))}</span>`;
-    document.querySelectorAll("#lang-toggle button").forEach(b=>b.classList.toggle("on",b.dataset.lang===lang));
     $("io-cancel").textContent=T("cancel"); $("io-ok").textContent=T("loadBtn");
     $("tm-new").placeholder=T("tmNew"); $("tm-add").textContent=T("tmAdd");
     $("legend").innerHTML = `<span class="lt">${esc(T("legend"))}</span>` +
@@ -795,9 +1023,9 @@
     if(e.key==="Escape" && (sel.size||selMode) && !(document.activeElement&&document.activeElement.isContentEditable)){ sel.clear(); selMode=false; render(); }
   });
 
-  document.querySelectorAll("#lang-toggle button").forEach(b=>b.onclick=()=>{
-    if(lang===b.dataset.lang) return;
-    lang=b.dataset.lang; try{localStorage.setItem("usm:lang",lang);}catch(e){}
+  VSShell.onLang(l=>{
+    if(lang===l || !I18N[l]) return;
+    lang=l;
     applyLang(); render(); if(!tagmenu.hidden) renderTagMenu();
   });
 
@@ -820,11 +1048,8 @@
   // offer it rather than applying it, so an in-progress re-slice isn't clobbered.
   let pending=null, sending=false;
   function setLink(up){
-    const el=$("linkdot");
-    if(!BRIDGE){ el.hidden=true; return; }
-    el.hidden=false; el.classList.toggle("on",up);
-    el.textContent = up ? T("linkOn") : T("linkOff");
-    el.title = up ? "" : T("linkOffTitle");
+    if(!BRIDGE){ VSShell.hideLink(); return; }
+    VSShell.setLink(up,{on:T("linkOn"),off:T("linkOff"),offTitle:T("linkOffTitle")});
   }
   function sendToClaude(){
     if(sending) return;
@@ -868,6 +1093,10 @@
     KEY = keyFor(state);
     // Served, the template is unfilled — the tab takes its name from the map.
     if(BRIDGE && state.title) document.title = state.title + " · Visual Stack";
+    // A map authored in Chinese opens in Chinese the first time, then the
+    // reader's own choice sticks.
+    VSShell.init({ name: T("eyebrow"), defaultLang: state.lang || raw.lang });
+    lang = VSShell.lang;
     applyLang();
     render();
   })();

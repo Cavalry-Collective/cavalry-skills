@@ -19,7 +19,7 @@ Derive these from whatever context exists — a spec, a plan, a `tasks.md`, a de
 
 ## Build steps
 
-1. Read `assets/story-map-template.html` (next to this file). It is a finished engine + design — **do not edit the CSS or the `<script>` engine.**
+1. Read `assets/story-map-template.html` (next to this file). It is a finished engine + design — **do not edit the CSS or the `<script>` engine.** Its top bar, palette and controls are stamped in from `lib/shell/` and shared with every other vstack page; change them there and re-stamp, never here.
 2. **Write the map as JSON.** Served (the default), that file *is* the map and the template is used unmodified — the page loads the JSON over the live link. For an Artifact, the page has to carry its own data instead: copy the template and replace **only** two things — the `<title>` at the top and the JSON inside `<script id="data" type="application/json">…</script>`. Schema either way:
    ```json
    {

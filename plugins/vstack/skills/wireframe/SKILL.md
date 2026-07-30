@@ -242,6 +242,7 @@ node "$SKILL/assets/bundle-artifact.mjs" --file "$FILE" --out review.html
 
 ## Notes
 
+- The workspace's top bar, palette and controls are stamped in from `lib/shell/` — shared with every other vstack page. Change them there and re-stamp, never in the workspace.
 - **Never edit `assets/workspace.html`, `review-server.mjs` or `bundle-artifact.mjs`** to fit a project — they're the engine. Only the page under review is yours. (`harvest-reference.js` is meant to be pasted and run, not edited.)
 - State lives in `<dir>/.ui-review/<name>/` beside the file — versions, reviews, threads, and the sentinels. The page itself stays clean.
 - **`.ui-review/` and the `ui-review:*` `localStorage` keys keep the old name on purpose.** They are the engine's own paths, not the skill's; renaming them would orphan every review already on disk and every comment already in a browser, for no visible gain. Not an oversight.

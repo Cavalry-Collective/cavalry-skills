@@ -105,6 +105,8 @@ Leave every node's final `status` in the JSON — it's the build record.
 
 ## Notes
 
+- The top bar, palette and controls are stamped in from `lib/shell/` — shared with every other
+  vstack page. Change them there and re-stamp, never in the board.
 - **Never edit `assets/build-board.html` or `lib/json-bridge.mjs`** to fit a project — they're the
   engine. Only the plan JSON is yours.
 - The bridge binds `127.0.0.1`. Port busy → another board is up; pass `--port`.

@@ -183,6 +183,7 @@ Delete the template's own root `README.md` once instantiation is done — its Da
 
 ## Notes
 
+- The form's top bar, palette and controls are stamped in from `lib/shell/` — shared with every other vstack page. Change them there and re-stamp, never in the form.
 - **Never edit `assets/chooser.html` or `chooser-server.mjs`** to fit a project — they're the engine.
 - The form is a **one-shot** by design: it asks once, so it doesn't use the live-link machinery behind
   `wireframe` and `user-story-map`. Don't wire it into them.

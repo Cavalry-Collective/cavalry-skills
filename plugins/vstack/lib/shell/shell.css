@@ -1,0 +1,71 @@
+/* vstack:shell css
+   The chrome every vstack page wears: the top bar and the controls that sit in
+   it. Page layout stays in the page — some of these are app shells that fill
+   the viewport, some are documents that scroll — but the bar, the buttons and
+   the segmented controls are the same object everywhere. */
+.vs-topbar{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
+  background:var(--surface);border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:40}
+.vs-topbar .brand{display:flex;align-items:center;gap:8px;min-width:0}
+.vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
+.vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
+.vslink:hover .vsmark{opacity:.8}
+.brand .ws{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
+.brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:280px}
+.brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
+.spacer{flex:1}
+.sep{width:1px;height:20px;background:var(--line);flex:none}
+
+/* buttons — one shape, three sizes of intent */
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+  border:1px solid var(--line-2);background:var(--surface);color:var(--ink);font-weight:550;
+  white-space:nowrap;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.primary[disabled]{opacity:.45;cursor:default;filter:none;pointer-events:none}
+.btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
+.btn.sm{height:25px;padding:0 9px;font-size:11.5px}
+
+/* segmented control — modes, sizes, language, theme */
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
+  background:var(--surface);flex:none}
+.seg button{height:30px;padding:0 12px;font-weight:550;color:var(--ink-2);display:inline-flex;
+  align-items:center;gap:6px;border:0;border-right:1px solid var(--line-2);background:none;
+  cursor:pointer;font:inherit;font-weight:550}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--surface-2)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+.seg.sm button{height:25px;padding:0 9px;font-size:11.5px}
+#langSwitch button,#themeSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
+#themeSwitch button{padding:0 8px}
+#themeSwitch svg{width:13px;height:13px;display:block}
+
+/* the live link, stated rather than implied */
+.linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
+  letter-spacing:.03em;color:var(--ink-3);white-space:nowrap}
+.linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
+.linkdot.on{color:var(--ok)}
+.linkdot.on::before{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+
+/* floating banners — the page talking back, never blocking the work */
+.banner{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:38;display:none;
+  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow-pop);
+  font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
+.banner.on{display:flex}
+.banner.dark{background:var(--ink);color:var(--surface)}
+.banner.dark .btn{background:color-mix(in srgb,var(--surface) 16%,transparent);
+  border-color:transparent;color:var(--surface)}
+.banner.dark .btn:hover{background:color-mix(in srgb,var(--surface) 28%,transparent)}
+.banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
+.banner.good .tick{color:var(--ok);font-weight:700}
+
+@media (max-width:720px){
+  .brand .ws,.brand .eyebrow{display:none}
+  .vs-topbar{gap:8px;padding:0 8px}
+}
+/* /vstack:shell css */

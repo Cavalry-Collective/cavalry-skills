@@ -3,68 +3,202 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Review</title>
+<title>Review · Visual Stack</title>
 <style>
 /* ══════════════════════════ workspace chrome ══════════════════════════
    Opens one HTML file in its own browser window and lets you comment on it.
    The wrapper knows nothing about the page inside it. Two modes, two kinds of
    comment, nothing else. */
+/* vstack:shell tokens
+   One palette for every vstack page. Roles, not colours: a page asks for
+   --surface, not for white, so light and dark are the same stylesheet.
+
+   Page-specific hues (the story map's phase bands, the board's new/have/touch,
+   the spec's priorities) stay in the page, below this block — they mean
+   something only there. Everything here is shared, and is the reason a board
+   and a spec look like the same product.
+
+   Three states, in this order: the OS preference, then an explicit choice.
+   `data-theme` absent means auto. */
 :root{
-  --bg:#f4f3f6; --panel:#ffffff; --sunken:#eceaf0; --ink:#171320; --ink-2:#665e72;
-  --ink-3:#8f889c; --line:#e2dfe8; --line-2:#cfc9d8;
-  --accent:#e02b20; --accent-soft:#fff1f0; --accent-line:#ffb3ad;
-  --must:#e02b20; --should:#b7791f; --nice:#5b6b8c;
-  --ok:#12805c; --ok-soft:#e9f9f2;
-  --shadow:0 1px 2px rgba(23,19,32,.06),0 8px 24px rgba(23,19,32,.08);
-  --window-shadow:0 2px 6px rgba(23,19,32,.10),0 18px 48px rgba(23,19,32,.16);
-  --panelw:320px;
-  --font:ui-sans-serif,-apple-system,"Segoe UI",Inter,system-ui,sans-serif;
-  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+  --paper:#eef0f3; --surface:#ffffff; --surface-2:#f7f8fa;
+  --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+  --line:#e2e4e9; --line-2:#d0d2d9;
+  --brand:#d23b2e; --brand-soft:#fdefed; --brand-line:#f3b3ac;
+  --ok:#10876e; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(16,17,22,.06);
+  --shadow-pop:0 1px 2px rgba(16,17,22,.06),0 8px 24px rgba(16,17,22,.10);
+  --window-shadow:0 2px 6px rgba(16,17,22,.10),0 18px 48px rgba(16,17,22,.16);
+  --radius:9px;
+  --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
   color-scheme:light;
 }
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0e0f12; --surface:#17191e; --surface-2:#1d1f25;
+  --ink:#f1f2f4; --ink-2:#bcbfc7; --ink-3:#8b8e97;
+  --line:#282a31; --line-2:#363942;
+  --brand:#f0685c; --brand-soft:rgba(240,104,92,.14); --brand-line:rgba(240,104,92,.38);
+  --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5);
+  --window-shadow:0 2px 6px rgba(0,0,0,.5),0 18px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}}
+:root[data-theme=light]{
+  --paper:#eef0f3; --surface:#ffffff; --surface-2:#f7f8fa;
+  --ink:#16171c; --ink-2:#43454d; --ink-3:#71737c;
+  --line:#e2e4e9; --line-2:#d0d2d9;
+  --brand:#d23b2e; --brand-soft:#fdefed; --brand-line:#f3b3ac;
+  --ok:#10876e; --ok-soft:#e9f9f2;
+  --shadow:0 1px 2px rgba(16,17,22,.06);
+  --shadow-pop:0 1px 2px rgba(16,17,22,.06),0 8px 24px rgba(16,17,22,.10);
+  --window-shadow:0 2px 6px rgba(16,17,22,.10),0 18px 48px rgba(16,17,22,.16);
+  color-scheme:light;
+}
+:root[data-theme=dark]{
+  --paper:#0e0f12; --surface:#17191e; --surface-2:#1d1f25;
+  --ink:#f1f2f4; --ink-2:#bcbfc7; --ink-3:#8b8e97;
+  --line:#282a31; --line-2:#363942;
+  --brand:#f0685c; --brand-soft:rgba(240,104,92,.14); --brand-line:rgba(240,104,92,.38);
+  --ok:#2fb89b; --ok-soft:rgba(47,184,155,.14);
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-pop:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5);
+  --window-shadow:0 2px 6px rgba(0,0,0,.5),0 18px 48px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+/* /vstack:shell tokens */
+:root{ --panelw:320px }
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.45 var(--font);
+body{margin:0;background:var(--paper);color:var(--ink);font:13px/1.45 var(--font);
   -webkit-font-smoothing:antialiased;overflow:hidden}
 button,input,textarea,select{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0;padding:0}
-:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
 
 #app{display:grid;grid-template-rows:auto 1fr;height:100%}
-#top{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
-  background:var(--panel);border-bottom:1px solid var(--line);position:relative;z-index:40}
 #main{display:grid;grid-template-columns:1fr var(--panelw);min-height:0}
 @media (max-width:820px){ #main{grid-template-columns:1fr} #panel{display:none} }
 
-/* ── topbar ── */
-.brand{display:flex;align-items:center;gap:8px;min-width:0}
-.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none}
-.brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
-.sep{width:1px;height:20px;background:var(--line);flex:none}
+/* vstack:shell css
+   The chrome every vstack page wears: the top bar and the controls that sit in
+   it. Page layout stays in the page — some of these are app shells that fill
+   the viewport, some are documents that scroll — but the bar, the buttons and
+   the segmented controls are the same object everywhere. */
+.vs-topbar{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
+  background:var(--surface);border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:40}
+.vs-topbar .brand{display:flex;align-items:center;gap:8px;min-width:0}
+.vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
+.vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
+.vslink:hover .vsmark{opacity:.8}
+.brand .ws{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
+.brand b{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:280px}
+.brand .eyebrow{font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
 .spacer{flex:1}
-.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
-  border:1px solid var(--line-2);background:var(--panel);color:var(--ink);font-weight:550;white-space:nowrap}
-.btn:hover{background:var(--sunken)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn.primary:hover{filter:brightness(1.08)}
-.btn.primary[disabled]{opacity:.45;cursor:default;filter:none}
-.btn.sm{height:26px;padding:0 9px;font-size:12px}
-.btn .kbd{font:500 10px/1 var(--mono);opacity:.6}
+.sep{width:1px;height:20px;background:var(--line);flex:none}
 
-/* segmented controls */
-.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;background:var(--panel)}
+/* buttons — one shape, three sizes of intent */
+.btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:7px;
+  border:1px solid var(--line-2);background:var(--surface);color:var(--ink);font-weight:550;
+  white-space:nowrap;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.primary[disabled]{opacity:.45;cursor:default;filter:none;pointer-events:none}
+.btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
+.btn.sm{height:25px;padding:0 9px;font-size:11.5px}
+
+/* segmented control — modes, sizes, language, theme */
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:7px;overflow:hidden;
+  background:var(--surface);flex:none}
 .seg button{height:30px;padding:0 12px;font-weight:550;color:var(--ink-2);display:inline-flex;
-  align-items:center;gap:6px;border-right:1px solid var(--line-2)}
+  align-items:center;gap:6px;border:0;border-right:1px solid var(--line-2);background:none;
+  cursor:pointer;font:inherit;font-weight:550}
 .seg button:last-child{border-right:0}
-.seg button:hover{background:var(--sunken)}
-/* The mode switch is a control, not a call to action — the accent belongs to
-   Send to Claude alone. */
-.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+.seg button:hover{background:var(--surface-2)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+.seg.sm button{height:25px;padding:0 9px;font-size:11.5px}
+#langSwitch button,#themeSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
+#themeSwitch button{padding:0 8px}
+#themeSwitch svg{width:13px;height:13px;display:block}
+
+/* the live link, stated rather than implied */
+.linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
+  letter-spacing:.03em;color:var(--ink-3);white-space:nowrap}
+.linkdot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
+.linkdot.on{color:var(--ok)}
+.linkdot.on::before{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+
+/* floating banners — the page talking back, never blocking the work */
+.banner{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:38;display:none;
+  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow-pop);
+  font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
+.banner.on{display:flex}
+.banner.dark{background:var(--ink);color:var(--surface)}
+.banner.dark .btn{background:color-mix(in srgb,var(--surface) 16%,transparent);
+  border-color:transparent;color:var(--surface)}
+.banner.dark .btn:hover{background:color-mix(in srgb,var(--surface) 28%,transparent)}
+.banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
+.banner.good .tick{color:var(--ok);font-weight:700}
+
+@media (max-width:720px){
+  .brand .ws,.brand .eyebrow{display:none}
+  .vs-topbar{gap:8px;padding:0 8px}
+}
+/* /vstack:shell css */
+
+/* the workspace bar sits above the window it wraps, not sticky over a scroll */
+.vs-topbar{position:relative}
+.btn .kbd{font:500 10px/1 var(--mono);opacity:.6}
 .seg .kbd{font:500 10px/1 var(--mono);opacity:.65}
+/* icon-only sizes: a control, not a call to action */
 .seg.icons button{width:36px;padding:0;justify-content:center;color:var(--ink-3)}
 .seg.icons button:hover{color:var(--ink)}
-.seg.icons button[aria-pressed=true]{background:var(--sunken);color:var(--ink)}
-#modeSwitch button[aria-pressed=true]{background:var(--ink);color:#fff}
+.seg.icons button[aria-pressed=true]{background:var(--surface-2);color:var(--ink)}
+
+/* Send is the loop; approve is the way out of it. Same control, because they
+   are the same decision made two ways — one more round, or done. */
+.split{display:inline-flex}
+.split .btn{border-radius:7px 0 0 7px}
+.split .caret{border-radius:0 7px 7px 0;border-left:1px solid rgba(255,255,255,.28);padding:0 8px;width:28px;
+  justify-content:center}
+.split .btn[disabled]+.caret{border-left-color:rgba(255,255,255,.28)}
+#sendMenu{position:absolute;top:42px;right:12px;z-index:60;width:266px;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:10px;box-shadow:var(--shadow-pop);padding:5px;display:none}
+#sendMenu.on{display:block}
+#sendMenu button{display:block;width:100%;text-align:left;padding:8px 9px;border-radius:7px}
+#sendMenu button:hover{background:var(--surface-2)}
+#sendMenu .t{display:block;font-weight:600;font-size:12.5px}
+#sendMenu .d{display:block;font-size:11.5px;color:var(--ink-3);line-height:1.35;margin-top:3px}
+#sendMenu .d:empty{display:none}
+#sendMenu button.armed{background:var(--brand-soft)}
+#sendMenu button.armed .t{color:var(--brand)}
+#sendMenu button[disabled]{cursor:default}
+#sendMenu button[disabled]:hover{background:none}
+#sendMenu .warn{color:#b7791f;font-weight:600}
+#sendMenu .mrule{height:1px;background:var(--line);margin:4px 6px}
+#sendMenu .url{font:500 11px/1.4 var(--mono);color:var(--ok);word-break:break-all}
+/* A link waiting under the caret is easy to miss — mark the caret itself. */
+.split .caret{position:relative}
+.split .caret.flag::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;
+  border-radius:50%;background:#fff;box-shadow:0 0 0 2px var(--brand)}
+
+/* The end of the review, said once and plainly. */
+#doneScreen{position:fixed;inset:0;z-index:200;display:none;place-items:center;
+  background:color-mix(in srgb,var(--ink) 34%,transparent);backdrop-filter:blur(2px)}
+#doneScreen.on{display:grid}
+#doneScreen .card{background:var(--surface);border-radius:14px;box-shadow:var(--window-shadow);
+  padding:26px 28px;max-width:380px;text-align:center}
+#doneScreen .tick{width:42px;height:42px;border-radius:50%;background:var(--ok-soft);color:var(--ok);
+  display:grid;place-items:center;font-size:20px;font-weight:700;margin:0 auto 12px}
+#doneScreen h2{margin:0 0 6px;font-size:16px}
+#doneScreen p{margin:0;font-size:12.5px;color:var(--ink-2);line-height:1.55}
 #langSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
 .seg svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6;
   stroke-linecap:round;stroke-linejoin:round}
@@ -73,7 +207,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
 #canvasArea{display:grid;grid-template-rows:minmax(0,1fr) auto;min-width:0}
 /* The dots live on the non-scrolling frame so they are painted once, instead of
    being repainted across the whole scrollable canvas on every scroll. */
-#stageArea{position:relative;overflow:hidden;background:var(--sunken);
+#stageArea{position:relative;overflow:hidden;background:var(--surface-2);
   background-image:radial-gradient(circle at 1px 1px,var(--line-2) 1px,transparent 0);
   background-size:22px 22px}
 #canvasWrap{position:absolute;inset:0;overflow:auto}
@@ -81,21 +215,21 @@ button{cursor:pointer;background:none;border:0;padding:0}
 
 /* transform-origin is top-left so the negative margins in setZoom() shrink the
    layout box to exactly the scaled size — anything else and the window drifts. */
-#browser{background:var(--panel);border-radius:11px;box-shadow:var(--window-shadow);
+#browser{background:var(--surface);border-radius:11px;box-shadow:var(--window-shadow);
   transform-origin:top left;flex:none;overflow:hidden;border:1px solid var(--line-2);
   will-change:transform;backface-visibility:hidden}
 .window-bar{display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;
-  background:linear-gradient(var(--panel),var(--sunken));border-bottom:1px solid var(--line-2)}
+  background:linear-gradient(var(--surface),var(--surface-2));border-bottom:1px solid var(--line-2)}
 .window-bar .reload{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;
   color:var(--ink-3);font-size:13px;flex:none}
 .window-bar .reload:hover{background:var(--line);color:var(--ink)}
-.window-bar .url{flex:1;height:22px;border-radius:11px;background:var(--bg);border:1px solid var(--line);
+.window-bar .url{flex:1;height:22px;border-radius:11px;background:var(--paper);border:1px solid var(--line);
   display:flex;align-items:center;padding:0 9px;font:600 11px/1 var(--mono);color:var(--ink-2);
   min-width:0;overflow:hidden;white-space:nowrap}
 .window-bar .size{font:500 10.5px/1 var(--mono);color:var(--ink-3);flex:none}
 .window-bar .vlabel{font:600 10px/1 var(--mono);padding:3px 6px;border-radius:5px;
-  background:var(--sunken);color:var(--ink-2);flex:none}
-.window-bar .vlabel.hist{background:var(--accent-soft);color:var(--accent)}
+  background:var(--surface-2);color:var(--ink-2);flex:none}
+.window-bar .vlabel.hist{background:var(--brand-soft);color:var(--brand)}
 #viewportBox{position:relative;overflow:auto;background:#fff;contain:paint}
 #scroller{position:relative}
 #frame{display:block;border:0;width:100%;background:#fff}
@@ -129,82 +263,155 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .mark.sel{outline:2px dashed var(--ink);outline-offset:3px}
 .mark.ghost{opacity:.4;filter:saturate(.4)}
 .mark.done{opacity:.32}
-#drag{position:absolute;border:2px dashed var(--accent);border-radius:3px;display:none;
-  background:color-mix(in srgb,var(--accent) 8%,transparent);pointer-events:none}
+/* A comment belongs to the thing it was made on. When that thing is not on the
+   page right now — a closed modal, a screen that is not showing — the mark goes
+   with it rather than floating over whatever took its place. */
+.mark.gone{display:none}
+/* The page was rebuilt and the element could not be found again: the mark falls
+   back to where it was drawn, and says so by looking unsure of itself. */
+.mark.loose{opacity:.5;filter:saturate(.5)}
+#drag{position:absolute;border:2px dashed var(--brand);border-radius:3px;display:none;
+  background:color-mix(in srgb,var(--brand) 8%,transparent);pointer-events:none}
 
 /* ── on-canvas composer ── */
-#composer{position:absolute;z-index:30;width:280px;background:var(--panel);border:1px solid var(--line-2);
-  border-radius:10px;box-shadow:var(--shadow);display:none;overflow:hidden}
+#composer{position:absolute;z-index:30;width:280px;background:var(--surface);border:1px solid var(--line-2);
+  border-radius:10px;box-shadow:var(--shadow-pop);display:none;overflow:hidden}
 #composer.on{display:block}
 #composer .chead{display:flex;align-items:center;gap:7px;padding:8px 9px 6px}
-#composer .cnum{font:700 10px/1 var(--mono);color:#fff;background:var(--mk,var(--accent));
+#composer .cnum{font:700 10px/1 var(--mono);color:#fff;background:var(--mk,var(--brand));
   padding:3px 5px;border-radius:4px}
 #composer .ckind{font-size:11.5px;color:var(--ink-3);flex:1}
 #composer .chead button{width:20px;height:20px;border-radius:4px;color:var(--ink-3);
   display:grid;place-items:center;font-size:12px}
-#composer .chead button:hover{background:var(--sunken);color:var(--accent)}
+#composer .chead button:hover{background:var(--surface-2);color:var(--brand)}
 #composer .cstatus{font:600 9.5px/1 var(--font);letter-spacing:.04em;text-transform:uppercase;
-  padding:3px 5px;border-radius:4px;background:var(--sunken);color:var(--ink-3)}
+  padding:3px 5px;border-radius:4px;background:var(--surface-2);color:var(--ink-3)}
 #composer .cstatus.addressed{background:var(--ok-soft);color:var(--ok)}
-#composer .cstatus.question{background:var(--accent-soft);color:var(--accent)}
+#composer .cstatus.question{background:var(--brand-soft);color:var(--brand)}
 #composer .cstatus:empty{display:none}
+/* What this comment is attached to, said back to the reviewer as they type it. */
+#composer .canchor{display:none;margin:0 9px 6px;font:500 11px/1.4 var(--mono);color:var(--ink-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#composer .canchor.on{display:block}
+#composer .canchor b{color:var(--ink-2);font-weight:650}
+#composer .canchor.gone{color:var(--brand)}
 #composer textarea{width:calc(100% - 18px);margin:0 9px;border:1px solid var(--line-2);border-radius:7px;
-  padding:6px 7px;font-size:12.5px;line-height:1.45;resize:vertical;min-height:58px;background:var(--panel)}
-#composer textarea:focus{outline:none;border-color:var(--accent);
-  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+  padding:6px 7px;font-size:12.5px;line-height:1.45;resize:vertical;min-height:58px;background:var(--surface)}
+#composer textarea:focus{outline:none;border-color:var(--brand);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 12%,transparent)}
 #composer .cthread{margin:8px 9px 0;display:none;flex-direction:column;gap:7px;
   max-height:190px;overflow:auto}
 #composer .cthread.on{display:flex}
 #composer .msg{border-left:2px solid var(--line-2);padding-left:8px}
-#composer .msg.claude{border-left-color:var(--accent)}
+#composer .msg.claude{border-left-color:var(--brand)}
 #composer .msg .who{font:600 10px/1 var(--font);letter-spacing:.04em;text-transform:uppercase;
   color:var(--ink-3);margin-bottom:3px}
-#composer .msg.claude .who{color:var(--accent)}
+#composer .msg.claude .who{color:var(--brand)}
 #composer .msg .body{font-size:12.5px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
 #composer .creply{display:none;margin-top:8px;min-height:44px}
 #composer .creply.on{display:block}
 #composer .cfoot{display:flex;align-items:center;gap:5px;padding:8px 9px;margin-top:8px;
-  border-top:1px solid var(--line);background:var(--bg)}
-#composer .sevs{display:flex;gap:3px;flex:1}
-#composer .sevs button{font:600 10px/1 var(--font);text-transform:uppercase;letter-spacing:.02em;
-  padding:5px 6px;border-radius:5px;border:1px solid var(--line-2);color:var(--ink-3)}
-#composer .sevs button[aria-pressed=true][data-sev=must]{background:color-mix(in srgb,var(--must) 12%,transparent);border-color:var(--must);color:var(--must)}
-#composer .sevs button[aria-pressed=true][data-sev=should]{background:color-mix(in srgb,var(--should) 12%,transparent);border-color:var(--should);color:var(--should)}
-#composer .sevs button[aria-pressed=true][data-sev=nice]{background:color-mix(in srgb,var(--nice) 12%,transparent);border-color:var(--nice);color:var(--nice)}
+  border-top:1px solid var(--line);background:var(--paper)}
+#composer .cfoot .hint{flex:1;font-size:11px;color:var(--ink-3)}
+#composer .csave{height:26px;padding:0 11px;border-radius:6px;background:var(--ink);color:#fff;
+  font-weight:600;font-size:11.5px;flex:none}
+#composer .csave:hover{filter:brightness(1.25)}
+#composer .csave .kbd{font:500 9.5px/1 var(--mono);opacity:.6;margin-left:4px}
+/* A comment Claude is working on keeps its own progress, wherever it is shown. */
+#composer.working{border-color:var(--brand-line)}
+#composer.working::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--brand-soft)}
+#composer.working::before{content:"";position:absolute;bottom:0;height:2px;width:38%;background:var(--brand);
+  z-index:1;animation:sweep 1.15s ease-in-out infinite}
 
 /* ── right panel: the index ── */
-#panel{background:var(--panel);border-left:1px solid var(--line);display:grid;
-  grid-template-rows:auto auto 1fr auto;min-height:0}
+/* Flex rather than a fixed row template: the working strip comes and goes, and
+   a display:none grid child would silently reshuffle every other row. */
+#panel{background:var(--surface);border-left:1px solid var(--line);display:flex;
+  flex-direction:column;min-height:0}
+#phead,#pfilter,#pwork,#pfoot{flex:none}
 #phead{display:flex;align-items:center;gap:8px;padding:10px 12px 8px}
 #phead b{font-size:13px}
 #phead .scope{margin-left:auto;font-size:11px;color:var(--ink-3)}
 #pfilter{display:flex;flex-wrap:wrap;gap:5px;padding:0 10px 8px;border-bottom:1px solid var(--line)}
-#pfilter select{height:26px;border:1px solid var(--line-2);border-radius:6px;background:var(--panel);
+#pfilter select{height:26px;border:1px solid var(--line-2);border-radius:6px;background:var(--surface);
   padding:0 3px;font-size:11.5px;color:var(--ink-2);flex:1 1 auto;min-width:0}
-#pbody{overflow:auto;padding:8px 10px 14px}
+#pbody{flex:1;overflow:auto;padding:8px 10px 14px;min-height:0}
+
+/* ── work in flight ──
+   Progress lives on the comments themselves, so it is obvious *which* ones are
+   being worked on — and cancel sits next to them, where the doubt is. */
+#pwork{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);
+  background:var(--brand-soft)}
+#pwork[hidden]{display:none}
+#pwork .spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--brand-line);
+  border-top-color:var(--brand);animation:spin .7s linear infinite;flex:none}
+#pwork .ptxt{flex:1;min-width:0;font-size:11.5px;color:var(--ink-2);line-height:1.35}
+#pwork .pcancel{font-size:11.5px;font-weight:600;color:var(--brand);white-space:nowrap;flex:none;
+  border:1px solid var(--brand-line);border-radius:6px;padding:3px 8px;background:var(--surface)}
+#pwork .pcancel:hover{background:var(--brand);border-color:var(--brand);color:#fff}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes sweep{0%{left:-38%}55%{left:100%}100%{left:100%}}
 #pfoot{border-top:1px solid var(--line);padding:9px 10px;display:flex;gap:7px;align-items:center}
 #pfoot .count{flex:1;font-size:11.5px;color:var(--ink-3);line-height:1.3}
 #pfoot .count b{color:var(--ink);font-weight:650}
 #pfoot .clear{font-size:11.5px;color:var(--ink-3);text-decoration:underline;white-space:nowrap;flex:none}
-#pfoot .clear:hover{color:var(--accent)}
-#pfoot .clear.armed{color:var(--accent);font-weight:600;text-decoration:none}
+#pfoot .clear:hover{color:var(--brand)}
+#pfoot .clear.armed{color:var(--brand);font-weight:600;text-decoration:none}
 #pfoot .clear:disabled{opacity:.35;cursor:default;text-decoration:none}
 #pfoot .clear:disabled:hover{color:var(--ink-3)}
 
-.item{border:1px solid var(--line);border-radius:8px;padding:7px 9px;margin-bottom:6px;
-  cursor:pointer;transition:border-color .12s}
+.item{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:8px;padding:7px 9px;
+  margin-bottom:6px;cursor:pointer;transition:border-color .12s}
 .item:hover{border-color:var(--line-2)}
-.item.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
-.item.resolved{opacity:.55}
+.item.sel{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-soft)}
 .item .ih{display:flex;align-items:center;gap:6px}
-.item .n{font:700 10px/1 var(--mono);color:#fff;background:var(--mk,var(--accent));padding:3px 5px;border-radius:4px}
+.item .n{font:700 10px/1 var(--mono);color:#fff;background:var(--mk,var(--brand));padding:3px 5px;border-radius:4px}
 .item .kind{font-size:11px;color:var(--ink-3);flex:1}
-.item .sevdot{width:7px;height:7px;border-radius:50%;background:var(--mk)}
 .item .note{font-size:12.5px;line-height:1.4;margin-top:4px;overflow:hidden;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
 .item .note.blank{color:var(--ink-3);font-style:italic}
+.item.off{opacity:.68}
+.item.off:hover{opacity:1}
+.item .kind .offtag{color:var(--ink-3);font-style:italic}
 .item .thread{font-size:11px;color:var(--ink-3);margin-top:4px;display:flex;align-items:center;gap:5px}
-.item .thread.asked{color:var(--accent);font-weight:600}
+.item .thread.asked{color:var(--brand);font-weight:600}
+/* The conversation lives where the comment is listed, not only on the mark —
+   answering Claude should not mean hunting for a pin on the page. */
+.item .thread.tog{width:100%;text-align:left}
+.item .thread .caret{margin-left:auto;font-size:9px;opacity:.6}
+.item .tbox{margin-top:7px;padding-top:7px;border-top:1px solid var(--line);
+  display:flex;flex-direction:column;gap:7px;cursor:default}
+.item .tmsg{font-size:11.5px;line-height:1.4;border-left:2px solid var(--line-2);padding-left:7px}
+.item .tmsg.claude{border-left-color:var(--brand)}
+.item .tmsg .who{display:block;font:600 9.5px/1 var(--font);letter-spacing:.04em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:3px}
+.item .tmsg.claude .who{color:var(--brand)}
+.item .tmsg .body{display:block;white-space:pre-wrap;word-break:break-word}
+.item .treply{width:100%;border:1px solid var(--line-2);border-radius:6px;padding:5px 6px;
+  font-size:12px;line-height:1.4;resize:vertical;min-height:40px;background:var(--surface)}
+.item .treply:focus{outline:none;border-color:var(--brand);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 12%,transparent)}
+.item .trow{display:flex;justify-content:flex-end}
+.item .tsend{font:600 10.5px/1 var(--font);padding:5px 9px;border-radius:5px;background:var(--ink);color:#fff}
+.item .tsend:hover{filter:brightness(1.25)}
+/* Indeterminate on purpose: Claude gives no percentage, and a fake one would be
+   a lie. It says "this one, right now" and nothing more. */
+.item.working{border-color:var(--brand-line)}
+.item .bar{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--brand-soft);overflow:hidden}
+.item .bar::after{content:"";position:absolute;top:0;bottom:0;width:38%;background:var(--brand);
+  animation:sweep 1.15s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){
+  .item .bar::after,#composer.working::before{animation:none;left:0;width:100%;opacity:.55}
+  #pwork .spin{animation:none}
+}
+/* Addressed comments stay in the list — done is not the same as gone, and the
+   only way to say "not like that" is to still be able to see it. */
+.item.done{opacity:.72;border-style:dashed}
+.item.done:hover{opacity:1}
+.item .acts{display:flex;gap:5px;margin-top:6px}
+.item .acts button{font:600 10.5px/1 var(--font);padding:4px 7px;border-radius:5px;
+  border:1px solid var(--line-2);color:var(--ink-2);background:var(--surface)}
+.item .acts button:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-soft)}
 .empty{color:var(--ink-3);font-size:12.5px;text-align:center;padding:30px 14px;line-height:1.6}
 .grouphd{font:650 10.5px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
   margin:12px 2px 7px;display:flex;align-items:center;gap:6px}
@@ -212,23 +419,23 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .grouphd::after{content:"";flex:1;height:1px;background:var(--line)}
 
 /* ── timeline scrubber ── */
-#timeline{border-top:1px solid var(--line);background:var(--panel);padding:9px 16px 12px;
+#timeline{border-top:1px solid var(--line);background:var(--surface);padding:9px 16px 12px;
   display:flex;align-items:center;gap:12px;z-index:20}
 #timeline .step{width:24px;height:24px;border-radius:6px;color:var(--ink-2);display:grid;place-items:center;flex:none}
-#timeline .step:hover{background:var(--sunken);color:var(--ink)}
+#timeline .step:hover{background:var(--surface-2);color:var(--ink)}
 #timeline .step[disabled]{opacity:.3;cursor:default}
 #timeline .step[disabled]:hover{background:none}
 #tlTrack{flex:1;position:relative;height:26px;min-width:120px;cursor:pointer}
 #tlTrack::before{content:"";position:absolute;left:0;right:0;top:11px;height:3px;border-radius:2px;background:var(--line)}
-#tlFill{position:absolute;left:0;top:11px;height:3px;border-radius:2px;background:var(--accent-line)}
-#tlTrack .tick{position:absolute;top:7px;width:11px;height:11px;border-radius:50%;background:var(--panel);
+#tlFill{position:absolute;left:0;top:11px;height:3px;border-radius:2px;background:var(--brand-line)}
+#tlTrack .tick{position:absolute;top:7px;width:11px;height:11px;border-radius:50%;background:var(--surface);
   border:2px solid var(--line-2);transform:translateX(-50%)}
-#tlTrack .tick.past{border-color:var(--accent-line)}
-#tlTrack .tick:hover{border-color:var(--accent)}
+#tlTrack .tick.past{border-color:var(--brand-line)}
+#tlTrack .tick:hover{border-color:var(--brand)}
 #tlTrack .tick .cap{position:absolute;top:14px;left:50%;transform:translateX(-50%);
   font:600 9.5px/1 var(--mono);color:var(--ink-3)}
-#tlHandle{position:absolute;top:4px;width:17px;height:17px;border-radius:50%;background:var(--accent);
-  border:3px solid var(--panel);box-shadow:0 1px 4px rgba(23,19,32,.3);transform:translateX(-50%);
+#tlHandle{position:absolute;top:4px;width:17px;height:17px;border-radius:50%;background:var(--brand);
+  border:3px solid var(--surface);box-shadow:0 1px 4px rgba(23,19,32,.3);transform:translateX(-50%);
   cursor:grab;z-index:3}
 #tlHandle:active{cursor:grabbing}
 #tlMeta{flex:none;max-width:330px;min-width:0;font-size:11.5px;color:var(--ink-3);line-height:1.35}
@@ -238,25 +445,30 @@ button{cursor:pointer;background:none;border:0;padding:0}
 
 /* ── floating banners ── */
 .banner{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:28;display:none;
-  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow);
+  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow-pop);
   font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
 .banner.on{display:flex}
+/* Two pieces of news can land at once — a version and a link. Stack them
+   rather than let the later one hide the earlier. */
+.banner.on ~ .banner.on{top:58px}
+.banner.on ~ .banner.on ~ .banner.on{top:104px}
 .banner .btn{height:25px;font-size:11.5px}
 #histBanner{background:var(--ink);color:#fff}
 #histBanner .btn{background:rgba(255,255,255,.14);border-color:transparent;color:#fff}
 #histBanner .btn:hover{background:rgba(255,255,255,.26)}
-#workBanner{background:var(--panel);border:1px solid var(--line-2)}
+#workBanner{background:var(--surface);border:1px solid var(--line-2)}
 #workBanner .spin{width:13px;height:13px;border-radius:50%;border:2px solid var(--line-2);
-  border-top-color:var(--accent);animation:spin .7s linear infinite;flex:none}
+  border-top-color:var(--brand);animation:spin .7s linear infinite;flex:none}
 @keyframes spin{to{transform:rotate(360deg)}}
-#workBanner.ready{border-color:var(--ok);background:var(--ok-soft)}
-#workBanner .tick{color:var(--ok);font-weight:700}
-#workBanner .txt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#workBanner.ready,#shareBanner{border-color:var(--ok);background:var(--ok-soft)}
+#shareBanner{border:1px solid var(--ok)}
+#workBanner .tick,#shareBanner .tick{color:var(--ok);font-weight:700}
+#workBanner .txt,#shareBanner .txt{min-width:0;overflow:hidden;text-overflow:ellipsis}
 
-#zoombar{position:absolute;left:12px;bottom:12px;display:flex;gap:2px;align-items:center;background:var(--panel);
-  border:1px solid var(--line-2);border-radius:8px;padding:3px;box-shadow:var(--shadow);z-index:20}
+#zoombar{position:absolute;left:12px;bottom:12px;display:flex;gap:2px;align-items:center;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:8px;padding:3px;box-shadow:var(--shadow-pop);z-index:20}
 #zoombar button{width:26px;height:24px;border-radius:5px;color:var(--ink-2);display:grid;place-items:center;font-size:14px}
-#zoombar button:hover{background:var(--sunken);color:var(--ink)}
+#zoombar button:hover{background:var(--surface-2);color:var(--ink)}
 #zoombar .z{min-width:44px;text-align:center;font:600 11px/1 var(--mono);color:var(--ink-2)}
 
 /* ── modal / toast ── */
@@ -267,25 +479,65 @@ button{cursor:pointer;background:none;border:0;padding:0}
 </head>
 <body>
 <div id="app">
-  <div id="top">
-    <div class="brand"><span class="dot"></span><b id="pageName">Review</b></div>
-    <div class="spacer"></div>
-
+<!-- vstack:shell topbar -->
+<div class="vs-topbar" id="top">
+  <div class="brand">
+    <a class="vslink" href="https://cavalry.sg/visual-stack" target="_blank" rel="noopener"
+       title="Visual Stack">
+      <svg class="vsmark" viewBox="0 0 64 64" aria-hidden="true">
+        <g fill="currentColor"><rect x="6" y="44" width="52" height="16"/><rect x="6" y="24" width="52" height="16"/><rect x="6" y="4" width="40" height="16"/></g>
+        <rect x="46" y="4" width="12" height="16" fill="var(--brand)"/>
+      </svg>
+      <span class="ws">Visual Stack</span>
+    </a>
+    <b id="pageName"></b>
+    <span class="eyebrow" id="pageEyebrow"></span>
+  </div>
+  <div class="spacer"></div>
+  <!-- The page's own controls: `tools` sits before the shared switches,
+       `actions` after them, where the primary action belongs. -->
+  <!-- vstack:slot tools -->
     <div class="seg" id="modeSwitch">
       <button data-mode="view" aria-pressed="false"></button>
       <button data-mode="annotate" aria-pressed="true"></button>
     </div>
 
     <div class="seg icons" id="sizeSwitch"></div>
-
-    <div class="seg" id="langSwitch">
-      <button data-lang="en" aria-pressed="true">EN</button>
-      <button data-lang="zh" aria-pressed="false">中文</button>
-    </div>
-
-    <div class="sep"></div>
-    <button class="btn primary" id="btnSend"></button>
+<!-- /vstack:slot tools -->
+  <div class="seg" id="themeSwitch">
+    <button data-theme-set="auto" aria-pressed="true" title="Match the system">A</button>
+    <button data-theme-set="light" aria-pressed="false" title="Light">
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="8" cy="8" r="3.1"/><path d="M8 .9v2M8 13.1v2M.9 8h2M13.1 8h2M3 3l1.4 1.4M11.6 11.6 13 13M13 3l-1.4 1.4M4.4 11.6 3 13" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button data-theme-set="dark" aria-pressed="false" title="Dark">
+      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.8 5.8 0 1 0 7 7Z" stroke-linejoin="round"/>
+      </svg>
+    </button>
   </div>
+  <div class="seg" id="langSwitch">
+    <button data-lang="en" aria-pressed="true">EN</button>
+    <button data-lang="zh" aria-pressed="false">中文</button>
+  </div>
+  <div class="sep"></div>
+  <span class="linkdot" id="linkDot" hidden></span>
+  <button class="btn primary" id="send" disabled hidden></button>
+  <!-- vstack:slot actions -->
+    <div class="split">
+      <button class="btn primary" id="btnSend"></button>
+      <button class="btn primary caret" id="btnSendMore" aria-haspopup="true" aria-expanded="false"
+              aria-label="More">▾</button>
+    </div>
+    <div id="sendMenu">
+      <button id="btnShare"><span class="t"></span><span class="d"></span></button>
+      <div class="mrule"></div>
+      <button id="btnApprove"><span class="t"></span><span class="d"></span></button>
+    </div>
+<!-- /vstack:slot actions -->
+</div>
+<!-- /vstack:shell topbar -->
 
   <div id="main">
     <div id="canvasArea">
@@ -301,7 +553,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
               </div>
               <div id="viewportBox">
                 <div id="scroller">
-                  <iframe id="frame" title="Mockup under review"></iframe>
+                  <iframe id="frame" title="Wireframe under review"></iframe>
                   <div id="overlay"><div id="drag"></div></div>
                 </div>
               </div>
@@ -313,11 +565,19 @@ button{cursor:pointer;background:none;border:0;padding:0}
           <span id="histText">Viewing an earlier version — read only</span>
           <button class="btn sm" id="btnNow">Back to current</button>
         </div>
+        <!-- Only ever announces a version that has landed. Work in flight is
+             shown on the comments it belongs to, in the panel. -->
         <div class="banner" id="workBanner">
-          <span class="spin" id="workSpin"></span>
-          <span class="txt" id="workText">Sent — Claude is working…</span>
-          <button class="btn sm primary" id="btnRefresh" style="display:none">Review changes</button>
-          <button class="btn sm" id="btnDismissWork" style="display:none">Later</button>
+          <span class="txt" id="workText"></span>
+          <button class="btn sm primary" id="btnRefresh">Review changes</button>
+          <button class="btn sm" id="btnDismissWork">Later</button>
+        </div>
+        <!-- The link is asked for here and lands minutes later, long after the
+             reviewer stopped watching the ▾. Say so where the news goes. -->
+        <div class="banner" id="shareBanner">
+          <span class="txt" id="shareBannerText"></span>
+          <button class="btn sm primary" id="btnCopyShare">Copy link</button>
+          <button class="btn sm" id="btnDismissShare">Later</button>
         </div>
 
         <div id="composer">
@@ -327,15 +587,13 @@ button{cursor:pointer;background:none;border:0;padding:0}
             <button class="cdel" title="Delete comment">🗑</button>
             <button class="cclose" title="Close">✕</button>
           </div>
+          <div class="canchor"></div>
           <textarea class="cnote" placeholder="What needs to change?"></textarea>
           <div class="cthread"></div>
           <textarea class="creply" placeholder="Reply…"></textarea>
           <div class="cfoot">
-            <div class="sevs">
-              <button data-sev="must">Must</button>
-              <button data-sev="should">Should</button>
-              <button data-sev="nice">Nice</button>
-            </div>
+            <span class="hint"></span>
+            <button class="csave"></button>
           </div>
         </div>
 
@@ -356,8 +614,12 @@ button{cursor:pointer;background:none;border:0;padding:0}
     <div id="panel">
       <div id="phead"><b>Comments</b><span class="scope" id="pscope"></span></div>
       <div id="pfilter">
-        <select id="fSeverity"><option value="">Any severity</option><option value="must">Must</option><option value="should">Should</option><option value="nice">Nice</option></select>
         <select id="fStatus"><option value="open">Open</option><option value="question">Claude asked</option><option value="">All</option><option value="addressed">Addressed</option></select>
+      </div>
+      <div id="pwork" hidden>
+        <span class="spin"></span>
+        <span class="ptxt" id="pworkText"></span>
+        <button class="pcancel" id="btnCancel"></button>
       </div>
       <div id="pbody"></div>
       <div id="pfoot">
@@ -368,9 +630,118 @@ button{cursor:pointer;background:none;border:0;padding:0}
   </div>
 </div>
 
+<div id="doneScreen">
+  <div class="card">
+    <div class="tick">✓</div>
+    <h2 id="doneTitle"></h2>
+    <p id="doneBody"></p>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script id="bundle" type="application/json">{"mode":"artifact","name":"Today","fileName":"today.html","currentVersion":1,"html":"\u003c!doctype html>\n\u003chtml lang=\"en\">\n\u003chead>\n\u003cmeta charset=\"utf-8\">\n\u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\u003ctitle>Today\u003c/title>\n\u003cstyle>\n/* Cavalry design system — tokens from design/tokens.css (semantic tier) */\n:root{\n  --white:#fff;\n  --gray-50:#f6f4f8; --gray-200:#e6e2ec; --gray-300:#cfc9d8; --gray-400:#aaa2b3;\n  --gray-600:#665e72; --gray-900:#171320;\n  --red-50:#fff1f0; --red-200:#ffb3ad; --red-400:#e02b20; --red-500:#b8231a;\n  --violet-50:#f4effe; --violet-200:#c9b0f8; --violet-400:#7c3aed;\n  --green-50:#e9f9f2; --green-200:#7fe0bd; --green-400:#0b8157;\n  --amber-50:#fef5e6; --amber-200:#fbd38d; --amber-600:#8a5c06;\n\n  --color-bg:var(--white); --color-bg-subtle:var(--gray-50); --color-surface:var(--white);\n  --color-content:var(--gray-900); --color-content-subtle:var(--gray-600);\n  --color-content-disabled:var(--gray-400); --color-content-inverse:var(--white);\n  --color-border:var(--gray-200); --color-border-strong:var(--gray-300);\n  --color-accent:var(--red-400); --color-accent-hover:var(--red-500);\n  --color-accent-subtle:var(--red-50); --color-on-accent:var(--white);\n\n  --font-family-base:Inter,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;\n  --font-family-display:\"Space Grotesk\",var(--font-family-base);\n  --font-size-100:12px; --font-size-200:14px; --font-size-300:16px;\n  --font-size-400:20px; --font-size-500:28px;\n  --tracking-caps:.06em;\n\n  --space-1:4px; --space-2:8px; --space-3:16px; --space-4:24px; --space-5:32px;\n  --radius-1:4px; --radius-2:8px; --radius-3:12px; --radius-round:9999px;\n  --shadow-1:0 1px 2px rgba(23,19,32,.08);\n\n  --side-nav-width:144px; --header-height:56px;\n  --gutter-screen:var(--space-4);\n  --page-title-gap:var(--space-4); --page-section-gap:var(--space-5);\n  --control-height:40px; --box-padding-sm:var(--space-2); --box-padding:var(--space-3);\n}\n*{box-sizing:border-box}\nbody{margin:0;background:var(--color-bg);color:var(--color-content);\n  font:var(--font-size-200)/1.5 var(--font-family-base);-webkit-font-smoothing:antialiased}\nh1,h2,h3{margin:0;font-family:var(--font-family-display);line-height:1.25;letter-spacing:-.02em}\nbutton{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}\ntable{border-collapse:collapse;width:100%}\n\n/* ── app frame ── */\n.app-frame{display:grid;grid-template-columns:var(--side-nav-width) 1fr;min-height:100vh}\n.side-nav{background:var(--color-bg-subtle);border-right:1px solid var(--color-border);\n  padding:var(--space-3) var(--space-2);display:flex;flex-direction:column;gap:2px}\n.side-nav .workspace{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2);\n  margin-bottom:var(--space-4)}\n.side-nav .workspace .mark{width:20px;height:20px;border-radius:var(--radius-1);\n  background:var(--color-accent);flex:none}\n.side-nav .workspace b{font-family:var(--font-family-display);font-size:var(--font-size-200)}\n.side-nav a{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2);\n  border-radius:var(--radius-2);color:var(--color-content-subtle);text-decoration:none;font-weight:500}\n.side-nav a:hover{background:var(--white)}\n.side-nav a[aria-current]{background:var(--white);color:var(--color-content);box-shadow:var(--shadow-1)}\n.side-nav a .icon{width:16px;height:16px;border-radius:3px;background:currentColor;opacity:.35;flex:none}\n.side-nav a .count{margin-left:auto;font-size:var(--font-size-100);color:var(--color-accent);font-weight:600}\n\n.app-main{min-width:0;display:flex;flex-direction:column}\n.app-header{height:var(--header-height);border-bottom:1px solid var(--color-border);\n  display:flex;align-items:center;gap:var(--space-3);padding:0 var(--gutter-screen);flex:none}\n.app-header .breadcrumb{color:var(--color-content-subtle)}\n.app-header .breadcrumb b{color:var(--color-content);font-weight:600}\n.app-header .grow{flex:1}\n.icon-button{width:32px;height:32px;border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-2);background:var(--color-surface);display:grid;place-items:center;\n  color:var(--color-content-subtle)}\n.icon-button:hover{background:var(--color-bg-subtle);color:var(--color-content)}\n.user-avatar{width:28px;height:28px;border-radius:var(--radius-round);background:var(--violet-200);\n  display:grid;place-items:center;font-size:var(--font-size-100);font-weight:600;color:var(--violet-400)}\n\n/* ── page ── */\n.page{padding:var(--gutter-screen);flex:1}\n.page-header{display:flex;align-items:flex-start;gap:var(--space-3);margin-bottom:var(--page-title-gap)}\n.page-header h1{font-size:var(--font-size-500)}\n.page-header .grow{flex:1}\n\n.button{height:var(--control-height);padding:0 var(--space-3);border-radius:var(--radius-2);\n  border:1px solid var(--color-border-strong);background:var(--color-surface);font-weight:500;\n  display:inline-flex;align-items:center;gap:var(--space-2);white-space:nowrap}\n.button:hover{background:var(--color-bg-subtle)}\n.button--primary{background:var(--color-accent);border-color:var(--color-accent);\n  color:var(--color-on-accent)}\n.button--primary:hover{background:var(--color-accent-hover)}\n\n/* ── datagrid ── */\n.datagrid{border:1px solid var(--color-border);border-radius:var(--radius-3);overflow:hidden;\n  background:var(--color-surface)}\n.datagrid-toolbar{display:flex;align-items:center;gap:var(--space-2);\n  padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--color-border);\n  background:var(--color-bg-subtle)}\n.search-field{flex:1;max-width:300px;height:32px;border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-2);background:var(--color-surface);display:flex;align-items:center;\n  gap:var(--space-2);padding:0 var(--space-2);color:var(--color-content-disabled)}\n.filter-chip{height:32px;padding:0 var(--space-2);border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-2);background:var(--color-surface);display:inline-flex;align-items:center;\n  gap:var(--space-1);font-size:var(--font-size-200);color:var(--color-content-subtle)}\n.filter-chip b{color:var(--color-content);font-weight:500}\n.filter-chip .remove{color:var(--color-content-disabled);margin-left:2px}\n.filter-chip--active{border-color:var(--color-accent);background:var(--color-accent-subtle);\n  color:var(--color-accent)}\n.filter-chip--active b{color:var(--color-accent)}\n.clear-filters{font-size:var(--font-size-200);color:var(--color-content-subtle);text-decoration:underline}\n.datagrid-toolbar .grow{flex:1}\n\n.checkbox{width:15px;height:15px;border:1.5px solid var(--color-border-strong);\n  border-radius:3px;background:var(--color-surface);display:inline-block;vertical-align:middle}\nthead th{text-align:left;font-size:var(--font-size-100);text-transform:uppercase;\n  letter-spacing:var(--tracking-caps);color:var(--color-content-subtle);font-weight:600;\n  padding:var(--box-padding-sm) var(--space-3);border-bottom:1px solid var(--color-border);\n  white-space:nowrap}\nthead th .sort-indicator{color:var(--color-content-disabled);margin-left:var(--space-1)}\nthead th .column-menu{color:var(--color-content-disabled);margin-left:var(--space-1);opacity:.5}\ntbody td{padding:var(--box-padding-sm) var(--space-3);border-bottom:1px solid var(--color-border);\n  vertical-align:middle}\ntbody tr:last-child td{border-bottom:0}\ntbody tr:hover{background:var(--color-bg-subtle)}\n.col-select{width:38px}\n.task{font-weight:600}\n.person{display:flex;align-items:center;gap:var(--space-2)}\n.person .initials{width:26px;height:26px;border-radius:var(--radius-round);\n  background:var(--gray-200);display:grid;place-items:center;font-size:var(--font-size-100);\n  font-weight:600;color:var(--color-content-subtle);flex:none}\n.subtle{color:var(--color-content-subtle)}\n.numeric{font-variant-numeric:tabular-nums}\n.waiting--overdue{color:var(--color-accent);font-weight:600}\n.stage-pill{display:inline-flex;align-items:center;height:22px;padding:0 var(--space-2);\n  border-radius:var(--radius-round);font-size:var(--font-size-100);font-weight:500;border:1px solid}\n.stage-pill--screening{background:var(--violet-50);border-color:var(--violet-200);color:var(--violet-400)}\n.stage-pill--interview{background:var(--amber-50);border-color:var(--amber-200);color:var(--amber-600)}\n.stage-pill--offer{background:var(--green-50);border-color:var(--green-200);color:var(--green-400)}\n.stage-pill--blocked{background:var(--red-50);border-color:var(--red-200);color:var(--color-accent)}\n.row-action{color:var(--color-accent);font-weight:600;white-space:nowrap}\n.col-action{text-align:right}\n\n.datagrid-footer{display:flex;align-items:center;gap:var(--space-3);\n  padding:var(--space-2) var(--space-3);border-top:1px solid var(--color-border);\n  color:var(--color-content-subtle);font-size:var(--font-size-100)}\n.datagrid-footer .grow{flex:1}\n.page-size{display:inline-flex;align-items:center;gap:var(--space-1)}\n.page-size select{height:26px;border:1px solid var(--color-border-strong);border-radius:var(--radius-1);\n  background:var(--color-surface);font-size:var(--font-size-100);padding:0 2px;color:inherit}\n.pagination{display:flex;gap:var(--space-1)}\n.pagination button{min-width:28px;height:28px;border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-1);background:var(--color-surface);font-size:var(--font-size-100)}\n.pagination button[aria-current]{background:var(--color-content);border-color:var(--color-content);\n  color:var(--color-content-inverse)}\n.pagination button[disabled]{color:var(--color-content-disabled);cursor:default}\n\u003c/style>\n\u003c/head>\n\u003cbody>\n\u003cdiv class=\"app-frame\">\n\n  \u003cnav class=\"side-nav\">\n    \u003cdiv class=\"workspace\">\u003cspan class=\"mark\">\u003c/span>\u003cb>Cavalry\u003c/b>\u003c/div>\n    \u003ca href=\"#\" aria-current=\"page\">\u003cspan class=\"icon\">\u003c/span>Today\u003cspan class=\"count\">8\u003c/span>\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Roles\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Candidates\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Reports\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Settings\u003c/a>\n  \u003c/nav>\n\n  \u003cdiv class=\"app-main\">\n    \u003cheader class=\"app-header\">\n      \u003cdiv class=\"breadcrumb\">\u003cb>Kestrel Labs\u003c/b>\u003c/div>\n      \u003cdiv class=\"grow\">\u003c/div>\n      \u003cbutton class=\"icon-button\" title=\"Help\">?\u003c/button>\n      \u003cdiv class=\"user-avatar\">AB\u003c/div>\n    \u003c/header>\n\n    \u003cmain class=\"page\">\n      \u003cdiv class=\"page-header\">\n        \u003ch1>Today\u003c/h1>\n        \u003cdiv class=\"grow\">\u003c/div>\n      \u003c/div>\n\n      \u003csection class=\"datagrid\">\n        \u003cdiv class=\"datagrid-toolbar\">\n          \u003cdiv class=\"search-field\">\u003cspan>⌕\u003c/span>\u003cspan>Search\u003c/span>\u003c/div>\n          \u003cspan class=\"filter-chip filter-chip--active\">Owner \u003cb>Me\u003c/b> \u003cspan class=\"remove\">✕\u003c/span>\u003c/span>\n          \u003cspan class=\"filter-chip\">Role \u003cb>All\u003c/b> ▾\u003c/span>\n          \u003cspan class=\"filter-chip\">Type \u003cb>All\u003c/b> ▾\u003c/span>\n          \u003cbutton class=\"clear-filters\">Clear all\u003c/button>\n          \u003cdiv class=\"grow\">\u003c/div>\n          \u003cbutton class=\"icon-button\" title=\"Columns\">▦\u003c/button>\n        \u003c/div>\n\n        \u003ctable>\n          \u003cthead>\n            \u003ctr>\n              \u003cth class=\"col-select\">\u003cspan class=\"checkbox\">\u003c/span>\u003c/th>\n              \u003cth>Needs doing \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Candidate \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Role \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Stage \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Waiting \u003cspan class=\"sort-indicator\">↓\u003c/span>\u003c/th>\n              \u003cth class=\"col-action\">\u003c/th>\n            \u003c/tr>\n          \u003c/thead>\n          \u003ctbody>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Approve or override the screen\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">SO\u003c/span>Segun Okafor\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--blocked\">Unreadable CV\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric waiting--overdue\">4 days\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Review\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Approve or override the screen\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">RA\u003c/span>Rahul Anand\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--screening\">Screening\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric waiting--overdue\">3 days\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Review\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Scorecard not submitted\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">MK\u003c/span>Mei Ling Koh\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--interview\">Interview 1\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">2 days\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Remind Sarah\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Book the system design round\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">DN\u003c/span>Daniel Ng\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--interview\">Interview 2\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">1 day\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Book\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Send the offer letter\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">PT\u003c/span>Priya Thangavelu\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--offer\">Offer\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">4 hours\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Send\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Candidate replied on the portal\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">LC\u003c/span>Lucia Chen\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Product Designer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--interview\">Interview 1\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">3 hours\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Read\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Availability not confirmed\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">TB\u003c/span>Tomas Berg\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Product Designer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--screening\">Screening\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">2 hours\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Chase\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Approve or override the screen\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">AI\u003c/span>Amara Ibe\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Product Designer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--screening\">Screening\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">1 hour\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Review\u003c/button>\u003c/td>\n            \u003c/tr>\n          \u003c/tbody>\n        \u003c/table>\n\n        \u003cdiv class=\"datagrid-footer\">\n          \u003cspan class=\"numeric\">1–8 of 8\u003c/span>\n          \u003cspan class=\"page-size\">Show\n            \u003cselect>\u003coption>10\u003c/option>\u003coption selected>25\u003c/option>\u003coption>50\u003c/option>\u003coption>100\u003c/option>\u003c/select>\n          \u003c/span>\n          \u003cdiv class=\"grow\">\u003c/div>\n          \u003cdiv class=\"pagination\">\n            \u003cbutton disabled>‹\u003c/button>\n            \u003cbutton aria-current=\"page\">1\u003c/button>\n            \u003cbutton disabled>›\u003c/button>\n          \u003c/div>\n        \u003c/div>\n      \u003c/section>\n    \u003c/main>\n  \u003c/div>\n\u003c/div>\n\u003c/body>\n\u003c/html>\n","versions":[{"n":1,"label":"Initial version","date":"2026-07-27T12:22:02.473Z","addressed":[],"html":"\u003c!doctype html>\n\u003chtml lang=\"en\">\n\u003chead>\n\u003cmeta charset=\"utf-8\">\n\u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\u003ctitle>Today\u003c/title>\n\u003cstyle>\n/* Cavalry design system — tokens from design/tokens.css (semantic tier) */\n:root{\n  --white:#fff;\n  --gray-50:#f6f4f8; --gray-200:#e6e2ec; --gray-300:#cfc9d8; --gray-400:#aaa2b3;\n  --gray-600:#665e72; --gray-900:#171320;\n  --red-50:#fff1f0; --red-200:#ffb3ad; --red-400:#e02b20; --red-500:#b8231a;\n  --violet-50:#f4effe; --violet-200:#c9b0f8; --violet-400:#7c3aed;\n  --green-50:#e9f9f2; --green-200:#7fe0bd; --green-400:#0b8157;\n  --amber-50:#fef5e6; --amber-200:#fbd38d; --amber-600:#8a5c06;\n\n  --color-bg:var(--white); --color-bg-subtle:var(--gray-50); --color-surface:var(--white);\n  --color-content:var(--gray-900); --color-content-subtle:var(--gray-600);\n  --color-content-disabled:var(--gray-400); --color-content-inverse:var(--white);\n  --color-border:var(--gray-200); --color-border-strong:var(--gray-300);\n  --color-accent:var(--red-400); --color-accent-hover:var(--red-500);\n  --color-accent-subtle:var(--red-50); --color-on-accent:var(--white);\n\n  --font-family-base:Inter,-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;\n  --font-family-display:\"Space Grotesk\",var(--font-family-base);\n  --font-size-100:12px; --font-size-200:14px; --font-size-300:16px;\n  --font-size-400:20px; --font-size-500:28px;\n  --tracking-caps:.06em;\n\n  --space-1:4px; --space-2:8px; --space-3:16px; --space-4:24px; --space-5:32px;\n  --radius-1:4px; --radius-2:8px; --radius-3:12px; --radius-round:9999px;\n  --shadow-1:0 1px 2px rgba(23,19,32,.08);\n\n  --side-nav-width:144px; --header-height:56px;\n  --gutter-screen:var(--space-4);\n  --page-title-gap:var(--space-4); --page-section-gap:var(--space-5);\n  --control-height:40px; --box-padding-sm:var(--space-2); --box-padding:var(--space-3);\n}\n*{box-sizing:border-box}\nbody{margin:0;background:var(--color-bg);color:var(--color-content);\n  font:var(--font-size-200)/1.5 var(--font-family-base);-webkit-font-smoothing:antialiased}\nh1,h2,h3{margin:0;font-family:var(--font-family-display);line-height:1.25;letter-spacing:-.02em}\nbutton{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}\ntable{border-collapse:collapse;width:100%}\n\n/* ── app frame ── */\n.app-frame{display:grid;grid-template-columns:var(--side-nav-width) 1fr;min-height:100vh}\n.side-nav{background:var(--color-bg-subtle);border-right:1px solid var(--color-border);\n  padding:var(--space-3) var(--space-2);display:flex;flex-direction:column;gap:2px}\n.side-nav .workspace{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2);\n  margin-bottom:var(--space-4)}\n.side-nav .workspace .mark{width:20px;height:20px;border-radius:var(--radius-1);\n  background:var(--color-accent);flex:none}\n.side-nav .workspace b{font-family:var(--font-family-display);font-size:var(--font-size-200)}\n.side-nav a{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2);\n  border-radius:var(--radius-2);color:var(--color-content-subtle);text-decoration:none;font-weight:500}\n.side-nav a:hover{background:var(--white)}\n.side-nav a[aria-current]{background:var(--white);color:var(--color-content);box-shadow:var(--shadow-1)}\n.side-nav a .icon{width:16px;height:16px;border-radius:3px;background:currentColor;opacity:.35;flex:none}\n.side-nav a .count{margin-left:auto;font-size:var(--font-size-100);color:var(--color-accent);font-weight:600}\n\n.app-main{min-width:0;display:flex;flex-direction:column}\n.app-header{height:var(--header-height);border-bottom:1px solid var(--color-border);\n  display:flex;align-items:center;gap:var(--space-3);padding:0 var(--gutter-screen);flex:none}\n.app-header .breadcrumb{color:var(--color-content-subtle)}\n.app-header .breadcrumb b{color:var(--color-content);font-weight:600}\n.app-header .grow{flex:1}\n.icon-button{width:32px;height:32px;border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-2);background:var(--color-surface);display:grid;place-items:center;\n  color:var(--color-content-subtle)}\n.icon-button:hover{background:var(--color-bg-subtle);color:var(--color-content)}\n.user-avatar{width:28px;height:28px;border-radius:var(--radius-round);background:var(--violet-200);\n  display:grid;place-items:center;font-size:var(--font-size-100);font-weight:600;color:var(--violet-400)}\n\n/* ── page ── */\n.page{padding:var(--gutter-screen);flex:1}\n.page-header{display:flex;align-items:flex-start;gap:var(--space-3);margin-bottom:var(--page-title-gap)}\n.page-header h1{font-size:var(--font-size-500)}\n.page-header .grow{flex:1}\n\n.button{height:var(--control-height);padding:0 var(--space-3);border-radius:var(--radius-2);\n  border:1px solid var(--color-border-strong);background:var(--color-surface);font-weight:500;\n  display:inline-flex;align-items:center;gap:var(--space-2);white-space:nowrap}\n.button:hover{background:var(--color-bg-subtle)}\n.button--primary{background:var(--color-accent);border-color:var(--color-accent);\n  color:var(--color-on-accent)}\n.button--primary:hover{background:var(--color-accent-hover)}\n\n/* ── datagrid ── */\n.datagrid{border:1px solid var(--color-border);border-radius:var(--radius-3);overflow:hidden;\n  background:var(--color-surface)}\n.datagrid-toolbar{display:flex;align-items:center;gap:var(--space-2);\n  padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--color-border);\n  background:var(--color-bg-subtle)}\n.search-field{flex:1;max-width:300px;height:32px;border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-2);background:var(--color-surface);display:flex;align-items:center;\n  gap:var(--space-2);padding:0 var(--space-2);color:var(--color-content-disabled)}\n.filter-chip{height:32px;padding:0 var(--space-2);border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-2);background:var(--color-surface);display:inline-flex;align-items:center;\n  gap:var(--space-1);font-size:var(--font-size-200);color:var(--color-content-subtle)}\n.filter-chip b{color:var(--color-content);font-weight:500}\n.filter-chip .remove{color:var(--color-content-disabled);margin-left:2px}\n.filter-chip--active{border-color:var(--color-accent);background:var(--color-accent-subtle);\n  color:var(--color-accent)}\n.filter-chip--active b{color:var(--color-accent)}\n.clear-filters{font-size:var(--font-size-200);color:var(--color-content-subtle);text-decoration:underline}\n.datagrid-toolbar .grow{flex:1}\n\n.checkbox{width:15px;height:15px;border:1.5px solid var(--color-border-strong);\n  border-radius:3px;background:var(--color-surface);display:inline-block;vertical-align:middle}\nthead th{text-align:left;font-size:var(--font-size-100);text-transform:uppercase;\n  letter-spacing:var(--tracking-caps);color:var(--color-content-subtle);font-weight:600;\n  padding:var(--box-padding-sm) var(--space-3);border-bottom:1px solid var(--color-border);\n  white-space:nowrap}\nthead th .sort-indicator{color:var(--color-content-disabled);margin-left:var(--space-1)}\nthead th .column-menu{color:var(--color-content-disabled);margin-left:var(--space-1);opacity:.5}\ntbody td{padding:var(--box-padding-sm) var(--space-3);border-bottom:1px solid var(--color-border);\n  vertical-align:middle}\ntbody tr:last-child td{border-bottom:0}\ntbody tr:hover{background:var(--color-bg-subtle)}\n.col-select{width:38px}\n.task{font-weight:600}\n.person{display:flex;align-items:center;gap:var(--space-2)}\n.person .initials{width:26px;height:26px;border-radius:var(--radius-round);\n  background:var(--gray-200);display:grid;place-items:center;font-size:var(--font-size-100);\n  font-weight:600;color:var(--color-content-subtle);flex:none}\n.subtle{color:var(--color-content-subtle)}\n.numeric{font-variant-numeric:tabular-nums}\n.waiting--overdue{color:var(--color-accent);font-weight:600}\n.stage-pill{display:inline-flex;align-items:center;height:22px;padding:0 var(--space-2);\n  border-radius:var(--radius-round);font-size:var(--font-size-100);font-weight:500;border:1px solid}\n.stage-pill--screening{background:var(--violet-50);border-color:var(--violet-200);color:var(--violet-400)}\n.stage-pill--interview{background:var(--amber-50);border-color:var(--amber-200);color:var(--amber-600)}\n.stage-pill--offer{background:var(--green-50);border-color:var(--green-200);color:var(--green-400)}\n.stage-pill--blocked{background:var(--red-50);border-color:var(--red-200);color:var(--color-accent)}\n.row-action{color:var(--color-accent);font-weight:600;white-space:nowrap}\n.col-action{text-align:right}\n\n.datagrid-footer{display:flex;align-items:center;gap:var(--space-3);\n  padding:var(--space-2) var(--space-3);border-top:1px solid var(--color-border);\n  color:var(--color-content-subtle);font-size:var(--font-size-100)}\n.datagrid-footer .grow{flex:1}\n.page-size{display:inline-flex;align-items:center;gap:var(--space-1)}\n.page-size select{height:26px;border:1px solid var(--color-border-strong);border-radius:var(--radius-1);\n  background:var(--color-surface);font-size:var(--font-size-100);padding:0 2px;color:inherit}\n.pagination{display:flex;gap:var(--space-1)}\n.pagination button{min-width:28px;height:28px;border:1px solid var(--color-border-strong);\n  border-radius:var(--radius-1);background:var(--color-surface);font-size:var(--font-size-100)}\n.pagination button[aria-current]{background:var(--color-content);border-color:var(--color-content);\n  color:var(--color-content-inverse)}\n.pagination button[disabled]{color:var(--color-content-disabled);cursor:default}\n\u003c/style>\n\u003c/head>\n\u003cbody>\n\u003cdiv class=\"app-frame\">\n\n  \u003cnav class=\"side-nav\">\n    \u003cdiv class=\"workspace\">\u003cspan class=\"mark\">\u003c/span>\u003cb>Cavalry\u003c/b>\u003c/div>\n    \u003ca href=\"#\" aria-current=\"page\">\u003cspan class=\"icon\">\u003c/span>Today\u003cspan class=\"count\">8\u003c/span>\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Roles\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Candidates\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Reports\u003c/a>\n    \u003ca href=\"#\">\u003cspan class=\"icon\">\u003c/span>Settings\u003c/a>\n  \u003c/nav>\n\n  \u003cdiv class=\"app-main\">\n    \u003cheader class=\"app-header\">\n      \u003cdiv class=\"breadcrumb\">\u003cb>Kestrel Labs\u003c/b>\u003c/div>\n      \u003cdiv class=\"grow\">\u003c/div>\n      \u003cbutton class=\"icon-button\" title=\"Help\">?\u003c/button>\n      \u003cdiv class=\"user-avatar\">AB\u003c/div>\n    \u003c/header>\n\n    \u003cmain class=\"page\">\n      \u003cdiv class=\"page-header\">\n        \u003ch1>Today\u003c/h1>\n        \u003cdiv class=\"grow\">\u003c/div>\n      \u003c/div>\n\n      \u003csection class=\"datagrid\">\n        \u003cdiv class=\"datagrid-toolbar\">\n          \u003cdiv class=\"search-field\">\u003cspan>⌕\u003c/span>\u003cspan>Search\u003c/span>\u003c/div>\n          \u003cspan class=\"filter-chip filter-chip--active\">Owner \u003cb>Me\u003c/b> \u003cspan class=\"remove\">✕\u003c/span>\u003c/span>\n          \u003cspan class=\"filter-chip\">Role \u003cb>All\u003c/b> ▾\u003c/span>\n          \u003cspan class=\"filter-chip\">Type \u003cb>All\u003c/b> ▾\u003c/span>\n          \u003cbutton class=\"clear-filters\">Clear all\u003c/button>\n          \u003cdiv class=\"grow\">\u003c/div>\n          \u003cbutton class=\"icon-button\" title=\"Columns\">▦\u003c/button>\n        \u003c/div>\n\n        \u003ctable>\n          \u003cthead>\n            \u003ctr>\n              \u003cth class=\"col-select\">\u003cspan class=\"checkbox\">\u003c/span>\u003c/th>\n              \u003cth>Needs doing \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Candidate \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Role \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Stage \u003cspan class=\"column-menu\">▾\u003c/span>\u003c/th>\n              \u003cth>Waiting \u003cspan class=\"sort-indicator\">↓\u003c/span>\u003c/th>\n              \u003cth class=\"col-action\">\u003c/th>\n            \u003c/tr>\n          \u003c/thead>\n          \u003ctbody>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Approve or override the screen\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">SO\u003c/span>Segun Okafor\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--blocked\">Unreadable CV\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric waiting--overdue\">4 days\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Review\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Approve or override the screen\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">RA\u003c/span>Rahul Anand\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--screening\">Screening\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric waiting--overdue\">3 days\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Review\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Scorecard not submitted\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">MK\u003c/span>Mei Ling Koh\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--interview\">Interview 1\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">2 days\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Remind Sarah\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Book the system design round\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">DN\u003c/span>Daniel Ng\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--interview\">Interview 2\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">1 day\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Book\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Send the offer letter\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">PT\u003c/span>Priya Thangavelu\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Senior Backend Engineer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--offer\">Offer\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">4 hours\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Send\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Candidate replied on the portal\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">LC\u003c/span>Lucia Chen\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Product Designer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--interview\">Interview 1\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">3 hours\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Read\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Availability not confirmed\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">TB\u003c/span>Tomas Berg\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Product Designer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--screening\">Screening\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">2 hours\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Chase\u003c/button>\u003c/td>\n            \u003c/tr>\n            \u003ctr>\n              \u003ctd>\u003cspan class=\"checkbox\">\u003c/span>\u003c/td>\n              \u003ctd class=\"task\">Approve or override the screen\u003c/td>\n              \u003ctd>\u003cdiv class=\"person\">\u003cspan class=\"initials\">AI\u003c/span>Amara Ibe\u003c/div>\u003c/td>\n              \u003ctd class=\"subtle\">Product Designer\u003c/td>\n              \u003ctd>\u003cspan class=\"stage-pill stage-pill--screening\">Screening\u003c/span>\u003c/td>\n              \u003ctd class=\"numeric\">1 hour\u003c/td>\n              \u003ctd class=\"col-action\">\u003cbutton class=\"row-action\">Review\u003c/button>\u003c/td>\n            \u003c/tr>\n          \u003c/tbody>\n        \u003c/table>\n\n        \u003cdiv class=\"datagrid-footer\">\n          \u003cspan class=\"numeric\">1–8 of 8\u003c/span>\n          \u003cspan class=\"page-size\">Show\n            \u003cselect>\u003coption>10\u003c/option>\u003coption selected>25\u003c/option>\u003coption>50\u003c/option>\u003coption>100\u003c/option>\u003c/select>\n          \u003c/span>\n          \u003cdiv class=\"grow\">\u003c/div>\n          \u003cdiv class=\"pagination\">\n            \u003cbutton disabled>‹\u003c/button>\n            \u003cbutton aria-current=\"page\">1\u003c/button>\n            \u003cbutton disabled>›\u003c/button>\n          \u003c/div>\n        \u003c/div>\n      \u003c/section>\n    \u003c/main>\n  \u003c/div>\n\u003c/div>\n\u003c/body>\n\u003c/html>\n"}],"reviews":{"1":{"version":1,"updatedAt":"2026-07-27T12:22:17.313Z","annotations":[{"severity":"must","status":"open","note":"The overdue rows should be sorted to the top automatically.","size":"desktop","replies":[{"by":"claude","text":"Do you mean every overdue row, or only the ones assigned to you?","at":"2026-07-27T12:22:15.906Z"},{"by":"reviewer","text":"Every overdue row, regardless of owner.","at":"2026-07-27T12:22:16.610Z"}],"id":"cqlgfgu","kind":"comment","point":{"x":361.49421542553193,"y":243.95744680851067},"anchorText":"Approve or override the screen"},{"severity":"must","status":"open","note":"This whole block needs more breathing room.","size":"desktop","replies":[],"id":"c7wdvcl","kind":"area","rect":{"x":382.97872340425533,"y":319.1489361702128,"w":510.63829787234044,"h":114.89361702127661},"anchorText":""}]}}}</script>
+<script>
+/* vstack:shell js
+   The behaviour behind the top bar: theme, language, the link dot, and the
+   page's own name. Everything else — what the page does — is the page's.
+
+   Nothing here touches the network or the document beyond the bar, so a page
+   works identically served, opened off disk, or published as an Artifact. */
+window.VSShell = (function () {
+  const $ = s => document.querySelector(s);
+  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang' };
+  const store = {
+    get (k, d) { try { return localStorage.getItem(k) ?? d } catch { return d } },
+    set (k, v) { try { localStorage.setItem(k, v) } catch {} },
+  };
+
+  /* ── theme: auto (whatever the OS says) / light / dark ──
+     Auto is the absence of an override, so the page keeps following the system
+     if it changes while open — and an Artifact viewer's own toggle still wins
+     the same way it does on a page that never had this control. */
+  let theme = store.get(KEY.theme, 'auto');
+  function applyTheme () {
+    if (theme === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('#themeSwitch button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.themeSet === theme));
+    });
+  }
+  function setTheme (next) {
+    theme = ['auto', 'light', 'dark'].includes(next) ? next : 'auto';
+    store.set(KEY.theme, theme);
+    applyTheme();
+  }
+
+  /* ── language: chrome only. Page content stays as authored. ── */
+  const storedLang = store.get(KEY.lang, null);
+  let lang = storedLang === 'zh' ? 'zh' : 'en';
+  const langListeners = [];
+  function applyLang () {
+    // zh-CN, not zh: the specific tag is what picks the right font and
+    // line-breaking for simplified Chinese.
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+    document.querySelectorAll('#langSwitch button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+    });
+    langListeners.forEach(fn => { try { fn(lang) } catch {} });
+  }
+  function setLang (next) {
+    lang = next === 'zh' ? 'zh' : 'en';
+    store.set(KEY.lang, lang);
+    applyLang();
+  }
+
+  /* ── the live link, said out loud ── */
+  function setLink (up, labels) {
+    const el = $('#linkDot');
+    if (!el) return;
+    el.hidden = false;
+    el.classList.toggle('on', !!up);
+    el.textContent = up ? (labels?.on ?? 'LINKED TO CLAUDE') : (labels?.off ?? 'LINK LOST');
+    el.title = up ? '' : (labels?.offTitle ?? '');
+  }
+  const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  function name (pageName, eyebrow) {
+    const n = $('#pageName'); const e = $('#pageEyebrow');
+    if (n && pageName != null) n.textContent = pageName;
+    if (e && eyebrow != null) e.textContent = eyebrow;
+  }
+
+  function init (opts = {}) {
+    document.querySelectorAll('#themeSwitch button').forEach(b => {
+      b.addEventListener('click', () => setTheme(b.dataset.themeSet));
+    });
+    document.querySelectorAll('#langSwitch button').forEach(b => {
+      b.addEventListener('click', () => setLang(b.dataset.lang));
+    });
+    if (opts.onLang) langListeners.push(opts.onLang);
+    // `defaultLang` is what the artifact was authored in — it opens that way
+    // once, and after that the reader's own choice is the one that sticks.
+    if (opts.defaultLang && !storedLang) lang = opts.defaultLang === 'zh' ? 'zh' : 'en';
+    if (opts.lang) { lang = opts.lang === 'zh' ? 'zh' : 'en'; store.set(KEY.lang, lang) }
+    // Not every page sends something back — the form doesn't — so the primary
+    // action stays out of the bar unless a page asks for it.
+    const send = $('#send');
+    if (send && opts.send) send.hidden = false;
+    name(opts.name, opts.eyebrow);
+    applyTheme();
+    applyLang();
+    return api;
+  }
+
+  const api = {
+    init, setTheme, setLang, setLink, hideLink, name,
+    get theme () { return theme },
+    get lang () { return lang },
+    onLang (fn) { langListeners.push(fn) },
+  };
+  return api;
+})();
+/* /vstack:shell js */
+</script>
 <script>
 "use strict";
 /* ══════════════════════════════════════════════════════════════════════
@@ -392,7 +763,9 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const uid = () => 'c' + Math.random().toString(36).slice(2, 8);
 
-const SEV_COLOR = { must: 'var(--must)', should: 'var(--should)', nice: 'var(--nice)' };
+/* One severity: everything the reviewer writes is something to do. The mark
+   colour is the accent, and nothing on screen has to be decoded. */
+const MARK = 'var(--brand)';
 
 /* ── language ─────────────────────────────────────────────────────────
    The workspace chrome speaks two languages; the page under review is
@@ -403,7 +776,7 @@ const STR = {
     view: 'View — click through the page (space)', annotate: 'Annotate — click for a comment, drag for an area (space)',
     del: 'Delete comment', clearAll: 'Clear all', clearSure: 'Sure?',
     cleared: n => `Cleared ${n} comment${n > 1 ? 's' : ''}`,
-    comments: 'Comments', anySeverity: 'Any severity', must: 'Must', should: 'Should', nice: 'Nice',
+    comments: 'Comments',
     open: 'Open', asked: 'Claude asked', all: 'All', addressed: 'Addressed',
     send: 'Send to Claude', copyFor: 'Copy for Claude',
     comment: 'Comment', areaComment: 'Area comment', notePlaceholder: 'What needs to change?',
@@ -428,13 +801,45 @@ const STR = {
     raised: v => `Raised on v${v} — still unanswered`, onlyOne: 'Only one version so far',
     ultrawide: 'Ultrawide', desktop: 'Desktop', tablet: 'Tablet', phone: 'Phone',
     noServer: 'Could not reach the review server.',
+    save: 'Save', newlineHint: 'Shift+Enter for a new line',
+    linkOn: 'Linked', linkOff: 'Link lost',
+    linkOffTitle: 'The Claude session is no longer serving this review — anything you write is kept in this tab only.',
+    workingOn: n => `Claude is working on ${n} comment${n > 1 ? 's' : ''}`,
+    cancel: 'Cancel', cancelled: 'Asked Claude to pause', cancelFail: 'Could not ask Claude to stop',
+    addressedGroup: n => `Addressed (${n})`,
+    revert: 'Revert', refine: 'Refine',
+    revertTitle: 'Ask Claude to put this back the way it was',
+    refineTitle: 'Reopen this and say what still needs doing',
+    revertAsked: 'Revert requested — send it back to Claude',
+    refineAsked: 'Reopened — say what still needs doing',
+    revertNote: 'Revert this change — put it back the way it was before.',
+    wantsRevert: 'Revert requested',
+    approve: 'Approve & finish', approveSure: 'Approve & close the review?',
+    approveHint: 'The design is signed off — close the review and let Claude carry on.',
+    approveOpen: n => `${n} open comment${n > 1 ? 's' : ''} will be left unapplied.`,
+    approvedTitle: 'Approved — the review is closed',
+    approvedBody: 'Claude has been told the design is signed off and can carry on. You can close this tab.',
+    approveFail: 'Could not reach the server to approve',
+    share: 'Publish a link to this wireframe',
+    shareWorking: 'Claude is publishing the link…', shareWait: 'It appears here when it is ready.',
+    shareReady: 'Wireframe link — click to copy',
+    shareStale: 'Republish the wireframe link',
+    shareStaleHint: v => `The published link shows v${v} — the wireframe has moved on since.`,
+    shareAsked: 'Asked Claude for a link to the wireframe',
+    shareBannerReady: '<b>The wireframe link is ready</b>', copyLink: 'Copy link',
+    shareFail: 'Could not ask for a link',
+    sendReply: 'Reply', addReply: 'Reply',
+    coversN: n => `${n} element${n > 1 ? 's' : ''} inside`,
+    offscreen: 'not on screen', offscreenToast: 'Not on the page right now',
+    anchorGone: 'not on screen', anchorLoose: 'moved since this version',
+    inRegion: (k, l) => k === 'region' ? (l ? `in “${l}”` : '') : (l ? `in ${k} “${l}”` : `in ${k}`),
   },
   zh: {
     viewLabel: '查看', annotateLabel: '批注',
     view: '查看 — 直接操作页面（空格键）', annotate: '批注 — 点击留言，拖拽框选区域（空格键）',
     del: '删除批注', clearAll: '全部清除', clearSure: '确定？',
     cleared: n => `已清除 ${n} 条批注`,
-    comments: '批注', anySeverity: '全部优先级', must: '必须', should: '建议', nice: '可选',
+    comments: '批注',
     open: '待处理', asked: 'Claude 提问', all: '全部', addressed: '已处理',
     send: '发送给 Claude', copyFor: '复制给 Claude',
     comment: '批注', areaComment: '区域批注', notePlaceholder: '需要改什么？',
@@ -459,6 +864,38 @@ const STR = {
     raised: v => `在 v${v} 提出 — 仍未解决`, onlyOne: '目前只有一个版本',
     ultrawide: '超宽屏', desktop: '桌面', tablet: '平板', phone: '手机',
     noServer: '无法连接评审服务器。',
+    save: '保存', newlineHint: 'Shift+Enter 换行',
+    linkOn: '已连接', linkOff: '连接已断开',
+    linkOffTitle: 'Claude 会话不再提供此评审——你写的内容只保存在这个标签页里。',
+    workingOn: n => `Claude 正在处理 ${n} 条批注`,
+    cancel: '取消', cancelled: '已请求 Claude 暂停', cancelFail: '无法通知 Claude 停止',
+    addressedGroup: n => `已处理（${n}）`,
+    revert: '撤回', refine: '继续完善',
+    revertTitle: '让 Claude 把这处改回原样',
+    refineTitle: '重新打开这条，说明还差什么',
+    revertAsked: '已标记撤回 — 发送后 Claude 会处理',
+    refineAsked: '已重新打开 — 说明还差什么',
+    revertNote: 'Revert this change — put it back the way it was before.',
+    wantsRevert: '要求撤回',
+    approve: '批准并结束', approveSure: '确定批准并关闭评审？',
+    approveHint: '设计已定稿——关闭评审，让 Claude 继续下一步。',
+    approveOpen: n => `还有 ${n} 条批注不会被处理。`,
+    approvedTitle: '已批准 — 评审已关闭',
+    approvedBody: 'Claude 已收到定稿通知，可以继续下一步。你可以关闭此标签页。',
+    approveFail: '无法连接服务器，批准失败',
+    share: '发布原型链接',
+    shareWorking: 'Claude 正在发布链接…', shareWait: '完成后会显示在这里。',
+    shareReady: '原型链接 — 点击复制',
+    shareStale: '重新发布原型链接',
+    shareStaleHint: v => `已发布的链接是 v${v}，之后原型又有更新。`,
+    shareAsked: '已请求 Claude 生成原型链接',
+    shareBannerReady: '<b>原型链接已就绪</b>', copyLink: '复制链接',
+    shareFail: '无法请求分享链接',
+    sendReply: '发送', addReply: '回复',
+    coversN: n => `框内 ${n} 个元素`,
+    offscreen: '当前不可见', offscreenToast: '页面上当前看不到这个元素',
+    anchorGone: '当前不可见', anchorLoose: '页面已改动，位置为大致位置',
+    inRegion: (k, l) => k === 'region' ? (l ? `位于「${l}」` : '') : (l ? `位于 ${k}「${l}」` : `位于 ${k}`),
   },
 };
 let LANG = 'en';
@@ -487,8 +924,17 @@ const S = {
   zoom: 1,
   ann: [], carried: [],
   sel: null,
+  // Comments whose element is not on the page as it stands right now.
+  offscreen: new Set(),
+  // Threads opened in the panel, and which reply box the cursor is in.
+  threadOpen: new Set(), focusReply: null,
   awaiting: false, pendingUpdate: null, sentSig: null,
-  filter: { severity: '', status: 'open' },
+  // Which comments went out with the last send and have not come back yet.
+  working: new Set(),
+  linked: null,   // null until the connection has actually said one way or other
+  // The shareable Artifact: asked for here, published by Claude, link comes back.
+  share: { url: null, version: null, pending: false },
+  filter: { status: 'open' },
 };
 const isHistory = () => S.viewing !== S.version;
 
@@ -505,18 +951,19 @@ async function boot () {
     }
   }
   S.runtime = data.mode || (inline ? 'artifact' : 'local');
-  S.name = data.name || 'Mockup';
+  S.name = data.name || 'Wireframe';
   S.fileName = data.fileName || 'page.html';
   S.html = data.html || '';
   S.versions = data.versions || [];
   S.reviews = data.reviews || {};
   S.version = S.viewing = data.currentVersion || 1;
+  adoptShare(data);
 
   loadAnnotations();
-  $('#pageName').textContent = S.name;
-  document.title = S.name + ' — Review';
+  VSShell.init({ name: S.name, eyebrow: 'Review' });
+  document.title = S.name + ' — Review · Visual Stack';
   $('#urlBar').textContent = S.fileName;
-  LANG = (localStorage.getItem('ui-review:lang') === 'zh') ? 'zh' : 'en';
+  LANG = VSShell.lang;
   buildSizes(); wireChrome(); wireComposer(); buildTimeline(); applyLang();
   setMode('annotate'); loadFrame(); render();
   if (S.runtime === 'local') liveReload();
@@ -525,6 +972,9 @@ async function boot () {
 function loadAnnotations () {
   const local = S.runtime === 'artifact' ? lsGet() : null;
   S.ann = (local ?? S.reviews[S.version]?.annotations ?? []).map(normalise);
+  // A question is waiting on an answer — open its thread so the box to type it
+  // in is already there.
+  for (const a of S.ann) if (a.status === 'question') S.threadOpen.add(a.id);
   S.carried = [];
   for (const [v, rev] of Object.entries(S.reviews)) {
     if (Number(v) >= S.version) continue;
@@ -535,7 +985,7 @@ function loadAnnotations () {
 }
 // status: open (waiting on Claude) · question (Claude asked, waiting on you) ·
 // addressed (Claude changed it). Only Claude moves a comment to addressed.
-const normalise = a => ({ severity: 'must', status: 'open', note: '', size: 'desktop', replies: [], ...a });
+const normalise = a => ({ status: 'open', note: '', size: 'desktop', replies: [], ...a });
 const lsKey = () => `ui-review:${S.fileName}:v${S.version}`;
 const lsGet = () => { try { return JSON.parse(localStorage.getItem(lsKey())) } catch { return null } };
 
@@ -560,9 +1010,16 @@ function save () {
     under the reviewer — announce it, let them pick the moment. */
 function liveReload () {
   const es = new EventSource('/api/events');
+  // The same tell the story map carries: whether the session on the other end
+  // is still there. EventSource reconnects on its own, so this only ever
+  // reports what is true right now.
+  es.onopen = () => setLink(true);
+  es.onerror = () => setLink(false);
   es.addEventListener('reload', async () => {
     let data;
     try { data = await (await fetch('/api/project')).json() } catch { return }
+    // The link can land on its own, without the page or the review moving.
+    adoptShare(data, true);
     const bumped = (data.currentVersion || 1) !== S.version;
     if (!bumped && data.html === S.html) {
       // Only the conversation moved — fold it in without touching the page.
@@ -574,23 +1031,68 @@ function liveReload () {
       return;
     }
     S.pendingUpdate = data;
+    // Mid-edit saves are not news — the comments being worked on already say so.
+    // Only a version that has actually landed is worth interrupting for.
     if (bumped) {
       const meta = (data.versions || []).find(v => v.n === data.currentVersion);
-      showWork('ready', T('ready')(data.currentVersion) + (meta?.label ? ' — ' + esc(meta.label) : ''));
-    } else if (S.awaiting) showWork('working', esc(T('editing')));
-    else showWork('ready', T('changed'));
+      showWork(T('ready')(data.currentVersion) + (meta?.label ? ' — ' + esc(meta.label) : ''));
+    } else if (!S.awaiting) showWork(T('changed'));
   });
 }
-function showWork (state, html) {
+function showWork (html) {
   const b = $('#workBanner');
-  b.classList.add('on');
-  b.classList.toggle('ready', state === 'ready');
-  $('#workSpin').style.display = state === 'working' ? '' : 'none';
-  $('#workText').innerHTML = (state === 'ready' ? '<span class="tick">✓</span> ' : '') + html;
-  $('#btnRefresh').style.display = state === 'ready' ? '' : 'none';
-  $('#btnDismissWork').style.display = state === 'ready' ? '' : 'none';
+  b.classList.add('on', 'ready');
+  $('#workText').innerHTML = '<span class="tick">✓</span> ' + html;
 }
 const hideWork = () => $('#workBanner').classList.remove('on');
+
+/** Is the session on the other end still there? Silent until it knows — a dot
+    that says "lost" during the first handshake is just wrong. */
+function setLink (up) {
+  S.linked = up;
+  if (S.runtime !== 'local' || up === null) { VSShell.hideLink(); return }
+  VSShell.setLink(up, { on: T('linkOn'), off: T('linkOff'), offTitle: T('linkOffTitle') });
+}
+
+/* ─────────────── work in flight ───────────────
+   A sent comment is out of the reviewer's hands until Claude publishes or
+   answers. Saying so on the comment itself — and offering to call it off there —
+   beats a banner that covers the page it is talking about. */
+const setWorking = ids => { S.working = new Set(ids); renderPanel() };
+function clearWorking () {
+  if (!S.working.size) return;
+  S.working.clear();
+  renderPanel();
+}
+function renderWork () {
+  // A comment Claude has finished with, or asked about, is no longer in flight.
+  for (const id of [...S.working]) {
+    const a = S.ann.find(x => x.id === id);
+    if (!a || a.status !== 'open') S.working.delete(id);
+  }
+  const n = S.working.size;
+  $('#pwork').hidden = !n;
+  if (n) $('#pworkText').textContent = T('workingOn')(n);
+  composer.classList.toggle('working', !!S.sel && S.working.has(S.sel));
+}
+
+/** Stop, rather than let Claude finish something the reviewer no longer wants. */
+async function cancelWork () {
+  const ids = [...S.working];
+  clearWorking();
+  S.awaiting = false;
+  if (S.runtime !== 'local') return;
+  try {
+    await fetch('/api/cancel', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: S.version, comments: ids, reason: 'The reviewer cancelled this round from the workspace.' }),
+    });
+    // Sending the same review again has to be possible after calling it off.
+    S.sentSig = null;
+    renderCounts();
+    toast(T('cancelled'));
+  } catch { toast(T('cancelFail')) }
+}
 
 /** Server-side thread state wins; whatever the reviewer is typing does not. */
 function mergeThreads (serverAnn) {
@@ -601,22 +1103,31 @@ function mergeThreads (serverAnn) {
     const local = S.ann.find(a => a.id === sa.id);
     if (!local) { S.ann.push(normalise(sa)); changed = true; continue }
     const sr = (sa.replies || []).length, lr = (local.replies || []).length;
-    if (sr !== lr) { local.replies = sa.replies || []; changed = true }
-    if (sa.status !== local.status) { local.status = sa.status; changed = true }
+    // Claude has said something — open that thread in the list, where the
+    // answer is going to be typed.
+    if (sr !== lr) { local.replies = sa.replies || []; S.threadOpen.add(local.id); changed = true }
+    if (sa.status !== local.status) {
+      local.status = sa.status;
+      if (sa.status === 'question') S.threadOpen.add(local.id);
+      // A comment that has been addressed again starts clean: whatever was
+      // asked for on the way here has now been answered.
+      if (sa.status === 'addressed') { delete local.revert; delete local.reopenedAt }
+      changed = true;
+    }
   }
   return changed;
 }
 
 function adoptUpdate () {
   const data = S.pendingUpdate;
-  S.pendingUpdate = null; S.awaiting = false; hideWork();
+  S.pendingUpdate = null; S.awaiting = false; hideWork(); clearWorking();
   if (!data) { loadFrame(true); return }
   const bumped = (data.currentVersion || 1) !== S.version;
   S.html = data.html; S.versions = data.versions; S.reviews = data.reviews;
   S.version = data.currentVersion; S.name = data.name || S.name;
   if (bumped) { S.viewing = S.version; loadAnnotations(); S.sentSig = null }
   closeComposer();
-  $('#pageName').textContent = S.name;
+  VSShell.name(S.name);
   buildTimeline(); loadFrame(); render();
   if (bumped) toast(T('nowReviewing')(S.version));
 }
@@ -647,8 +1158,6 @@ function setSize (id) {
 }
 /** Re-label every static surface. Comment text is the reviewer's, never ours. */
 function applyLang () {
-  document.documentElement.lang = LANG === 'zh' ? 'zh' : 'en';
-  $$('#langSwitch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === LANG)));
   const mv = $('#modeSwitch [data-mode=view]'), ma = $('#modeSwitch [data-mode=annotate]');
   mv.textContent = T('viewLabel'); mv.title = T('view');
   ma.innerHTML = esc(T('annotateLabel')) + ' <span class="kbd">space</span>'; ma.title = T('annotate');
@@ -656,14 +1165,20 @@ function applyLang () {
   $('#btnNow').textContent = T('backToCurrent');
   $('#btnRefresh').textContent = T('reviewChanges');
   $('#btnDismissWork').textContent = T('later');
+  $('#btnCopyShare').textContent = T('copyLink');
+  $('#btnDismissShare').textContent = T('later');
+  if ($('#shareBanner').classList.contains('on')) showShareReady();
+  $('#btnCancel').textContent = T('cancel');
+  renderApprove(); renderShare();
+  composer.querySelector('.csave').innerHTML = esc(T('save')) + ' <span class="kbd">⏎</span>';
+  composer.querySelector('.hint').textContent = T('newlineHint');
+  setLink(S.linked);
+  renderWork();
   $('#phead').querySelector('b').textContent = T('comments');
   $('#btnSend').innerHTML = (S.runtime === 'artifact' ? T('copyFor') : T('send')) + ' <span class="kbd">⌘⏎</span>';
-  const sev = $('#fSeverity'), st = $('#fStatus');
-  [['', 'anySeverity'], ['must', 'must'], ['should', 'should'], ['nice', 'nice']]
-    .forEach(([v, k], i) => { sev.options[i].textContent = T(k) });
+  const st = $('#fStatus');
   [['open', 'open'], ['question', 'asked'], ['', 'all'], ['addressed', 'addressed']]
     .forEach(([v, k], i) => { st.options[i].textContent = T(k) });
-  $$('.sevs button', composer).forEach(b => b.textContent = T(b.dataset.sev));
   buildSizes();
   render(); syncTimeline();
   if (S.sel) openComposer(S.sel, false);
@@ -671,14 +1186,12 @@ function applyLang () {
 function setLang (l) {
   if (l === LANG) return;
   LANG = l;
-  try { localStorage.setItem('ui-review:lang', l) } catch {}
   applyLang();
 }
 
 function wireChrome () {
   $$('#modeSwitch button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
-  $$('#langSwitch button').forEach(b => b.onclick = () => setLang(b.dataset.lang));
-  $('#fSeverity').onchange = e => { S.filter.severity = e.target.value; renderPanel() };
+  VSShell.onLang(setLang);   /* the switch is the shell's; this is the workspace's answer */
   $('#fStatus').onchange = e => { S.filter.status = e.target.value; renderPanel() };
   $('#btnReload').onclick = () => S.pendingUpdate ? adoptUpdate() : loadFrame(true);
   // Two clicks, because throwing away a whole review by accident would sting.
@@ -701,6 +1214,9 @@ function wireChrome () {
   $('#btnNow').onclick = () => gotoVersion(S.version);
   $('#btnRefresh').onclick = adoptUpdate;
   $('#btnDismissWork').onclick = hideWork;
+  $('#btnCopyShare').onclick = () => { if (S.share.url) copy(S.share.url); hideShare() };
+  $('#btnDismissShare').onclick = hideShare;
+  $('#btnCancel').onclick = cancelWork;
   $('#canvasWrap').addEventListener('scroll', reposition);
   $('#viewportBox').addEventListener('scroll', reposition);
 }
@@ -742,7 +1258,9 @@ function loadFrame (keepScroll) {
   $('#winVersion').classList.toggle('hist', isHistory());
   frame.onload = () => {
     fdoc = frame.contentDocument;
-    bindFrameKeys();
+    // Every element reference belongs to the document that just went away.
+    forgetAnchors();
+    bindFrameKeys(); watchFrame();
     sizeFrame(); drawMarks();
     vpBox.scrollTop = sc;
     if (!keepScroll) fitZoom();
@@ -826,7 +1344,9 @@ function setMode (m) {
   });
   overlay.classList.toggle('view', m === 'view');
   overlay.style.cursor = m === 'annotate' ? 'crosshair' : 'default';
-  if (m === 'view') closeComposer();
+  // View mode is where the page gets driven — modals opened, tabs switched.
+  // Coming back to Annotate, the marks answer to whatever is on screen now.
+  if (m === 'view') closeComposer(); else scheduleSync();
 }
 const toggleMode = () => setMode(S.mode === 'annotate' ? 'view' : 'annotate');
 
@@ -834,7 +1354,7 @@ function onKey (e) {
   const t = e.target;
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable;
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); openSend(); return }
-  if (e.key === 'Escape') { closeComposer(); return }
+  if (e.key === 'Escape') { closeSendMenu(); closeComposer(); return }
   if (typing) return;
   if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); toggleMode(); return }
   if (e.key === 'ArrowLeft') stepVersion(-1);
@@ -856,18 +1376,293 @@ const pt = e => {
   const r = overlayRect || overlay.getBoundingClientRect();
   return { x: (e.clientX - r.left) / S.zoom, y: (e.clientY - r.top) / S.zoom };
 };
+/* ════════════════════ what a comment is attached to ════════════════════
+   A comment is a place *on something*. Recording only x,y makes the mark a
+   sticker on the glass: it survives the modal it was talking about closing, and
+   lands on whatever moved in underneath. So every comment also captures the
+   element under it — enough of a description to find that element again, and to
+   tell Claude what was being pointed at without making it guess from numbers.
+
+   Two consequences, both wanted:
+     · the mark rides the element when the layout moves under it;
+     · when the element is not on the page — modal closed, screen switched,
+       row filtered away — the mark is not on the page either.  */
+
+const fwin = () => frame.contentWindow;
+const frameScroll = () => { const w = fwin(); return { x: w?.scrollX || 0, y: w?.scrollY || 0 } };
+/** An element's box in the page's own coordinates — the space marks live in. */
+function docRect (el) {
+  const r = el.getBoundingClientRect(), s = frameScroll();
+  return { x: r.left + s.x, y: r.top + s.y, w: r.width, h: r.height };
+}
+function elAt (p) {
+  if (!fdoc) return null;
+  const s = frameScroll();
+  try { return fdoc.elementFromPoint(p.x - s.x, p.y - s.y) } catch { return null }
+}
+const boxContains = (o, i) =>
+  i.x >= o.x - 1 && i.y >= o.y - 1 && i.x + i.w <= o.x + o.w + 1 && i.y + i.h <= o.y + o.h + 1;
+const trim = (s, n) => {
+  const t = String(s ?? '').trim().replace(/\s+/g, ' ');
+  return t.length > n ? t.slice(0, n - 1) + '…' : t;
+};
+const classesOf = el => [...(el.classList || [])];
+const attr = (el, ...names) => { for (const n of names) { const v = el.getAttribute(n); if (v) return v } return '' };
+
+/** A CSS path good enough to find this element again — a hint, never a contract. */
+function selectorFor (el) {
+  const parts = [];
+  for (let n = el; n && n.nodeType === 1 && n !== fdoc.documentElement && n !== fdoc.body; n = n.parentElement) {
+    const tag = n.tagName.toLowerCase();
+    if (n.id && /^[A-Za-z][\w-]*$/.test(n.id) && fdoc.querySelectorAll('#' + n.id).length === 1) {
+      parts.unshift('#' + n.id);
+      break;
+    }
+    const cls = classesOf(n).filter(c => /^[A-Za-z][\w-]*$/.test(c)).slice(0, 2);
+    let part = tag + (cls.length ? '.' + cls.join('.') : '');
+    const sibs = n.parentElement ? [...n.parentElement.children].filter(c => c.tagName === n.tagName) : [];
+    if (sibs.length > 1) part += `:nth-of-type(${sibs.indexOf(n) + 1})`;
+    parts.unshift(part);
+    if (parts.length >= 8) break;
+  }
+  return parts.join(' > ');
+}
+/** The part of the page this sits in — a dialog, a nav, a card. What a person
+    would say first when telling someone else where to look. */
+const REGION_TAG = /^(dialog|nav|header|footer|aside|main|section|form|table|fieldset)$/;
+const REGION_CLASS = /(sidebar|panel|toolbar|card|menu|dropdown|tooltip|screen|step|tab)/i;
+const DIALOG_CLASS = /(modal|dialog|drawer|sheet|popover|lightbox)/i;
+function regionOf (el) {
+  let dialog = null, plain = null;
+  for (let n = el.parentElement; n && n !== fdoc.body && n !== fdoc.documentElement; n = n.parentElement) {
+    const tag = n.tagName.toLowerCase(), cls = classesOf(n).join(' ');
+    const role = (n.getAttribute('role') || '').toLowerCase();
+    // A modal is usually two or three nested boxes. The one worth naming is the
+    // outermost, so keep walking rather than stopping at the inner sheet.
+    if (tag === 'dialog' || role === 'dialog' || role === 'alertdialog' ||
+        n.hasAttribute('aria-modal') || DIALOG_CLASS.test(cls)) { dialog = n; continue }
+    if (!plain && (REGION_TAG.test(tag) || REGION_CLASS.test(cls))) plain = n;
+  }
+  const n = dialog || plain;
+  if (!n) return null;
+  const tag = n.tagName.toLowerCase();
+  const h = n.querySelector('h1,h2,h3,h4,h5,h6');
+  return {
+    kind: dialog ? 'dialog' : (REGION_TAG.test(tag) ? tag : (n.getAttribute('role') || 'region')),
+    label: attr(n, 'aria-label', 'title') || trim(h?.textContent, 48) || classesOf(n)[0] || '',
+  };
+}
+/** The words on the thing itself. A container's full text is a paragraph, not a
+    name — anything that long says nothing, so it is dropped. */
+function ownText (el) {
+  const t = trim(el.textContent, 200);
+  return t.length <= 70 ? t : '';
+}
+
 /**
- * The words directly under the mark, so the brief can say where without naming
- * markup. Only a leaf's own label counts — walking up to a container yields
- * "Cavalry Today Roles Candidates Reports Settings", which anchors nothing.
- * Never shown in the UI; it exists so Claude can find the spot.
+ * Capture what the reviewer just pointed at. A point takes the element under it;
+ * an area takes the smallest element that holds the whole region — draw a box
+ * round a modal and the box belongs to the modal.
  */
-function anchorTextAt (p) {
-  if (!fdoc) return '';
-  const el = fdoc.elementFromPoint(p.x, p.y);
-  if (!el || el.children.length) return '';
-  const t = (el.textContent || '').trim().replace(/\s+/g, ' ');
-  return t && t.length <= 60 ? t : '';
+function captureAnchor (p, rect) {
+  if (!fdoc) return null;
+  let el = elAt(rect ? { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 } : p);
+  if (!el || el.nodeType !== 1) return null;
+  if (rect) while (el && el !== fdoc.body && !boxContains(docRect(el), rect)) el = el.parentElement;
+  // Anchoring to the page itself anchors nothing — leave those on coordinates,
+  // where they are always shown.
+  if (!el || el === fdoc.body || el === fdoc.documentElement) return null;
+  const r = docRect(el);
+  if (!(r.w > 0 && r.h > 0)) return null;
+  const base = rect || { x: p.x, y: p.y, w: 0, h: 0 };
+  return {
+    sel: selectorFor(el),
+    tag: el.tagName.toLowerCase(),
+    id: el.id || '',
+    cls: classesOf(el).slice(0, 3).join(' '),
+    role: el.getAttribute('role') || '',
+    label: trim(attr(el, 'aria-label', 'placeholder', 'alt', 'title'), 60),
+    text: ownText(el),
+    region: regionOf(el),
+    rel: { x: base.x - r.x, y: base.y - r.y },
+    size: { w: r.w, h: r.h },
+  };
+}
+/**
+ * What a box was drawn around. The container alone is not the answer — "this
+ * list needs a date column" is about the rows inside it, and naming them is the
+ * difference between Claude finding the right three rows and guessing.
+ * Only things that are almost entirely inside the box count, and only the ones
+ * that carry a word: a wrapper with no text names nothing.
+ */
+const COVER_MAX = 10;
+function coversIn (rect, root) {
+  const out = [], seen = new Set();
+  let all = [];
+  try { all = root.querySelectorAll('*') } catch {}
+  if (!all.length || all.length > 3000) return out;
+  for (const el of all) {
+    const r = docRect(el);
+    if (!(r.w > 0 && r.h > 0)) continue;
+    const ox = Math.max(0, Math.min(r.x + r.w, rect.x + rect.w) - Math.max(r.x, rect.x));
+    const oy = Math.max(0, Math.min(r.y + r.h, rect.y + rect.h) - Math.max(r.y, rect.y));
+    if (ox * oy < r.w * r.h * 0.7) continue;
+    if (!isShown(el)) continue;
+    const tag = el.tagName.toLowerCase();
+    // Leaves, and the controls and headings that are worth naming even when
+    // they wrap something.
+    if (el.querySelector('*') && !/^(button|a|input|select|textarea|img|svg|label|h1|h2|h3|h4|h5|h6|th|td|li)$/.test(tag)) continue;
+    const words = trim(ownText(el) || attr(el, 'aria-label', 'placeholder', 'alt', 'title'), 40);
+    const key = tag + '|' + words;
+    if (!words || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ tag, text: words });
+    if (out.length >= COVER_MAX) break;
+  }
+  return out;
+}
+
+function anchorFor (p, rect) {
+  const anchor = captureAnchor(p, rect);
+  const root = (anchor && findAnchorEl(anchor)) || fdoc?.body;
+  return {
+    anchor,
+    // Kept for reviews written before comments knew what they were on.
+    anchorText: anchor ? (anchor.text || anchor.label) : '',
+    anchorVersion: S.version,
+    ...(rect && root ? { covers: coversIn(rect, root) } : {}),
+  };
+}
+/** The element a freshly captured anchor describes — it is still under the
+    cursor, so the selector is exact. */
+function findAnchorEl (an) {
+  try { return an.sel ? fdoc.querySelector(an.sel) : null } catch { return null }
+}
+
+/** How much a candidate element looks like the one that was annotated. */
+function scoreMatch (el, an) {
+  let s = 0;
+  if (an.id && el.id === an.id) s += 3;
+  if (an.text && ownText(el) === an.text) s += 2;
+  if (an.label && trim(attr(el, 'aria-label', 'placeholder', 'alt', 'title'), 60) === an.label) s += 2;
+  if (an.role && el.getAttribute('role') === an.role) s += 1;
+  if (an.cls) {
+    const want = an.cls.split(' ').filter(Boolean), have = classesOf(el);
+    if (want.length && want.every(c => have.includes(c))) s += 1;
+  }
+  return s;
+}
+/** Nothing distinctive to check against — take the selector's word for it. */
+const anchorIsThin = an => !an.id && !an.text && !an.label && !an.role;
+
+/* Resolved elements are kept beside the annotations, never on them: an
+   annotation is JSON on its way to disk, and a DOM node is not. */
+let domEpoch = 0;
+const elCache = new Map(), missCache = new Map();
+function forgetAnchors () { domEpoch++; elCache.clear(); missCache.clear() }
+function findAnchor (a) {
+  const an = a.anchor;
+  if (!an || !fdoc) return null;
+  const cached = elCache.get(a.id);
+  if (cached && cached.isConnected) return cached;
+  if (missCache.get(a.id) === domEpoch) return null;
+  elCache.delete(a.id);
+  const keep = el => { elCache.set(a.id, el); return el };
+  let hit = null;
+  try { hit = an.sel ? fdoc.querySelector(an.sel) : null } catch {}
+  if (hit && (anchorIsThin(an) || scoreMatch(hit, an) >= 1)) return keep(hit);
+  // The page was rebuilt and the path moved. Look for the same thing elsewhere.
+  let best = null, bestScore = 0, pool = [];
+  try { pool = [...fdoc.querySelectorAll(an.tag || '*')] } catch {}
+  if (pool.length <= 600) {
+    for (const c of pool) {
+      const s = scoreMatch(c, an);
+      if (s > bestScore) { best = c; bestScore = s }
+    }
+  }
+  if (bestScore >= 3) return keep(best);
+  if (hit) return keep(hit);
+  missCache.set(a.id, domEpoch);
+  return null;
+}
+/** On the page as it stands — not merely present in the markup. */
+function isShown (el) {
+  if (!el.isConnected) return false;
+  try {
+    if (el.checkVisibility && !el.checkVisibility(
+      { contentVisibilityAuto: true, opacityProperty: true, visibilityProperty: true })) return false;
+  } catch {}
+  const r = el.getBoundingClientRect();
+  if (r.width < 1 || r.height < 1) return false;
+  for (let n = el; n && n !== fdoc.documentElement; n = n.parentElement) {
+    if (n.hasAttribute('hidden') || n.getAttribute('aria-hidden') === 'true') return false;
+  }
+  return true;
+}
+
+/**
+ * Where a comment's mark goes right now, and whether it goes anywhere at all.
+ *   show:false  the element is not on the page — neither is the mark
+ *   loose:true  the page has been rebuilt since and the element is gone with it;
+ *               the mark falls back to where it was drawn rather than vanishing,
+ *               because a comment nobody can see is a comment nobody answers
+ */
+function anchorState (a) {
+  const drawn = a.rect || (a.point ? { x: a.point.x, y: a.point.y, w: 1, h: 1 } : { x: 20, y: 20, w: 1, h: 1 });
+  if (!a.anchor || !fdoc) return { rect: drawn, show: true };
+  const el = findAnchor(a);
+  if (!el) {
+    const madeHere = (a.anchorVersion ?? a.fromVersion ?? S.viewing) === S.viewing;
+    return madeHere ? { show: false } : { rect: drawn, show: true, loose: true };
+  }
+  if (!isShown(el)) return { show: false, el };
+  const r = docRect(el), an = a.anchor;
+  const sx = an.size?.w > 4 ? clamp(r.w / an.size.w, .25, 4) : 1;
+  const sy = an.size?.h > 4 ? clamp(r.h / an.size.h, .25, 4) : 1;
+  const x = r.x + (an.rel?.x || 0) * sx, y = r.y + (an.rel?.y || 0) * sy;
+  return {
+    show: true, el,
+    rect: a.kind === 'area' && a.rect
+      ? { x, y, w: drawn.w * sx, h: drawn.h * sy }
+      : { x, y, w: 1, h: 1 },
+  };
+}
+/** What this comment is on, in words. */
+function anchorLabel (an) {
+  if (!an) return '';
+  const words = an.text || an.label;
+  const el = an.tag + (an.role ? `[${an.role}]` : '');
+  const reg = an.region ? T('inRegion')(an.region.kind, trim(an.region.label, 32)) : '';
+  return (words ? `${el} “${trim(words, 42)}”` : el) + (reg ? ' · ' + reg : '');
+}
+
+/* The page changes under the marks — a modal opens, a tab switches, a pane
+   scrolls. Nothing tells us but the DOM itself, so watch it and re-place. */
+let syncQueued = false;
+const syncSoon = [null, null];
+function scheduleSync () {
+  if (!syncQueued) {
+    syncQueued = true;
+    requestAnimationFrame(() => { syncQueued = false; positionMarks() });
+  }
+  // Transitions land after the mutation that started them; look again once they have.
+  clearTimeout(syncSoon[0]); syncSoon[0] = setTimeout(positionMarks, 180);
+  clearTimeout(syncSoon[1]); syncSoon[1] = setTimeout(positionMarks, 560);
+}
+function watchFrame () {
+  if (!fdoc) return;
+  try { frame._mo?.disconnect() } catch {}
+  // The page moved: anything we failed to find last time is worth another look.
+  const mo = frame._mo = new MutationObserver(() => { domEpoch++; scheduleSync() });
+  try {
+    mo.observe(fdoc.documentElement, {
+      childList: true, subtree: true, attributes: true,
+      attributeFilter: ['class', 'style', 'hidden', 'open', 'aria-hidden', 'aria-expanded', 'data-state'],
+    });
+  } catch {}
+  fdoc.addEventListener('scroll', scheduleSync, { capture: true, passive: true });
+  fdoc.addEventListener('transitionend', scheduleSync, true);
+  fdoc.addEventListener('animationend', scheduleSync, true);
 }
 
 let drag = null;
@@ -896,13 +1691,13 @@ overlay.addEventListener('pointerup', e => {
   const p = pt(e), d = drag; drag = null;
   overlayRect = null;
   $('#drag').style.display = 'none';
-  if (!d.moved) return addComment({ kind: 'comment', point: d.start, anchorText: anchorTextAt(d.start) });
+  if (!d.moved) return addComment({ kind: 'comment', point: d.start, ...anchorFor(d.start) });
   const rect = {
     x: Math.min(d.start.x, p.x), y: Math.min(d.start.y, p.y),
     w: Math.abs(p.x - d.start.x), h: Math.abs(p.y - d.start.y),
   };
   if (rect.w < 8 || rect.h < 8) return;
-  addComment({ kind: 'area', rect, anchorText: anchorTextAt({ x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 }) });
+  addComment({ kind: 'area', rect, ...anchorFor(null, rect) });
 });
 
 function addComment (a) {
@@ -929,13 +1724,19 @@ const num = a => { const i = S.ann.indexOf(a); return i >= 0 ? i + 1 : '·' };
 
 const composer = $('#composer');
 const composerOpen = () => composer.classList.contains('on');
-const anchorRect = a => a.rect || (a.point ? { x: a.point.x, y: a.point.y, w: 1, h: 1 } : { x: 20, y: 20, w: 1, h: 1 });
-
 function placeComposer () {
   const a = annById(S.sel);
   if (!a || !composerOpen()) return;
-  const r = anchorRect(a);
-  const or = overlay.getBoundingClientRect(), ar = $('#stageArea').getBoundingClientRect();
+  const st = anchorState(a);
+  const ar = $('#stageArea').getBoundingClientRect();
+  // Nothing to sit beside — the comment is still editable, so it takes the
+  // middle of the stage rather than hovering over whatever replaced its element.
+  if (!st.show) {
+    composer.style.left = Math.max(8, (ar.width - 280) / 2) + 'px';
+    composer.style.top = Math.max(8, (ar.height - 240) / 2) + 'px';
+    return;
+  }
+  const r = st.rect, or = overlay.getBoundingClientRect();
   composer.style.left = clamp(or.left - ar.left + r.x * S.zoom, 8, Math.max(8, ar.width - 294)) + 'px';
   composer.style.top = clamp(or.top - ar.top + (r.y + r.h) * S.zoom + 8, 8, Math.max(8, ar.height - 250)) + 'px';
 }
@@ -946,13 +1747,26 @@ function openComposer (id, focus) {
   if (!a) return;
   S.sel = id;
   composer.classList.add('on');
-  composer.style.setProperty('--mk', SEV_COLOR[a.severity]);
   composer.querySelector('.cnum').textContent = num(a);
   composer.querySelector('.ckind').textContent = T(a.kind === 'area' ? 'areaComment' : 'comment');
 
   const st = composer.querySelector('.cstatus');
   st.className = 'cstatus' + (a.status === 'open' ? '' : ' ' + a.status);
   st.textContent = a.status === 'addressed' ? T('statusAddressed') : a.status === 'question' ? T('statusAsked') : '';
+
+  // Say what this is attached to, so "it did not know what I meant" is answered
+  // while the note is being written rather than after the next round.
+  const anc = composer.querySelector('.canchor');
+  const covers = a.covers?.length ? T('coversN')(a.covers.length) : '';
+  const desc = [anchorLabel(a.anchor), covers].filter(Boolean).join(' · ');
+  const shown = anchorState(a).show;
+  anc.classList.toggle('on', !!desc || !shown);
+  anc.classList.toggle('gone', !shown);
+  anc.innerHTML = desc
+    ? `<b>${esc(desc)}</b>` + (shown ? '' : ' · ' + esc(T('anchorGone')))
+    : esc(T('anchorGone'));
+  // The list itself is long; the line is short. Hovering says the whole of it.
+  anc.title = [desc, ...(a.covers || []).map(c => `${c.tag} “${c.text}”`)].filter(Boolean).join('\n');
 
   const note = composer.querySelector('.cnote');
   note.value = a.note || '';
@@ -980,7 +1794,8 @@ function openComposer (id, focus) {
   // button for the same outcome is just noise.
   composer.querySelector('.cdel').style.display = hasSubstance(a) && !isHistory() ? '' : 'none';
   composer.querySelector('.cdel').title = T('del');
-  $$('.sevs button', composer).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sev === a.severity)));
+  composer.querySelector('.csave').style.display = isHistory() ? 'none' : '';
+  composer.classList.toggle('working', S.working.has(id));
   placeComposer();
   if (focus !== false) setTimeout(() => (canReply && a.note ? reply : note).focus(), 0);
   drawMarks(); renderPanel();
@@ -1008,6 +1823,29 @@ function postReply (a, text) {
   if (a.status === 'question') a.status = 'open';
   save();
 }
+
+/**
+ * Addressed is Claude's word for it, not the last word. Reopening a comment puts
+ * it back in play for the next round: refine adds to what was asked, revert asks
+ * for the change to be undone. `reopenedAt` is what lets the server take a
+ * status going backwards from a client — nothing else can un-address a comment.
+ */
+function reopen (a, mode) {
+  if (isHistory()) return;
+  a.status = 'open';
+  a.reopenedAt = new Date().toISOString();
+  if (mode === 'revert') {
+    a.revert = true;
+    postReply(a, STR.en.revertNote);
+  } else {
+    delete a.revert;
+    save();
+  }
+  S.sentSig = null;
+  render();
+  toast(T(mode === 'revert' ? 'revertAsked' : 'refineAsked'));
+  if (mode !== 'revert') reveal(a, true);
+}
 function wireComposer () {
   const note = composer.querySelector('.cnote');
   note.addEventListener('input', () => {
@@ -1024,19 +1862,19 @@ function wireComposer () {
     clearTimeout(note._t);
     note._t = setTimeout(() => { drawMarks(); renderPanel() }, 400);
   });
+  /* Enter saves, the way every comment box the reviewer already uses behaves.
+     Shift+Enter is the newline. An IME sends Enter to accept its candidates —
+     committing on that would eat the first word of every Chinese comment. */
   const submit = e => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); closeComposer() }
+    if (e.key !== 'Enter' || e.shiftKey || e.isComposing || e.keyCode === 229) return;
+    e.preventDefault();
+    closeComposer();
   };
   note.addEventListener('keydown', submit);
   composer.querySelector('.creply').addEventListener('keydown', submit);
-  $$('.sevs button', composer).forEach(b => b.onclick = () => {
-    const a = annById(S.sel);
-    if (!a || isHistory()) return;
-    a.severity = b.dataset.sev;
-    composer.style.setProperty('--mk', SEV_COLOR[a.severity]);
-    $$('.sevs button', composer).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    save(); drawMarks(); renderPanel();
-  });
+  // The button says the shortcut out loud, for anyone who would otherwise
+  // wonder whether closing the note threw it away.
+  composer.querySelector('.csave').onclick = closeComposer;
   composer.querySelector('.cclose').onclick = closeComposer;
   composer.querySelector('.cdel').onclick = () => {
     const id = S.sel;
@@ -1053,11 +1891,47 @@ function wireComposer () {
     closeComposer();
   });
 }
-function threadNote (a) {
+/** The one line the list shows about a comment's conversation — and the way in. */
+function threadNote (a, open) {
   const n = (a.replies || []).length;
-  if (a.status === 'question') return `<div class="thread asked">${esc(T('claudeAsked'))}</div>`;
-  if (a.status === 'addressed') return `<div class="thread">${esc(T('addressedBy'))}</div>`;
-  return n ? `<div class="thread">${n} ${esc(T(n > 1 ? 'replies' : 'reply'))}</div>` : '';
+  const asked = a.status === 'question' || (a.revert && a.status !== 'addressed');
+  const txt = a.revert && a.status !== 'addressed' ? T('wantsRevert')
+    : a.status === 'question' ? T('claudeAsked')
+    : a.status === 'addressed' ? T('addressedBy')
+    : n ? `${n} ${T(n > 1 ? 'replies' : 'reply')}`
+    : T('addReply');
+  if (isHistory()) return `<div class="thread${asked ? ' asked' : ''}">${esc(txt)}</div>`;
+  return `<button class="thread tog${asked ? ' asked' : ''}">${esc(txt)}` +
+    `<span class="caret">${open ? '▾' : '▸'}</span></button>`;
+}
+/** The whole exchange, and the box to answer it in, without leaving the list. */
+function threadBox (a) {
+  const msgs = (a.replies || []).map(m =>
+    `<div class="tmsg${m.by === 'claude' ? ' claude' : ''}">
+       <span class="who">${esc(who(m.by))}</span>
+       <span class="body">${esc(m.text)}</span>
+     </div>`).join('');
+  return `<div class="tbox">${msgs}
+    <textarea class="treply" placeholder="${esc(T(a.status === 'question' ? 'answerPlaceholder' : 'replyPlaceholder'))}"></textarea>
+    <div class="trow"><button class="tsend">${esc(T('sendReply'))}</button></div>
+  </div>`;
+}
+const replyDrafts = new Map();
+function toggleThread (id) {
+  S.threadOpen.has(id) ? S.threadOpen.delete(id) : S.threadOpen.add(id);
+  renderPanel();
+}
+function sendPanelReply (a, text) {
+  const t = (text || '').trim();
+  if (!t) return;
+  postReply(a, t);
+  replyDrafts.delete(a.id);
+  S.threadOpen.add(a.id);
+  S.focusReply = a.id;
+  // Answering Claude is new information — the review can go back out.
+  S.sentSig = null;
+  render();
+  if (S.sel === a.id) openComposer(a.id, false);
 }
 
 /* ─────────────────────── drawing marks ────────────────────── */
@@ -1068,45 +1942,57 @@ function visibleAnn () {
     : S.ann.concat(S.carried);
   return list.filter(a => (a.size || 'desktop') === S.size.id);
 }
+/* Drawing a mark and placing it are two different jobs on two different clocks:
+   the node is built when the review changes, and placed every time the page
+   underneath it moves. */
+let drawnMarks = new Map();
 function drawMarks () {
   $$('.mark', overlay).forEach(n => n.remove());
-  for (const a of visibleAnn()) drawMark(a);
+  drawnMarks = new Map();
+  for (const a of visibleAnn()) { drawMark(a); drawnMarks.set(a.id, a) }
+  positionMarks();
 }
 function drawMark (a) {
-  const col = SEV_COLOR[a.severity] || 'var(--accent)';
   const ghost = !!a.fromVersion, done = a.status !== 'open', n = num(a);
   const cls = (S.sel === a.id ? ' sel' : '') + (ghost ? ' ghost' : '') + (done ? ' done' : '');
-
-  if (a.kind === 'area' && a.rect) {
-    const frameH = parseFloat(frame.style.height) || 0;
-    const r = a.rect;
-    const d = document.createElement('div');
-    d.className = 'mark area' + cls + (frameH && r.y + r.h + 64 > frameH && r.y > 64 ? ' flip' : '');
-    d.dataset.id = a.id;
-    d.style.setProperty('--mk', col);
-    Object.assign(d.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
-    d.innerHTML = `<span class="num">${n}</span>` + (a.note ? `<span class="lbl">${esc(a.note)}</span>` : '');
-    d.onclick = ev => { ev.stopPropagation(); openComposer(a.id) };
-    overlay.appendChild(d);
-    return;
-  }
-  if (!a.point) return;
+  const area = a.kind === 'area' && a.rect;
+  if (!area && !a.point) return;
   const d = document.createElement('div');
-  d.className = 'mark pin' + cls;
+  d.className = 'mark ' + (area ? 'area' : 'pin') + cls;
   d.dataset.id = a.id;
-  d.style.setProperty('--mk', col);
-  d.style.left = a.point.x + 'px'; d.style.top = a.point.y + 'px';
-  d.innerHTML = esc(String(n)) + (a.note ? `<span class="lbl">${esc(a.note)}</span>` : '');
-  d.title = a.note || T('comment');
+  d.style.setProperty('--mk', MARK);
+  d.innerHTML = area
+    ? `<span class="num">${n}</span>` + (a.note ? `<span class="lbl">${esc(a.note)}</span>` : '')
+    : esc(String(n)) + (a.note ? `<span class="lbl">${esc(a.note)}</span>` : '');
+  if (!area) d.title = a.note || T('comment');
   d.onclick = ev => { ev.stopPropagation(); openComposer(a.id) };
   overlay.appendChild(d);
 }
-/**
- * Notes cluster around the same part of a page and land on top of each other.
- * Push each colliding note down until it has its own space — all rects are read
- * up front and the shifts are tracked in JS, so the loop never forces a layout
- * between a write and the next read.
- */
+/** Put every mark where its element is now — or take it off the page with it. */
+function positionMarks () {
+  const frameH = parseFloat(frame.style.height) || 0;
+  const off = new Set();
+  for (const node of $$('.mark', overlay)) {
+    const a = drawnMarks.get(node.dataset.id);
+    if (!a) continue;
+    const st = anchorState(a);
+    node.classList.toggle('gone', !st.show);
+    node.classList.toggle('loose', !!st.loose);
+    if (!st.show) { off.add(a.id); continue }
+    const r = st.rect;
+    node.style.left = r.x + 'px';
+    node.style.top = r.y + 'px';
+    if (node.classList.contains('area')) {
+      node.style.width = r.w + 'px';
+      node.style.height = r.h + 'px';
+      node.classList.toggle('flip', !!(frameH && r.y + r.h + 64 > frameH && r.y > 64));
+    }
+  }
+  const changed = off.size !== S.offscreen.size || [...off].some(id => !S.offscreen.has(id));
+  S.offscreen = off;
+  placeComposer();
+  if (changed) renderPanel();
+}
 
 /* ───────────────────── panel: the index ───────────────────── */
 
@@ -1115,17 +2001,22 @@ const sizeLabel = id => T(id);
 function render () { drawMarks(); renderPanel() }
 
 function renderPanel () {
+  renderWork();
   const body = $('#pbody');
   body.innerHTML = '';
   $('#pscope').textContent = isHistory() ? T('readOnly')(S.viewing) : sizeLabel(S.size.id);
   const f = S.filter;
   // "Open" means unfinished — a comment Claude has asked a question about is
   // still very much open, and hiding it would strand the conversation.
-  const match = a => hasSubstance(a) && (!f.severity || a.severity === f.severity) &&
-    (!f.status || (f.status === 'open' ? a.status !== 'addressed' : a.status === f.status));
+  // Addressed comments are never mixed in with the live ones — they get their
+  // own section at the bottom, where revert and refine live.
+  const match = a => hasSubstance(a) && a.status !== 'addressed' &&
+    (!f.status || f.status === 'open' || a.status === f.status);
   const here = S.ann.filter(a => match(a) && (a.size || 'desktop') === S.size.id);
   const elsewhere = S.ann.filter(a => match(a) && (a.size || 'desktop') !== S.size.id);
   const carried = S.carried.filter(a => a.status === 'open');
+  const done = f.status === 'question' ? [] : S.ann.filter(a =>
+    hasSubstance(a) && a.status === 'addressed');
 
   if (!S.ann.some(hasSubstance) && !carried.length) {
     body.innerHTML = `<div class="empty">${esc(T('emptyTitle'))}<br><br>${esc(T('emptyBody'))}</div>`;
@@ -1133,11 +2024,24 @@ function renderPanel () {
   for (const a of here) body.appendChild(itemNode(a));
   if (elsewhere.length) {
     body.appendChild(group(T('otherSizes')(elsewhere.length)));
-    for (const a of elsewhere) body.appendChild(itemNode(a, false, true));
+    for (const a of elsewhere) body.appendChild(itemNode(a, { otherSize: true }));
   }
   if (carried.length) {
     body.appendChild(group(T('stillOpen')(carried.length)));
-    for (const a of carried) body.appendChild(itemNode(a, true));
+    for (const a of carried) body.appendChild(itemNode(a, { ghost: true }));
+  }
+  if (done.length) {
+    body.appendChild(group(T('addressedGroup')(done.length)));
+    for (const a of done) body.appendChild(itemNode(a, { done: true }));
+  }
+  // The list is rebuilt whenever anything moves, including while a reply is
+  // being typed into it. Put the cursor back where it was.
+  if (S.focusReply) {
+    const ta = $(`.item[data-id="${S.focusReply}"] .treply`, body);
+    if (ta && document.activeElement !== ta) {
+      ta.focus({ preventScroll: true });
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
   }
   renderCounts();
 }
@@ -1146,19 +2050,50 @@ function group (text) {
   h.className = 'grouphd'; h.textContent = text;
   return h;
 }
-function itemNode (a, ghost, otherSize) {
+function itemNode (a, { ghost, otherSize, done } = {}) {
+  const working = S.working.has(a.id);
+  // The mark is gone from the page because the thing it was made on is gone.
+  // The comment is not — it stays in the list, and says why it has no mark.
+  const off = S.offscreen.has(a.id) && !otherSize;
+  const open = S.threadOpen.has(a.id) && !isHistory();
   const el = document.createElement('div');
-  el.className = 'item' + (S.sel === a.id ? ' sel' : '') + (a.status !== 'open' ? ' resolved' : '');
+  el.className = 'item' + (S.sel === a.id ? ' sel' : '') + (done ? ' done' : '') +
+    (working ? ' working' : '') + (off ? ' off' : '');
   el.dataset.id = a.id;
-  el.style.setProperty('--mk', SEV_COLOR[a.severity] || 'var(--accent)');
+  el.style.setProperty('--mk', MARK);
   el.innerHTML = `
     <div class="ih">
       <span class="n">${ghost ? 'v' + a.fromVersion : num(a)}</span>
-      <span class="kind">${T(a.kind === 'area' ? 'areaComment' : 'comment')}${otherSize ? ' · ' + sizeLabel(a.size) : ''}</span>
-      <span class="sevdot" title="${a.severity}"></span>
+      <span class="kind">${T(a.kind === 'area' ? 'areaComment' : 'comment')}${otherSize ? ' · ' + sizeLabel(a.size) : ''}${off ? ` · <span class="offtag">${esc(T('offscreen'))}</span>` : ''}</span>
     </div>
     <div class="note${a.note ? '' : ' blank'}">${esc(a.note || T('noNote'))}</div>
-    ${threadNote(a)}`;
+    ${threadNote(a, open)}
+    ${open ? threadBox(a) : ''}
+    ${done && !isHistory() ? `<div class="acts">
+      <button data-act="revert" title="${esc(T('revertTitle'))}">${esc(T('revert'))}</button>
+      <button data-act="refine" title="${esc(T('refineTitle'))}">${esc(T('refine'))}</button>
+    </div>` : ''}
+    ${working ? '<div class="bar"></div>' : ''}`;
+  $$('[data-act]', el).forEach(b => b.onclick = e => { e.stopPropagation(); reopen(a, b.dataset.act) });
+  const tog = $('.thread.tog', el);
+  if (tog) tog.onclick = e => { e.stopPropagation(); toggleThread(a.id) };
+  const box = $('.tbox', el);
+  if (box) {
+    // Everything inside the thread is its own business — clicking it must not
+    // also jump the page to the mark.
+    box.addEventListener('click', e => e.stopPropagation());
+    const ta = $('.treply', box);
+    ta.value = replyDrafts.get(a.id) || '';
+    ta.addEventListener('input', () => replyDrafts.set(a.id, ta.value));
+    ta.addEventListener('focus', () => { S.focusReply = a.id });
+    ta.addEventListener('blur', () => { if (S.focusReply === a.id) S.focusReply = null });
+    ta.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' || e.shiftKey || e.isComposing || e.keyCode === 229) return;
+      e.preventDefault();
+      sendPanelReply(a, ta.value);
+    });
+    $('.tsend', box).onclick = e => { e.stopPropagation(); sendPanelReply(a, ta.value) };
+  }
   el.onclick = () => {
     if (ghost) { toast(T('raised')(a.fromVersion)); return }
     if ((a.size || 'desktop') !== S.size.id) { setSize(a.size); setTimeout(() => reveal(a), 320); return }
@@ -1166,17 +2101,38 @@ function itemNode (a, ghost, otherSize) {
   };
   return el;
 }
-function reveal (a) {
-  const r = anchorRect(a);
-  vpBox.scrollTo({ top: Math.max(0, r.y - 120), behavior: 'smooth' });
-  setTimeout(() => openComposer(a.id, false), 220);
+/** Bring a comment into view. Its element may sit in a pane that scrolls on its
+    own, so ask the page to show it first, then chase it with the window box. */
+function reveal (a, focus = false) {
+  const st = anchorState(a);
+  if (!st.show) {
+    toast(T('offscreenToast'));
+    openComposer(a.id, focus);
+    return;
+  }
+  if (st.el && innerScrolls(st.el)) {
+    try { st.el.scrollIntoView({ block: 'center', inline: 'nearest' }) } catch {}
+  }
+  requestAnimationFrame(() => {
+    const r = anchorState(a).rect;
+    vpBox.scrollTo({ top: Math.max(0, r.y - 120), behavior: 'smooth' });
+    setTimeout(() => openComposer(a.id, focus), 220);
+  });
+}
+/** Does anything between here and the page scroll by itself? */
+function innerScrolls (el) {
+  for (let n = el.parentElement; n && n !== fdoc.documentElement; n = n.parentElement) {
+    if (n.scrollHeight > n.clientHeight + 4 || n.scrollWidth > n.clientWidth + 4) {
+      const ov = fwin()?.getComputedStyle(n);
+      if (ov && /(auto|scroll)/.test(ov.overflowY + ov.overflowX)) return true;
+    }
+  }
+  return false;
 }
 function renderCounts () {
   const open = S.ann.filter(a => a.status !== 'addressed' && hasSubstance(a));
-  const by = s => open.filter(a => a.severity === s).length;
   $('#counts').innerHTML = open.length
-    ? `<b>${open.length}</b> ${esc(T('open').toLowerCase())} · ${by('must')} ${esc(T('must').toLowerCase())}`
-      + ` · ${by('should')} ${esc(T('should').toLowerCase())} · ${by('nice')} ${esc(T('nice').toLowerCase())}`
+    ? `<b>${open.length}</b> ${esc(T('open').toLowerCase())}`
       + (S.ann.some(a => a.status === 'question') ? '<br>' + esc(T('waiting')) : '')
     : esc(T('noOpen'));
   const clear = $('#btnClear');
@@ -1261,18 +2217,52 @@ $('#tlTrack').addEventListener('pointerdown', e => {
 
 /* ───────────── the deliverable: instructions for Claude ───────────── */
 
+/**
+ * Where a comment is, written the way a person would say it: the thing it is on
+ * first, the part of the page it lives in second, coordinates last. The brief is
+ * always in English — the reviewer's own words are the only part that is not.
+ */
+function whereLine (a) {
+  const geo = a.kind === 'area' && a.rect
+    ? `area ${Math.round(a.rect.w)}×${Math.round(a.rect.h)} at ${Math.round(a.rect.x)},${Math.round(a.rect.y)}`
+    : `at ${Math.round(a.point?.x || 0)},${Math.round(a.point?.y || 0)}`;
+  const an = a.anchor;
+  if (!an) return `${geo}${a.anchorText ? ` — on “${a.anchorText}”` : ''}`;
+  const el = '`<' + an.tag + (an.id ? ` id="${an.id}"` : '') + (an.cls ? ` class="${an.cls}"` : '') +
+    (an.role ? ` role="${an.role}"` : '') + '>`';
+  const words = an.text || an.label;
+  const reg = an.region;
+  const region = !reg ? ''
+    : reg.kind === 'region' ? (reg.label ? ` inside “${reg.label}”,` : '')
+    : ` inside ${reg.kind}${reg.label ? ` “${reg.label}”` : ''},`;
+  return `on ${el}${words ? ` “${words}”` : ''},${region} ${geo}`;
+}
+
+/** Everything the box was drawn around, in the order it appears on the page. */
+const coversLine = a => a.covers.map(c => `\`<${c.tag}>\` “${c.text}”`).join(' · ') +
+  (a.covers.length >= COVER_MAX ? ' · …' : '');
+
 function buildFeedback () {
   const items = S.ann.filter(a => a.status !== 'addressed' && hasSubstance(a));
   const carried = S.carried.filter(a => a.status !== 'addressed');
-  const sev = s => items.filter(a => a.severity === s).length;
-  const order = { must: 0, should: 1, nice: 2 };
+
+  const reverts = items.concat(carried).filter(a => a.revert);
+  const reopened = items.concat(carried).filter(a => a.reopenedAt && !a.revert);
 
   const L = [];
-  L.push(`# Mockup review — ${S.name} · v${S.version}`);
-  L.push(`${items.length} comment(s) · ${sev('must')} must · ${sev('should')} should · ${sev('nice')} nice` +
-    (carried.length ? ` · ${carried.length} carried over` : ''));
+  L.push(`# Wireframe review — ${S.name} · v${S.version}`);
+  L.push(`${items.length} comment(s) — every one is a must` +
+    (carried.length ? ` · ${carried.length} carried over` : '') +
+    (reverts.length ? ` · ${reverts.length} revert` : '') +
+    (reopened.length ? ` · ${reopened.length} reopened` : ''));
   L.push('');
   L.push(`Apply these to \`${S.fileName}\`, then publish the next version.`);
+  if (reverts.length || reopened.length) {
+    L.push('');
+    L.push('Some of these you already marked addressed and they were sent back: ' +
+      '**revert** means undo what you did there, **reopened** means it did not go far enough. ' +
+      'Read the note and the thread again before touching anything.');
+  }
   L.push('');
 
   const bySize = {};
@@ -1285,12 +2275,11 @@ function buildFeedback () {
     // workspace is showing. The reviewer's own words pass through untouched.
     L.push(`## ${STR.en[sid]} — ${size.width} × ${size.height}`);
     L.push('');
-    for (const a of list.sort((x, y) => order[x.severity] - order[y.severity])) {
-      L.push(`### #${num(a)} · ${a.severity}`);
-      const where = a.kind === 'area'
-        ? `Area ${Math.round(a.rect.w)}×${Math.round(a.rect.h)} at ${Math.round(a.rect.x)},${Math.round(a.rect.y)}`
-        : `At ${Math.round(a.point.x)},${Math.round(a.point.y)}`;
-      L.push(`**Where** ${where}${a.anchorText ? ` — on “${a.anchorText}”` : ''}`);
+    for (const a of list) {
+      L.push(`### #${num(a)}${a.revert ? ' · REVERT' : ''}`);
+      if (a.revert) L.push('**They asked for your last change here to be undone** — restore what was there before, then apply the note again only if it still stands.');
+      L.push(`**Where** ${whereLine(a)}`);
+      if (a.covers?.length) L.push(`**Covers** ${coversLine(a)}`);
       if (a.note) L.push(a.note);
       for (const m of a.replies || []) {
         L.push('');
@@ -1303,7 +2292,7 @@ function buildFeedback () {
     L.push('## Still open from earlier versions');
     L.push('');
     for (const a of carried) {
-      L.push(`- **[v${a.fromVersion} · ${a.severity}]** ${a.note}${a.anchorText ? ` — on “${a.anchorText}”` : ''}`);
+      L.push(`- **[v${a.fromVersion}]** ${a.note} — ${whereLine(a)}`);
     }
     L.push('');
   }
@@ -1318,9 +2307,23 @@ function buildFeedback () {
   const payload = {
     page: S.fileName, name: S.name, version: S.version,
     comments: items.concat(carried).map(a => ({
-      id: a.id, kind: a.kind, severity: a.severity, status: a.status, note: a.note,
+      id: a.id, kind: a.kind, status: a.status, note: a.note,
       replies: a.replies || [],
+      // Reopened after you called it done — either put it back (revert) or
+      // take it further. Either way it is not finished.
+      reopened: !!a.reopenedAt, wantsRevert: !!a.revert,
       anchorText: a.anchorText || null,
+      // What the comment is attached to. `selector` is how the workspace finds
+      // the element again to keep the mark on it — a hint for you, not a promise
+      // about the markup.
+      anchor: a.anchor ? {
+        selector: a.anchor.sel, tag: a.anchor.tag, id: a.anchor.id || null,
+        classes: a.anchor.cls || null, role: a.anchor.role || null,
+        label: a.anchor.label || null, text: a.anchor.text || null,
+        region: a.anchor.region || null,
+      } : null,
+      // For an area: what was inside the box when it was drawn.
+      covers: a.covers?.length ? a.covers : null,
       screenSize: a.size || 'desktop',
       point: a.point || null, rect: a.rect || null,
       fromVersion: a.fromVersion || S.version,
@@ -1329,14 +2332,14 @@ function buildFeedback () {
   return {
     markdown: L.join('\n') + '\n\n```json\n' + JSON.stringify(payload, null, 2) + '\n```\n',
     feedback: payload,
-    counts: { total: items.length + carried.length, must: sev('must'), should: sev('should'), nice: sev('nice') },
+    counts: { total: items.length + carried.length },
   };
 }
 
 /** What was last handed over, so an unchanged review can't be sent twice. */
 const reviewSignature = () => JSON.stringify(S.ann
   .filter(a => a.status !== 'addressed' && hasSubstance(a))
-  .map(a => [a.id, a.note, a.severity, (a.replies || []).length]));
+  .map(a => [a.id, a.note, a.status, !!a.revert, (a.replies || []).length]));
 
 async function openSend () {
   closeComposer();
@@ -1355,11 +2358,138 @@ async function openSend () {
     });
     S.awaiting = true;
     S.sentSig = reviewSignature();
-    renderCounts();
-    showWork('working', esc(T('working')(pending.counts.total)));
+    // Every comment that just went out is now in flight, and says so on itself.
+    setWorking(pending.feedback.comments.map(c => c.id));
+    toast(T('working')(pending.counts.total));
   } catch { toast(T('sendFail')) }
 }
 $('#btnSend').onclick = openSend;
+
+/* ─────────────── approve: the way out of the loop ───────────────
+   Send says "one more round". Approve says the design is done — it closes the
+   review, which ends the server and hands Claude back the thread. It sits under
+   the same button because it is the same decision, answered the other way. */
+const sendMenu = $('#sendMenu');
+let approveArmed = null;
+function closeSendMenu () {
+  sendMenu.classList.remove('on');
+  $('#btnSendMore').setAttribute('aria-expanded', 'false');
+  clearTimeout(approveArmed); approveArmed = null;
+  renderApprove();
+}
+// Opening the menu is seeing the link — the flag has done its job.
+const clearShareFlag = () => $('#btnSendMore').classList.remove('flag');
+function renderApprove () {
+  const open = S.ann.filter(a => a.status !== 'addressed' && hasSubstance(a)).length + S.carried.length;
+  const armed = !!approveArmed;
+  $('#btnApprove').classList.toggle('armed', armed);
+  $('#btnApprove .t').textContent = armed ? T('approveSure') : T('approve');
+  $('#btnApprove .d').innerHTML = esc(T('approveHint')) +
+    (open ? `<br><span class="warn">${esc(T('approveOpen')(open))}</span>` : '');
+}
+$('#btnSendMore').onclick = e => {
+  e.stopPropagation();
+  const on = !sendMenu.classList.contains('on');
+  closeSendMenu();
+  if (!on) return;
+  sendMenu.classList.add('on');
+  $('#btnSendMore').setAttribute('aria-expanded', 'true');
+  clearShareFlag();
+  renderApprove(); renderShare();
+};
+// Signing off ends the review for everyone, so it asks once — the same second
+// click Clear all asks for.
+$('#btnApprove').onclick = () => {
+  if (!approveArmed) {
+    approveArmed = setTimeout(() => { approveArmed = null; renderApprove() }, 4000);
+    renderApprove();
+    return;
+  }
+  clearTimeout(approveArmed); approveArmed = null;
+  approve();
+};
+document.addEventListener('pointerdown', e => {
+  if (sendMenu.classList.contains('on') && !e.target.closest('#sendMenu, #btnSendMore')) closeSendMenu();
+});
+
+/* ─────────────── the shareable copy ───────────────
+   The workspace cannot publish an Artifact — only Claude can. So this asks, the
+   same way cancel and approve ask, and the link comes back down the same wire
+   the page reloads on. */
+function adoptShare (data, announce) {
+  const had = S.share.url;
+  S.share = {
+    url: data.shareUrl || null,
+    version: data.shareVersion || null,
+    pending: !!data.sharePending,
+  };
+  const fresh = !!S.share.url && S.share.url !== had;
+  if (fresh) $('#btnSendMore').classList.add('flag');
+  renderShare();
+  // A toast at the bottom of the screen outlives nobody's attention for a wait
+  // this long. Announce it the way a new version is announced.
+  if (fresh && announce) showShareReady();
+}
+function showShareReady () {
+  $('#shareBannerText').innerHTML = '<span class="tick">✓</span> ' + T('shareBannerReady');
+  $('#shareBanner').classList.add('on');
+}
+const hideShare = () => $('#shareBanner').classList.remove('on');
+function renderShare () {
+  const b = $('#btnShare');
+  if (S.runtime === 'artifact') { b.hidden = true; $('#sendMenu .mrule').hidden = true; return }
+  const s = S.share;
+  b.disabled = s.pending;
+  if (s.pending) { b.querySelector('.t').textContent = T('shareWorking'); b.querySelector('.d').textContent = T('shareWait'); return }
+  if (s.url && s.version === S.version) {
+    b.querySelector('.t').textContent = T('shareReady');
+    b.querySelector('.d').innerHTML = `<span class="url">${esc(s.url)}</span>`;
+    return;
+  }
+  // The label says what the button does; only a stale link needs explaining.
+  b.querySelector('.t').textContent = s.url ? T('shareStale') : T('share');
+  b.querySelector('.d').textContent = s.url ? T('shareStaleHint')(s.version) : '';
+}
+async function requestShare () {
+  const s = S.share;
+  // A link that is already current is a link to copy, not one to ask for again.
+  if (s.url && s.version === S.version) { copy(s.url); closeSendMenu(); return }
+  S.share.pending = true; renderShare();
+  try {
+    await fetch('/api/share', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: S.version }),
+    });
+    toast(T('shareAsked'));
+  } catch { S.share.pending = false; renderShare(); toast(T('shareFail')) }
+  closeSendMenu();
+}
+$('#btnShare').onclick = requestShare;
+
+async function approve () {
+  closeSendMenu();
+  const open = S.ann.filter(a => a.status !== 'addressed' && hasSubstance(a));
+  if (S.runtime === 'artifact') { showDone(); return }
+  try {
+    await fetch('/api/approve', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        version: S.version,
+        openComments: open.map(a => ({ id: a.id, note: a.note })),
+      }),
+    });
+    showDone();
+  } catch { toast(T('approveFail')) }
+}
+function showDone () {
+  clearWorking();
+  closeComposer();
+  setMode('view');
+  hideWork(); hideShare();
+  $('#doneTitle').textContent = T('approvedTitle');
+  $('#doneBody').textContent = T('approvedBody');
+  $('#doneScreen').classList.add('on');
+}
 async function copy (t) {
   try { await navigator.clipboard.writeText(t); toast(T('copied')) }
   catch {
