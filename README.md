@@ -136,6 +136,13 @@ as well, or install the plugin instead.
 
 ---
 
+## Support
+
+- A bug or an unclear skill: open an issue.
+- A change you want to make: read [`CONTRIBUTING.md`](CONTRIBUTING.md).
+- A security concern: email **adam@cavalry.sg** rather than opening a public issue — see [`SECURITY.md`](SECURITY.md). This repository publishes a plugin that runs on installers' machines, so please report privately.
+- Anything else, including conduct reports: email **adam@cavalry.sg**. See [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+
 ## License
 
 [MIT](LICENSE)
