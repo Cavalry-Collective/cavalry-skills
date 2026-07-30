@@ -227,9 +227,13 @@ deeper only where you care, and depth is never in your way.
 - **Live sync both ways**, like the wireframe: your changes reach the session, and when the spec is
   regenerated the page offers a refresh rather than yanking the tree out from under you.
 
-### 5 · `phase-wireframe` — the phase slider · **view only**
+### 5 · `phase-wireframe` — the phase slider · **built, view only**
 
-Today it writes one file per phase and hands each to `wireframe` separately. That's the wrong shape
+*Shipped as `assets/phase-view.mjs` plus phase mode in the review workspace. It reads whatever
+`phase-<n>/` directories exist beside the base and bundles them into one self-contained file; the
+per-phase files stay the source of truth and the build stages still consume those.*
+
+It wrote one file per phase and handed each to `wireframe` separately. That's the wrong shape
 for the question people actually ask, which is *"what changes between phases?"* — and you can't see
 that by opening three files in three tabs.
 
@@ -237,8 +241,9 @@ Instead: the page in its own frame, **a slider along the bottom, one stop per ph
 the design fills in as features arrive. Phase 1 → 2 → 3 becomes a motion you can scrub, so what each
 phase adds is obvious at a glance.
 
-`wireframe` already ships almost exactly this — its version timeline is a draggable handle that
-scrubs published versions. Same interaction, different axis.
+`wireframe` already shipped almost exactly this — its version timeline is a draggable handle that
+scrubs published versions. Same interaction, different axis, and now literally the same component:
+the scrubber lives in `lib/shell/` and all three pages call it.
 
 **Reviewed to v5 in [`wireframes/phase-wireframe-slider.html`](wireframes/phase-wireframe-slider.html).**
 It ended up *being* the wireframe workspace — same tokens, same topbar, same canvas and browser
@@ -311,10 +316,11 @@ different names, two different reds. The top bar was copy-pasted three ways and 
 fourth. One merged palette now serves all five, every page is theme-aware, and the bar — mark, page
 name, theme, language, link dot, primary action — comes from one file.
 
-**The scrubber.** `phase-wireframe`'s phase slider and `wireframe`'s version timeline are the same
-control over different axes. Not extracted yet: `spec` and `wireframe` still carry their own
-timeline. It is the obvious next thing to pull into the shell, and doing it *is* most of
-`phase-wireframe`'s slider.
+**The scrubber.** **Built**, as `lib/shell/scrubber.*` plus `VSScrub`. `phase-wireframe`'s phase
+slider and `wireframe`'s version timeline were the same control over different axes — the CSS was
+byte-identical apart from a line wrap. The component owns the track, ticks, drag and caption; the
+page says what the stops are and what showing one does. It paid for itself immediately: extracting
+it *was* most of `phase-wireframe`'s slider, which is why that stage finally has one.
 
 **The mind map.** Three stages (6–8) plus `requirements` want a directed graph with inline editing,
 drag-to-reparent, and a two-state colour scheme. That is one component fed four datasets, not four
@@ -613,16 +619,17 @@ Items 1–3 shipped on 2026-07-29 with plugin 4.0.0.
   generated, then `specs/requirements.md` and the feature specs become outputs, not inputs. That's
   probably right, but it means a human editing the markdown directly is editing a generated file —
   and something has to say so, loudly, at the top of it.
-- **`phase-wireframe`'s slider changes its output shape.** It currently writes one file per phase,
-  which is what the build stages consume. A scrubber over all phases is a different artifact; the
-  per-phase files still need to exist underneath it.
+- ~~**`phase-wireframe`'s slider changes its output shape.**~~ Resolved by not changing it: the
+  per-phase files stay the artifact and the build stages still consume them. The scrubber is a
+  *view* generated from those files — `<name>-phases.html`, safe to delete and rebuild.
 
 ## If this gets built
 
 Rough order, each step independently useful:
 
 1. ~~**`phase-wireframe`**~~ — **built**, ahead of the rest, because it needs nothing from the chain.
-   Not yet visual; the slider is still to come.
+   The slider landed later, once the scrubber was a shell component — which is the argument for
+   shared components made concretely: the last stage to want one was the cheapest to build.
 2. ~~**`init`**~~ — **built**, chooser and all, and later grown into the multi-step `start` (four
    steps, three modes, `specs/product.md`). It **did not need the shared live-link engine**: the
    form asks one question once, so it owns a ~250-line one-shot server instead of a third of a
