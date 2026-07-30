@@ -160,6 +160,23 @@ button{cursor:pointer;background:none;border:0;padding:0}
 
 /* the workspace bar sits above the window it wraps, not sticky over a scroll */
 .vs-topbar{position:relative}
+
+/* ── phase mode: the same page, showing a release instead of a version ──
+   View-only on purpose. What a phase contains is a re-slice of the story map,
+   not an edit of this page, so everything that writes is gone rather than
+   disabled — a viewer that cannot lie beats an editor that edits the wrong
+   file. See the wishlist: "It is view-only, deliberately." */
+body.phase #modeSwitch,
+body.phase #panel,
+body.phase .split,
+body.phase #sendMenu,
+body.phase #composer,
+body.phase #overlay{display:none!important}
+body.phase #main{grid-template-columns:1fr}
+#hiNew{display:none}
+body.phase #hiNew{display:inline-flex}
+/* What this phase adds, marked on the page itself rather than described beside it. */
+#hiNew button[aria-pressed=true]{background:var(--brand);color:#fff}
 /* Send becomes Stop while a round is out. Not red-on-red: a stop is a quiet
    correction, not a second call to action competing with the one it replaces. */
 #btnSend.stop{background:var(--surface);border-color:var(--brand-line);color:var(--brand)}
@@ -518,6 +535,8 @@ button{cursor:pointer;background:none;border:0;padding:0}
       <button data-mode="view" aria-pressed="false"></button>
       <button data-mode="annotate" aria-pressed="true"></button>
     </div>
+
+    <div class="seg" id="hiNew"><button aria-pressed="false"></button></div>
 
     <div class="seg icons" id="sizeSwitch"></div>
 <!-- /vstack:slot tools -->
@@ -910,6 +929,8 @@ const STR = {
     hintLocal: 'Sending writes the review and wakes Claude.', hintArtifact: 'Copy this and paste it into the Claude conversation.',
     copyClose: 'Copy & close', copied: 'Copied', sendFail: 'Could not reach the server',
     working: n => `Sent ${n} comment${n > 1 ? 's' : ''} — Claude is working…`,
+    hiNew: 'Highlight new', hiNewTitle: 'Outline what this phase adds over the one before it',
+    phaseCur: 'the full design', phaseOf: n => `Phase ${n}`,
     stop: 'Stop', stopping: 'Stopping…',
     stopTitle: 'Ask Claude to stop this round at its next checkpoint',
     stopAsked: 'Asked Claude to stop — it stops at its next checkpoint',
@@ -976,6 +997,8 @@ const STR = {
     hintLocal: '发送后会写入评审并唤醒 Claude。', hintArtifact: '复制后粘贴到 Claude 对话中。',
     copyClose: '复制并关闭', copied: '已复制', sendFail: '无法连接服务器',
     working: n => `已发送 ${n} 条批注 — Claude 处理中…`,
+    hiNew: '高亮新增', hiNewTitle: '标出本阶段相对上一阶段新增的部分',
+    phaseCur: '完整设计', phaseOf: n => `阶段 ${n}`,
     stop: '停止', stopping: '正在停止…',
     stopTitle: '请求 Claude 在下一个检查点停止本轮',
     stopAsked: '已请求 Claude 停止 — 将在下一个检查点停下',
@@ -1084,13 +1107,15 @@ async function boot () {
   S.version = S.viewing = data.currentVersion || 1;
   adoptShare(data);
 
+  const phase = S.runtime === 'phase';
   loadAnnotations();
-  VSShell.init({ name: S.name, eyebrow: 'Review' });
-  document.title = S.name + ' — Review · Visual Stack';
+  VSShell.init({ name: S.name, eyebrow: phase ? 'Phases' : 'Review' });
+  document.title = S.name + (phase ? ' — Phases' : ' — Review') + ' · Visual Stack';
   $('#urlBar').textContent = S.fileName;
   LANG = VSShell.lang;
   buildSizes(); wireChrome(); wireComposer(); buildTimeline(); applyLang();
-  setMode('annotate'); loadFrame(); render();
+  if (phase) enterPhaseMode(); else setMode('annotate');
+  loadFrame(); render();
   if (S.runtime === 'local') liveReload();
 }
 
@@ -1307,6 +1332,8 @@ function applyLang () {
   const mv = $('#modeSwitch [data-mode=view]'), ma = $('#modeSwitch [data-mode=annotate]');
   mv.textContent = T('viewLabel'); mv.title = T('view');
   ma.innerHTML = esc(T('annotateLabel')) + ' <span class="kbd">space</span>'; ma.title = T('annotate');
+  $('#hiNew button').textContent = T('hiNew');
+  $('#hiNew button').title = T('hiNewTitle');
   $('#btnReload').title = T('reloadTitle');
   $('#btnNow').textContent = T('backToCurrent');
   $('#btnRefresh').textContent = T('reviewChanges');
@@ -1379,15 +1406,18 @@ const frame = $('#frame'), overlay = $('#overlay'), browser = $('#browser'),
       vpBox = $('#viewportBox'), scroller = $('#scroller');
 let fdoc = null;
 
+/** Both bundled modes carry every stop inside the file rather than fetching it. */
+const inlined = () => S.runtime === 'artifact' || S.runtime === 'phase';
+
 function frameSrc () {
   if (isHistory()) {
-    if (S.runtime === 'artifact') {
+    if (inlined()) {
       return { srcdoc: S.versions.find(v => v.n === S.viewing)?.html
         || '<p style="font:14px system-ui;padding:24px">Not captured in this bundle.</p>' };
     }
     return { src: `/api/version/${S.viewing}` };
   }
-  return S.runtime === 'artifact' ? { srcdoc: S.html } : { src: `/page?t=${Date.now()}` };
+  return inlined() ? { srcdoc: S.html } : { src: `/page?t=${Date.now()}` };
 }
 function applyWindowSize () {
   browser.style.width = S.size.width + 'px';
@@ -1400,7 +1430,7 @@ function loadFrame (keepScroll) {
   const src = frameSrc();
   if (src.srcdoc !== undefined) { frame.removeAttribute('src'); frame.srcdoc = src.srcdoc }
   else { frame.removeAttribute('srcdoc'); frame.src = src.src }
-  $('#winVersion').textContent = 'v' + S.viewing;
+  $('#winVersion').textContent = capFor(S.viewing);
   $('#winVersion').classList.toggle('hist', isHistory());
   frame.onload = () => {
     fdoc = frame.contentDocument;
@@ -1410,6 +1440,69 @@ function loadFrame (keepScroll) {
     sizeFrame(); drawMarks();
     vpBox.scrollTop = sc;
     if (!keepScroll) fitZoom();
+    if (S.runtime === 'phase') paintNew();
+  };
+}
+
+/* ─────────────── phase mode ───────────────
+   The rail shows releases instead of versions, and "Highlight new" answers the
+   question the view exists for: what does *this* phase add?
+
+   Phases are cut by subtraction from one base, so an element that survives is
+   textually the element it was. That makes a content signature — tag, id,
+   classes, own text — a good enough identity to diff two phases by, without
+   the wireframe having to carry ids it would not otherwise have. It is a
+   heuristic: two genuinely identical buttons count as one, and an element whose
+   text changed between phases reads as new. Both are visible on the page, which
+   is where a wrong answer here shows up honestly. */
+const sigOf = el => [
+  el.tagName,
+  el.id || '',
+  el.getAttribute('class') || '',
+  (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60),
+].join('|');
+
+function signatures (html) {
+  const out = new Set();
+  if (!html) return out;
+  try {
+    const d = new DOMParser().parseFromString(html, 'text/html');
+    d.body.querySelectorAll('*').forEach(el => out.add(sigOf(el)));
+  } catch {}
+  return out;
+}
+
+function paintNew () {
+  if (!fdoc) return;
+  fdoc.querySelectorAll('.vs-new').forEach(el => el.classList.remove('vs-new'));
+  fdoc.getElementById('vs-new-style')?.remove();
+  if (!S.highlightNew) return;
+  const prev = S.versions.find(v => v.n === S.viewing - 1);
+  if (!prev) return;                       // the first phase adds everything
+  const before = signatures(prev.html);
+  const style = fdoc.createElement('style');
+  style.id = 'vs-new-style';
+  style.textContent = '.vs-new{outline:2px solid #d23b2e!important;outline-offset:2px;' +
+    'background:color-mix(in srgb,#d23b2e 8%,transparent)!important}';
+  fdoc.head?.appendChild(style);
+  // Only the outermost new element is marked — outlining every descendant of a
+  // new panel says "all of this is new" far less clearly than one box around it.
+  for (const el of fdoc.body.querySelectorAll('*')) {
+    if (before.has(sigOf(el))) continue;
+    if (el.parentElement?.closest('.vs-new')) continue;
+    el.classList.add('vs-new');
+  }
+}
+
+function enterPhaseMode () {
+  document.body.classList.add('phase');
+  setMode('view');
+  S.highlightNew = false;
+  const btn = $('#hiNew button');
+  btn.onclick = () => {
+    S.highlightNew = !S.highlightNew;
+    btn.setAttribute('aria-pressed', String(S.highlightNew));
+    paintNew();
   };
 }
 /* A flowing document lays out at its full height inside the scroller, so comment
@@ -2319,7 +2412,8 @@ const versionList = () => {
   const ns = S.versions.map(v => v.n).sort((a, b) => a - b);
   return ns.length ? ns : [S.version];
 };
-const labelFor = n => S.versions.find(v => v.n === n)?.label || `Version ${n}`;
+const labelFor = n => S.versions.find(v => v.n === n)?.label
+  || (S.runtime === 'phase' ? T('phaseOf')(n) : `Version ${n}`);
 const dateFor = n => {
   const d = S.versions.find(v => v.n === n)?.date;
   if (!d) return '';
@@ -2327,27 +2421,32 @@ const dateFor = n => {
   return dt.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' ' +
          dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 };
-/** Each version's caption: what it was called, when, and what is still open on
-    it — the reasons someone scrubs back to look. */
+/** Each stop's caption. Versions say when they were published and what is still
+    open on them — the reasons someone scrubs back. Phases say what ships by
+    then, which is the only question the phase view is asked. */
 function subFor (n) {
+  if (S.runtime === 'phase') {
+    return (S.versions.find(v => v.n === n)?.goal || '')
+      + (n === S.version ? (S.versions.find(v => v.n === n)?.goal ? ' · ' : '') + T('phaseCur') : '');
+  }
   const openN = (S.reviews[n]?.annotations || []).filter(a => a.status === 'open').length;
   return dateFor(n)
     + (openN ? ` · ${openN} open` : '')
     + (n === S.version ? ' · ' + T('current') : '');
 }
+const capFor = n => S.runtime === 'phase' ? `P${n}` : `v${n}`;
+const scrubItems = () =>
+  versionList().map(n => ({ id: n, cap: capFor(n), label: labelFor(n), sub: subFor(n) }));
+
 function buildTimeline () {
-  VSScrub.set({
-    items: versionList().map(n => ({ id: n, cap: `v${n}`, label: labelFor(n), sub: subFor(n) })),
-    active: S.viewing,
-  });
+  VSScrub.set({ items: scrubItems(), active: S.viewing });
   syncTimeline();
 }
 function syncTimeline () {
-  VSScrub.set({
-    items: versionList().map(n => ({ id: n, cap: `v${n}`, label: labelFor(n), sub: subFor(n) })),
-    active: S.viewing,
-  });
-  $('#histBanner').classList.toggle('on', isHistory());
+  VSScrub.set({ items: scrubItems(), active: S.viewing });
+  // A phase behind the last one is not "an old version" — it is the plan for an
+  // earlier release, which is the whole point of looking at it.
+  $('#histBanner').classList.toggle('on', isHistory() && S.runtime !== 'phase');
   $('#histText').textContent = T('viewingOld')(S.viewing);
 }
 function gotoVersion (n) {

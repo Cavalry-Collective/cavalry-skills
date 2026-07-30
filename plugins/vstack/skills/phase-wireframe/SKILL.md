@@ -1,6 +1,6 @@
 ---
 name: phase-wireframe
-description: Take one signed-off UI wireframe and cut it down into a series of phased wireframes — one per release phase, each showing only what exists by that phase, with the layout untouched. Use when the user wants a Phase 1 / MVP version of an existing wireframe or mockup, phased or staged screens, a design sliced by release phase or story map, or wants to see what a screen looks like before later features land.
+description: Take one signed-off UI wireframe and cut it down into a series of phased wireframes — one per release phase, each showing only what exists by that phase, with the layout untouched — then put them on a scrubber you drag to watch the screen fill in release by release. Use when the user wants a Phase 1 / MVP version of an existing wireframe or mockup, phased or staged screens, a design sliced by release phase or story map, or wants to see what a screen looks like before later features land.
 ---
 
 One wireframe in, one wireframe per phase out. Each phase file shows everything available **by** that
@@ -113,6 +113,33 @@ on phase 1 usually changes the plan for every later phase.
 Comments that amount to *"this belongs in a different phase"* are a §2 change, not an edit: update
 the plan, then regenerate the affected phases from the base.
 
+## 6 · Put them on a scrubber
+
+Files one at a time answer *"what does phase 2 look like?"*. The question people actually ask is
+*"what does this screen become, release by release?"* — which is one control:
+
+```bash
+SKILL=<this skill dir>
+node "$SKILL/assets/phase-view.mjs" --dir design --name candidate-pipeline \
+  --labels phases.json          # optional: { "1": { "label": …, "goal": … } }
+```
+
+It writes `<name>-phases.html` — one self-contained file, the review workspace running in **phase
+mode**: same chrome, same browser window, the rail showing releases instead of versions. Drag along
+it and the screen fills in. **Highlight new** outlines what the phase in view adds over the one
+before it.
+
+Give the labels if you have them — a story map's `phases[]` already carries the name and goal, and
+`P2 · Move people in bulk · a dozen at a time after a screening day` says more than `Phase 2`.
+
+**The per-phase files stay the source of truth.** They are what the build stages consume; this is a
+way of looking at them, generated from them, and safe to delete and rebuild.
+
+**It is view-only, and that is deliberate** — no annotate, no comments, no Send. Moving a feature
+between phases is a re-slice of the story map, not an edit of this page, and nobody has designed
+what editing here would mean. A viewer that can't lie beats an editor that edits the wrong file.
+Review happens on the phase files themselves, through §5.
+
 ## Notes
 
 - **Self-contained, like the base.** No external fonts, stylesheets or scripts — the phase files get
@@ -123,6 +150,10 @@ the plan, then regenerate the affected phases from the base.
   stylesheet is the fastest way to fail §4 and to drift the design.
 - **`data-phase-skeleton` is a real marker, not a comment.** It stays in the file: it tells the
   checker what to allow, and tells a reviewer that the empty frame is deliberate.
+- **Highlight new is a heuristic, and says so.** It matches elements between two phases by tag, id,
+  classes and their own text, because subtraction leaves a surviving element textually intact. Two
+  identical buttons read as one; an element whose text changed reads as new. Both are wrong on the
+  page, in front of you, which is the right place for a wrong answer to show up.
 
 ## State & handoff
 
