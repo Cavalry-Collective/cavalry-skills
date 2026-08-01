@@ -2,7 +2,7 @@
 
 **Status: mostly built.** This repo ships seven skills today — `go` (the "what now?" entry, planned
 below as `next`), `start` (stage 0, né `init`), `wireframe`, `spec` (stage 3), `user-story-map`,
-`phase-wireframe` (stage 5) and `phase-build` (stages 6–8, merged into one skill). Only
+`phase-preview` (stage 5) and `phase-build` (stages 6–8, merged into one skill). Only
 `requirements` (stage 1) and the visual layers noted below remain. This document records the chain's
 design and the decisions already made so they don't have to be re-argued.
 
@@ -38,7 +38,7 @@ what you change is what gets built. Prose is the *export*, never the interface.
 
 Three already work this way, which is why they're the ones that get used: the story map is a grid you
 drag cards around, the wireframe is a page you comment on directly, and `start` is a form you tick.
-`phase-wireframe` is built but not yet visual. This section is the plan for the rest.
+`phase-preview` is built but not yet visual. This section is the plan for the rest.
 
 Three rules fall out of it:
 
@@ -63,14 +63,14 @@ Three rules fall out of it:
   ◆ 3  spec               .vstack/specs/<feature>.json       │
                           → specs/YYYY-MM-DD-<feature>.md    │
   ◆ 4  user-story-map     specs/story-map.json               │
-  ◆ 5  phase-wireframe    design/phase-<n>/<feature>.html  ──┘ review loop
+  ◆ 5  phase-preview    design/phase-<n>/<feature>.html  ──┘ review loop
   ◆ 6–8 phase-build       one skill, three tabs — api, ui, infra — repeat per phase
 
   ◆ = shipped
 ```
 
 `wireframe` and `user-story-map` also **work standalone** — no pipeline, no template, nothing to set
-up; see *Standalone stays first-class*. `start` and `phase-wireframe` are pipeline-shaped but neither
+up; see *Standalone stays first-class*. `start` and `phase-preview` are pipeline-shaped but neither
 needs the chain to exist yet.
 
 Everything from stage 5 on is named `phase-*`, because everything from stage 5 on happens **once per
@@ -84,7 +84,7 @@ release phase**. That's the part of the chain people lose track of, so the names
 | 2 | ◆ `wireframe` | `specs/requirements.md`, `design/tokens.css`, `design/CLAUDE.md` | `design/<feature>.html`, an inventory row in `design/README.md` |
 | 3 | ◆ `spec` | `design/<feature>.html`, `specs/product.md`, the conversation | `.vstack/specs/<feature>.json` (source of truth) → `specs/YYYY-MM-DD-<feature>.md` (generated), fills that row's *owning spec* |
 | 4 | ◆ `user-story-map` | `specs/*.md` | `specs/story-map.json` + `specs/story-map.html` |
-| 5 | ◆ `phase-wireframe` | `specs/story-map.json`, `design/<feature>.html` | `design/phase-<n>/<feature>.html` |
+| 5 | ◆ `phase-preview` | `specs/story-map.json`, `design/<feature>.html` | `design/phase-<n>/<feature>.html` |
 | 6–8 | ◆ `phase-build` | the phase-N slice, `design/phase-<n>/`, **the codebase itself** | `.vstack/build/phase-<n>.json` (the plan + build record), then the code — api → ui → infra |
 
 `start` and `go` are additions to the original sketch. `start` is what makes "the chain always starts
@@ -103,7 +103,7 @@ it as that path rather than copying the file.)
 Stages 6 → 7 → 8 then run **in that order within a phase**, and the trio repeats per phase:
 
 ```
-once ──  start → requirements → wireframe → spec → user-story-map → phase-wireframe
+once ──  start → requirements → wireframe → spec → user-story-map → phase-preview
                                                                           │
 per phase ────────────────────────────────────────────────────────────────┤
                                                                           ▼
@@ -119,11 +119,11 @@ rule nobody advances the phase and the loop stalls silently.
 
 ### Stage 5 — built
 
-`phase-wireframe` is the stage that earns the chain its keep: it takes a design everyone has already
+`phase-preview` is the stage that earns the chain its keep: it takes a design everyone has already
 signed off and **subtracts** it to each release phase, so the phase-1 build target looks exactly like
 the approved design minus what isn't in phase 1 yet. It is the one stage with no equivalent
 elsewhere, and it needs nothing from the pipeline — a base wireframe and a set of phases are enough —
-so it was built first. See `plugins/vstack/skills/phase-wireframe/`.
+so it was built first. See `plugins/vstack/skills/phase-preview/`.
 
 Three things settled while building it, worth carrying into the rest of the chain:
 
@@ -152,7 +152,7 @@ correct output, wrong shape for the question people ask. The phase slider is the
 | 2 | `wireframe` ✓ | the page itself, in a review workspace | comment straight on it |
 | 3 | `spec` ✓ | a **drill-down tree**, collapsed to headlines | expand, annotate, delete, add — no approve/reject |
 | 4 | `user-story-map` ✓ | the grid of activities × phases | drag cards to re-slice |
-| 5 | `phase-wireframe` | the page, with a **phase slider** under it | drag the slider to watch phases appear |
+| 5 | `phase-preview` | the page, with a **phase slider** under it | drag the slider to watch phases appear |
 | 6–8 | `phase-build` ✓ | **one board, three tabs** — endpoints, atomic-design tree, resources | adjust before the build starts, then watch nodes light up as they're built |
 
 ✓ = already built and already visual.
@@ -227,7 +227,7 @@ deeper only where you care, and depth is never in your way.
 - **Live sync both ways**, like the wireframe: your changes reach the session, and when the spec is
   regenerated the page offers a refresh rather than yanking the tree out from under you.
 
-### 5 · `phase-wireframe` — the phase slider · **built, view only**
+### 5 · `phase-preview` — the phase slider · **built, view only**
 
 *Shipped as `assets/phase-view.mjs` plus phase mode in the review workspace. It reads whatever
 `phase-<n>/` directories exist beside the base and bundles them into one self-contained file; the
@@ -245,7 +245,7 @@ phase adds is obvious at a glance.
 scrubs published versions. Same interaction, different axis, and now literally the same component:
 the scrubber lives in `lib/shell/` and all three pages call it.
 
-**Reviewed to v5 in [`wireframes/phase-wireframe-slider.html`](wireframes/phase-wireframe-slider.html).**
+**Reviewed to v5 in [`wireframes/phase-preview-slider.html`](wireframes/phase-preview-slider.html).**
 It ended up *being* the wireframe workspace — same tokens, same topbar, same canvas and browser
 window, same timeline markup — with the version rail showing phases and one addition, a
 **Highlight new** switch. That is the strongest form of "one engine, not eight" found so far: not a
@@ -316,11 +316,11 @@ different names, two different reds. The top bar was copy-pasted three ways and 
 fourth. One merged palette now serves all five, every page is theme-aware, and the bar — mark, page
 name, theme, language, link dot, primary action — comes from one file.
 
-**The scrubber.** **Built**, as `lib/shell/scrubber.*` plus `VSScrub`. `phase-wireframe`'s phase
+**The scrubber.** **Built**, as `lib/shell/scrubber.*` plus `VSScrub`. `phase-preview`'s phase
 slider and `wireframe`'s version timeline were the same control over different axes — the CSS was
 byte-identical apart from a line wrap. The component owns the track, ticks, drag and caption; the
 page says what the stops are and what showing one does. It paid for itself immediately: extracting
-it *was* most of `phase-wireframe`'s slider, which is why that stage finally has one.
+it *was* most of `phase-preview`'s slider, which is why that stage finally has one.
 
 **The mind map.** Three stages (6–8) plus `requirements` want a directed graph with inline editing,
 drag-to-reparent, and a two-state colour scheme. That is one component fed four datasets, not four
@@ -514,7 +514,7 @@ the **human** index; `artifacts.wireframes[]` is the **machine** one.
 
 - `wireframe` adds the row when it creates a page, leaving *owning spec* blank.
 - `spec` fills that row's *owning spec* when it writes the spec.
-- **Phase wireframes get no row.** The table indexes *screens*, and a phase wireframe is the same
+- **Phase screens get no row.** The table indexes *screens*, and a phase screen is the same
   screen; its path is `design/phase-<n>/<feature>.html` by convention, recorded under
   `wireframes[].phases`.
 
@@ -619,7 +619,7 @@ Items 1–3 shipped on 2026-07-29 with plugin 4.0.0.
   generated, then `specs/requirements.md` and the feature specs become outputs, not inputs. That's
   probably right, but it means a human editing the markdown directly is editing a generated file —
   and something has to say so, loudly, at the top of it.
-- ~~**`phase-wireframe`'s slider changes its output shape.**~~ Resolved by not changing it: the
+- ~~**`phase-preview`'s slider changes its output shape.**~~ Resolved by not changing it: the
   per-phase files stay the artifact and the build stages still consume them. The scrubber is a
   *view* generated from those files — `<name>-phases.html`, safe to delete and rebuild.
 
@@ -627,7 +627,7 @@ Items 1–3 shipped on 2026-07-29 with plugin 4.0.0.
 
 Rough order, each step independently useful:
 
-1. ~~**`phase-wireframe`**~~ — **built**, ahead of the rest, because it needs nothing from the chain.
+1. ~~**`phase-preview`**~~ — **built**, ahead of the rest, because it needs nothing from the chain.
    The slider landed later, once the scrubber was a shell component — which is the argument for
    shared components made concretely: the last stage to want one was the cheapest to build.
 2. ~~**`init`**~~ — **built**, chooser and all, and later grown into the multi-step `start` (four

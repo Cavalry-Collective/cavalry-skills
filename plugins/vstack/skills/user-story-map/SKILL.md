@@ -26,7 +26,7 @@ Derive these from whatever context exists — a spec, a plan, a `tasks.md`, a de
      "title": "…",
      "lang": "en",
      "tags": ["AI"],
-     "activities": [{ "id": "a1", "name": "…", "task": "one-line goal" }],
+     "activities": [{ "id": "a1", "name": "…" }],
      "phases":     [{ "id": "ph1", "name": "Phase 1", "goal": "one-line goal" }],
      "stories":    [{ "id": "s1", "activity": "a1", "phase": "ph1", "text": "…", "tags": ["AI"], "status": "open" }]
    }
@@ -48,17 +48,19 @@ Derive these from whatever context exists — a spec, a plan, a `tasks.md`, a de
    node "$LIB/json-bridge.mjs" serve --json "$MAP" --template "$SKILL/assets/story-map-template.html" --port 0
    ```
    It prints the URL (with its token) and the seq path. Give the user the whole URL — the token is required.
-2. **Arm the wake-up** so their click reaches you with nothing typed — Bash `run_in_background`, which re-invokes you when it exits:
+2. **Start the watcher** so their click reaches you with nothing typed — the **Monitor tool**, `persistent: true`:
    ```bash
-   BRD=.storymap/.vstack-bridge
-   S="$BRD/<slug>.seq"; U="$BRD/<slug>.url"
-   N=<the seq the server printed — carry it forward, never re-read it on re-arm>
-   until [ ! -f "$U" ] || [ "$(cat "$S" 2>/dev/null)" != "$N" ]; do sleep 2; done
-   [ -f "$U" ] && echo "SENT seq=$(cat "$S")" || echo "LINK CLOSED"
+   node "$VSTACK/lib/json-bridge.mjs" watch --json .storymap/<slug>.json --stream \
+     --seq <the seq the server printed>
    ```
-   On `SENT`, read the map JSON — that is the new source of truth — then **re-arm**, for as long as the map is open. On `LINK CLOSED`, the user shut the tab: don't re-arm, and tell them the link is closed.
+   It never exits — each line is one event, so there is nothing to re-arm after a round, which is
+   the step that gets forgotten and leaves a map nobody is reading. While it runs the map says
+   **Linked to Claude**; with no watcher it says **Unlinked**, in amber, so the user can see that a
+   Send would sit there unread.
+   On `SENT`, read the map JSON — that is the new source of truth. On `APPROVED`, the map is signed
+   off: carry on with what comes next. On `CLOSED`, the user shut the tab; say the link is closed.
 
-   **Pass `N` as the literal seq the waiter just printed — never re-read it with `$(cat "$S")` when re-arming.** A send that lands between your read and your re-arm would otherwise be swallowed: the fresh `cat` already includes it, so the loop waits for a *further* click that may never come, and the user sees nothing happen. Re-arming from the printed value can at worst make you read the same JSON twice, which costs nothing.
+   **Pass the seq the server printed, not a fresh `$(cat "$S")`.** The stream carries its own position from there, so nothing that lands mid-round can be swallowed.
 3. **Push back to the open page** by writing that JSON file yourself. The tab shows *"Claude updated this map — Refresh / Dismiss"*; it is never applied silently, so in-progress dragging is never clobbered. The bridge does not echo the page's own saves back at it.
 
 Single-card changes can go through the engine's patch command instead of a full rewrite:
@@ -93,7 +95,7 @@ With a state file:
 
 - **Read** `artifacts.specs[]` — the specs are the stories, and the map's job is to say *when*, not
   to reopen *what*. `artifacts.product` for the goal the phases serve.
-- **Write** the map to `specs/story-map.json`. That exact path matters: `phase-wireframe` cuts the
+- **Write** the map to `specs/story-map.json`. That exact path matters: `phase-preview` cuts the
   phases from it and `phase-build` reads it to know which phase is last. Then set
   `artifacts.storyMap` and `stage: "user-story-map"`, and add a `history` entry noting the phase
   count.
@@ -102,6 +104,6 @@ With a state file:
   through.
 - **Phases here define the phases everywhere after.** `phase-build` owns the phase *counter*, but
   the number of phases and what falls in each is decided on this page — renumbering later invalidates
-  every phase wireframe already cut.
-- **Next** — `/vstack:phase-wireframe` cuts the signed-off design down to each phase. Offer to run
+  every phase screen already cut.
+- **Next** — `/vstack:phase-preview` cuts the signed-off design down to each phase. Offer to run
   it; don't ask whether to continue.

@@ -63,7 +63,9 @@ Where the inventory comes from:
   The page opens on the confirm step with everything filled in and editable.
 
 It asks **once**: on send it writes `<repo>/.vstack/choice.json` and exits. Nothing stays listening.
-Wait for it with **`run_in_background: true`** — the exit re-invokes you:
+That makes this the one place in the stack that waits rather than watches — there is a single answer
+coming, so wait for it with **`run_in_background: true`** and let the exit re-invoke you. (The review
+and bridge tools stream instead, because their pages keep talking.)
 
 ```bash
 CHOICE=<repo>/.vstack/choice.json
@@ -214,5 +216,5 @@ Delete the template's own root `README.md` once instantiation is done — its Da
 - **Next** — `/vstack:requirements` writes `specs/requirements.md`. **That stage isn't built yet**;
   until it is, say so and offer to write `specs/requirements.md` by hand together, or go straight to
   a first screen with `/vstack:wireframe`. Don't invent a requirements stage to fill the gap. From
-  there the built chain runs `wireframe → spec → user-story-map → phase-wireframe → phase-build`,
+  there the built chain runs `wireframe → spec → user-story-map → phase-preview → phase-build`,
   and `/vstack:go` answers "what now?" from anywhere.

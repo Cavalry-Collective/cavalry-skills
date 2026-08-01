@@ -1,17 +1,24 @@
 ---
 name: wireframe
-description: Build a UI wireframe and open it in an interactive review workspace where the user comments directly on the page, turning those comments into the next iteration. Use when the user wants a wireframe, UI mockup, screen design or prototype built; wants to review, annotate, mark up or comment on a page or design; wants to iterate on a UI; or wants to compare versions of a screen.
+description: Build a UI wireframe and open it in an interactive review workspace where the user comments directly on the page, turning those comments into the next iteration — or point the same workspace at an app that is already running and review the real thing. Use when the user wants a wireframe, UI mockup, screen design or prototype built; wants to review, annotate, mark up or comment on a page, a design, an existing UI, a running app or a website; wants to iterate on a UI; or wants to compare versions of a screen.
 ---
 
-A two-way review loop over one HTML file. The user comments on the page; you apply the comments, ask about anything ambiguous, and publish the next version. It works on a wireframe you just generated, an exported screen, a prototype — anything that is a self-contained HTML page.
+A two-way review loop. The user comments on the screen; you apply the comments, ask about anything ambiguous, and publish the next version. Two things can go under it:
+
+| | what it is | what a round changes |
+|---|---|---|
+| **A page** (§1–§3) | a wireframe you just generated, an exported screen, a prototype — any self-contained HTML file | the file |
+| **A UI that exists** (§7) | an app on localhost, or a website on the internet: the real screens, real data, real states | the source code — or, for a site you don't own, a note about it |
 
 ```
 requirements ──► page.html ──► review workspace ──► feedback.md ──┐
-      ▲                        (user comments)                     │
+      ▲          or a live app  (user comments)                    │
       └──────── you apply it, reply, publish v(N+1) ◄──────────────┘
 ```
 
-**One review is one HTML file.** The workspace opens that file and nothing else. Several screens means several files and several workspaces — don't invent a project structure.
+**One review is one subject.** A page review opens that file and nothing else — several screens means several files and several workspaces, not an invented project structure. A live review opens the whole app, because clicking through it is the point.
+
+**Which one?** If the thing the user wants to talk about already runs, review it running (§7) — a wireframe of a screen that exists is a copy that drifts. Build a page when the screen does not exist yet, or when they want to change it without changing code.
 
 ## 1 · If you are generating the page
 
@@ -99,6 +106,8 @@ node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788
 
 Tell the user to open **http://localhost:7788/**, then arm the waiter (§5).
 
+Reviewing a running app instead? Same server, `--app` in place of `--file` — see §7.
+
 ## 4 · What the user gets
 
 The page opens in **its own browser window** on the canvas — own viewport, own scrollbar — so nothing about the workspace bleeds into the design being judged.
@@ -145,30 +154,33 @@ accepts a status going backwards when the reviewer deliberately sent it back.
 
 ## 5 · Catch the review, and hold up your end of the conversation
 
-After starting the server, arm a waiter with **`run_in_background: true`**. It exits the moment a review lands, which re-invokes you:
+After starting the server, start the watcher **with the Monitor tool**, `persistent: true`:
 
 ```bash
-STORE="$(dirname "$FILE")/.ui-review/$(basename "$FILE" .html)"
-until [ -f "$STORE/pending" ] || [ -f "$STORE/approved" ] || [ -f "$STORE/cancel" ] \
-   || [ -f "$STORE/share" ] || [ ! -f "$STORE/url" ]; do sleep 2; done
-if   [ -f "$STORE/approved" ]; then echo "APPROVED";  cat "$STORE/approved"
-elif [ -f "$STORE/cancel" ];   then echo "CANCELLED"; cat "$STORE/cancel"
-elif [ -f "$STORE/share" ];    then echo "SHARE";     cat "$STORE/share"
-elif [ -f "$STORE/pending" ];  then cat "$STORE/pending"
-else echo "review closed"; fi
+node "$SKILL/assets/review-server.mjs" watch --all --stream    # or --file <page.html>
 ```
 
-**Check the sentinels before falling through** — approve also closes the server, so a
-waiter that only looks at `url` reports a signed-off design as a closed tab and throws the verdict
-away. Five outcomes:
+It never exits. Each line of its output is one event, delivered to you as it happens, and the
+process keeps running — so there is nothing to re-arm after a round, which is the step that gets
+forgotten and leaves a review nobody is reading. `--all` covers every review open in the project,
+so a session with a wireframe and a story map up needs one watcher, not one each.
+
+While it runs the page says **Linked**; with no watcher it says **Unlinked**, in amber, so the
+reviewer can see that what they send will sit there.
+
+Each event is one line:
 
 | | What it means | What you do |
 |---|---|---|
-| **`APPROVED`** | the design is signed off; the server has closed itself | don't re-arm. Say it's approved, note any `openComments` deliberately left, and carry on with whatever comes next |
-| **`CANCELLED`** | the reviewer pressed **Stop** | don't publish what you had half-done. Say what you had already changed and what you hadn't, delete `cancel`, and re-arm — the review is still open |
-| **`SHARE`** | they want a link to send someone | publish the wireframe as an Artifact and hand the URL back (§6), then re-arm. The review carries on — this is not an ending |
-| a JSON blob | a review landed | apply it — the steps below |
-| **`review closed`** | the tab went away without a verdict | don't re-arm; say the review is closed |
+| **`REVIEW`** | a review landed; the line names the brief | delete `pending`, then apply it — the steps below |
+| **`REPLIED`** | they answered a question you asked | read the thread and carry on with that comment. Nothing else announces this — a reply writes no sentinel |
+| **`CANCELLED`** | the reviewer pressed **Stop** | don't publish what you had half-done. Say what you had already changed and what you hadn't, then delete `cancel` |
+| **`SHARE`** | they want a link to send someone | publish the wireframe as an Artifact and hand the URL back (§6). The review carries on — this is not an ending |
+| **`APPROVED`** | the design is signed off; the server has closed itself | say it's approved, note any `openComments` deliberately left, and carry on with whatever comes next |
+| **`CLOSED`** | that review's tab went away | the watcher drops it and keeps watching the rest; it only stops when none are left |
+
+**Delete the sentinel you acted on** (`pending`, `cancel`, `share`). The watcher announces each one
+once per appearance, but a sentinel left behind is a round the store still thinks is open.
 
 ### Stopping a round in flight
 
@@ -188,7 +200,7 @@ Exit 2 means stop. Then:
 1. **Don't publish.** A half-applied version published as a new one is the worst outcome — the
    reviewer now has to review your interrupted work.
 2. Leave the file as it is. Say plainly what you had already changed and what you hadn't.
-3. `rm "$STORE/cancel"` and re-arm the waiter. The review is still open; only this round ended.
+3. `rm "$STORE/cancel"`. The review is still open; only this round ended, and the watcher is still running.
 
 The longer the round, the more it matters: a check costs nothing, and one that never runs makes the
 button a lie.
@@ -225,6 +237,10 @@ The workspace never swaps the page out from under the reviewer: while you work, 
 sent carries its own progress bar, and on publish the page offers **"vN is ready — Review changes"**.
 Nothing interrupts them mid-round. Publish once, when the round is done.
 
+The reviewer keeps writing while you work — the workspace holds those comments and sends them as one
+batch the moment your round ends. So a `REVIEW` event landing right after your publish is normal:
+it is the queue they built up while you worked, not an echo of the round you just finished.
+
 ## 6 · Publish the wireframe as a shareable link
 
 **What gets shared is the wireframe** — the design itself, opening full-bleed the way the
@@ -236,7 +252,11 @@ pressed *Publish a link to this wireframe* under the ▾ and the menu is showing
 URL arrives.
 
 Publish **`$FILE` itself** with the **Artifact** tool (favicon `🎨`), then hand the URL back
-so it appears in the workspace:
+so it appears in the workspace.
+
+**In a live review** there is no `$FILE` — publish the capture the workspace just took,
+`.ui-review/<name>/versions/v<n>.html` for the current round, and say plainly that the link is a
+still of one screen, not the app.
 
 ```bash
 node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "<artifact-url>"
@@ -251,7 +271,7 @@ node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "<artifact-url
   *Republish* rather than a stale link — **redeploy from the same file path** so the URL
   stays put and anyone holding it sees the new version.
 - Delete the `share` sentinel once you've handed the URL back; `share --url` does it for
-  you. Then re-arm the waiter — sharing does not end the review.
+  you. Sharing does not end the review, and the watcher is still running.
 
 **If they want to comment remotely**, that's a different artifact and an explicit ask.
 `bundle-artifact.mjs` flattens the whole workspace — page, last 3 versions, and the
@@ -263,15 +283,115 @@ other end:
 node "$SKILL/assets/bundle-artifact.mjs" --file "$FILE" --out review.html
 ```
 
+## 7 · Reviewing a UI that already exists
+
+Point the same workspace at a running app and everything above still holds — the
+modes, the marks, the threads, the timeline, Stop, Approve. Three things differ,
+and they all follow from the same fact: **what is under review is code, not a
+file you own.**
+
+```bash
+node "$SKILL/assets/review-server.mjs" serve \
+  --app http://localhost:5173 --name lora-ui --port 7788    # a dev server
+node "$SKILL/assets/review-server.mjs" serve \
+  --app https://example.com --name marketing --port 7788    # a site on the internet
+```
+
+The server reverse-proxies the app, so the workspace and the app share an origin
+— which is the only reason a comment can attach to an element rather than to a
+coordinate. The workspace moves to **http://localhost:7788/__review/**; every
+other path belongs to the app. Sockets are proxied too, so hot reload keeps
+working. Start it with `run_in_background: true`, tell the user the
+`/__review/` URL, and arm the waiter (§5) against `.ui-review/<name>/` in the
+directory you ran it from — **run every later command from that same directory**,
+or pass `--store`.
+
+**Get the app running first** when it's yours to run. If it isn't up, the canvas
+says so instead of showing a screen: start the dev server yourself (background
+it), or ask which command does it. `--start /workflows` opens on a screen other
+than the front door. A public site needs none of that — point at it and go.
+
+### What changes
+
+- **Every comment carries the route it was made on.** Marks are drawn only on
+  that screen; elsewhere the comment sits in the list tagged *another screen*,
+  with the route under it, and clicking it takes the frame there. The reviewer
+  clicks through the app to reach a screen, or types a path in the address bar.
+  So a review can span the whole flow in one pass — the brief comes back grouped
+  by screen size, each comment naming its **Route**.
+- **A version is a round, not a file.** `publish --name <slug> --label "…"
+  --addressed …` records that you finished a round; there is no snapshot of a
+  file because the app is the truth. The timeline still scrubs: the workspace
+  captures the DOM of the screen they were commenting on each time they send, so
+  history shows what they were looking at when they said it.
+- **You change source, not markup.** Go from a comment to the code through its
+  anchor: the element's `id`, its distinctive classes, and above all the words on
+  it — `text` and `label` are usually a literal string in the component. Search
+  for those first, then confirm with the route. Say which files you changed when
+  you reply.
+
+If the app hot-reloads, the reviewer watches your change land. That is an
+argument for landing whole changes rather than halves, not for working slower —
+and `check` (§5) still matters, because a round in a live app can be stopped
+mid-flight just as easily.
+
+### A public website works too
+
+Same command, a real URL:
+
+```bash
+node "$SKILL/assets/review-server.mjs" serve --app https://example.com --name marketing --port 7788
+```
+
+A site published on the internet writes its own origin into its markup, so the
+proxy rewrites text responses to point back through itself — otherwise the first
+link the reviewer clicks takes the frame off the proxy, cross-origin, and every
+comment silently stops working. It also strips HSTS, drops the `Domain` off
+cookies so a session survives on localhost, decompresses what it has to rewrite,
+sends the site its own `Origin` and `Referer`, and refuses service-worker
+registration so a site cannot take over the origin the workspace lives on.
+
+What that buys: a whole marketing site, a competitor's flow, a production app —
+clicked through and commented on screen by screen, with each comment naming its
+route.
+
+- **Check the front door first.** If the target redirects to another origin (the
+  `www` host is the usual one), the server says so on start and names the URL to
+  use instead. Review the origin they actually land on.
+- **A comment on someone else's site is a note about a design, not a licence to
+  copy it.** Layout and interaction patterns are fair to learn from; logos,
+  wordmarks, photography and copy are not — they stay placeholders in anything
+  you build from it (§2a).
+- **Off-site links leave the review.** The workspace says *off-site* in the
+  address bar and offers Back. Nothing on another origin can be read or
+  annotated — that is the browser's rule, not a gap.
+
+### What it cannot do
+
+- **Bot protection and CAPTCHAs stand.** Cloudflare-style interstitials, rate
+  limits and bot checks apply to the proxy like any other client, and are not to
+  be worked around. If a site refuses to load, say so and stop.
+- **A login wall needs the user.** Never enter credentials. Ask them to sign in
+  themselves in the workspace's window — the session lives on the proxy's origin,
+  so they log in there once even if they are already logged in elsewhere — then
+  carry on.
+- **Strict CSRF or origin checks can still refuse a POST**, and an API on a third
+  origin that only allows the site's own will refuse the browser. Reads are
+  reliable; writes on a hardened site may not be.
+- **A live review has no shareable design.** *Publish a link* captures the screen
+  they are on and publishes that — a still, not the app. Say so when you hand the
+  link over.
+
 ## Notes
 
 - The workspace's top bar, palette and controls are stamped in from `lib/shell/` — shared with every other vstack page. Change them there and re-stamp, never in the workspace.
 - **Never edit `assets/workspace.html`, `review-server.mjs` or `bundle-artifact.mjs`** to fit a project — they're the engine. Only the page under review is yours. (`harvest-reference.js` is meant to be pasted and run, not edited.)
-- State lives in `<dir>/.ui-review/<name>/` beside the file — versions, reviews, threads, and the sentinels. The page itself stays clean.
+- State lives in `<dir>/.ui-review/<name>/` beside the file — versions, reviews, threads, and the sentinels. The page itself stays clean. A live review has nothing to sit beside, so it lands in `.ui-review/<name>/` under the directory you started it from.
 - **`.ui-review/` and the `ui-review:*` `localStorage` keys keep the old name on purpose.** They are the engine's own paths, not the skill's; renaming them would orphan every review already on disk and every comment already in a browser, for no visible gain. Not an oversight.
 - The server binds to `127.0.0.1` only. Port 7788 busy usually means a review server is already running — pass `--port`.
 - `node "$SKILL/assets/review-server.mjs" status --file "$FILE"` prints the current version, whether a review is waiting, and any stop / sign-off / share request outstanding.
 - `check --file "$FILE"` is the same question reduced to an exit code — 0 carry on, 2 stop. Use it inside a round, where `status` is too much output to read repeatedly.
+- **Every command takes `--name <slug>` in place of `--file` for a live review** — `publish`, `reply`, `share`, `status`, `check`. The brief tells you which name to use.
 - Full command reference and troubleshooting: `references/workflow.md`.
 
 ## State & handoff
@@ -297,5 +417,8 @@ With a state file:
   `history` entry. If the template's `design/README.md` inventory exists, fill the feature's row.
 - **Write it on sign-off, not on every publish.** A design still under review is not an artifact;
   recording it as one puts versions in the state file that nobody agreed to. Approve is the moment.
+- **A live review produces no wireframe artifact.** What it changes is the code, which the repo already
+  records — so do not append to `artifacts.wireframes[]` for one. Say what you changed and leave the
+  pipeline alone; the design stage is about designs that do not exist yet.
 - **Next** — `/vstack:spec` turns the signed-off design into acceptance criteria. Offer to run it;
   don't ask whether to continue.

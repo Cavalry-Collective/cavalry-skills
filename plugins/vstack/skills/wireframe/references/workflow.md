@@ -1,6 +1,8 @@
 # Workflow reference
 
 `$SKILL` = the directory holding `SKILL.md`. `$FILE` = the HTML file under review.
+For a live review of a running app, `--app <url>` replaces `--file` on `serve`,
+and `--name <slug>` replaces it on every other command.
 
 ## Layout
 
@@ -25,6 +27,13 @@ wireframes/
       share                      sentinel — they want a shareable Artifact link
       url                        the live URL — exists only while serving
 ```
+
+A live review has no file to sit beside, so its store is `.ui-review/<name>/`
+under the directory `serve` was run from, and `state.json` also carries the app's
+origin. `versions/v<n>.html` is then a capture of the screen the reviewer was
+commenting on when they sent round *n* — the timeline scrubs to it, and it is
+what `share` publishes. A round nobody sent a review from has no capture, which
+the workspace says in the frame rather than showing an error.
 
 `pending`, `cancel`, `approved` and `share` are the four ways the workspace
 reaches you, and only one is ever meaningful at a time: sending clears `cancel`,
@@ -59,6 +68,31 @@ node "$SKILL/assets/review-server.mjs" status --file "$FILE"
 node "$SKILL/assets/bundle-artifact.mjs" --file "$FILE" --out review.html
 ```
 
+### Live review of a running app
+
+```bash
+# proxy the app and serve the workspace at /__review/ (run_in_background: true)
+node "$SKILL/assets/review-server.mjs" serve --app http://localhost:5173 --name lora-ui --port 7788
+node "$SKILL/assets/review-server.mjs" serve --app :5173 --name lora-ui --start /workflows
+
+# every other command names the review instead of a file
+node "$SKILL/assets/review-server.mjs" publish --name lora-ui --label "Date column added" --addressed c1f3k2
+node "$SKILL/assets/review-server.mjs" reply   --name lora-ui --comment c7f2a1 --text "Created, or finished?"
+node "$SKILL/assets/review-server.mjs" status  --name lora-ui
+node "$SKILL/assets/review-server.mjs" check   --name lora-ui
+```
+
+`--name` finds the store under the current directory — run every command from
+where `serve` was run, or pass `--store <dir>`. Without `--name` the store is
+named after the host and port (`localhost-5173`).
+
+The workspace is at **`/__review/`**, not `/`: the app owns the root path space
+so its own absolute URLs resolve unchanged. `X-Frame-Options` and
+`Content-Security-Policy` are stripped from proxied responses (they exist to stop
+framing, which is exactly what the workspace does), redirects back to the app's
+origin are rewritten to stay inside the proxy, and WebSocket upgrades are passed
+through so hot reload survives.
+
 `publish` always creates v(current + 1) and makes it current, so the version the
 workspace names always has a frozen copy behind it. The rhythm is: edit the
 file → `publish` → the workspace offers the reviewer the new version.
@@ -71,23 +105,33 @@ fixing up a version nobody has reviewed yet.
 ## Catching a review
 
 ```bash
-STORE="$(dirname "$FILE")/.ui-review/$(basename "$FILE" .html)"
-until [ -f "$STORE/pending" ] || [ -f "$STORE/approved" ] || [ -f "$STORE/cancel" ] \
-   || [ -f "$STORE/share" ] || [ ! -f "$STORE/url" ]; do sleep 2; done
-if   [ -f "$STORE/approved" ]; then echo "APPROVED";  cat "$STORE/approved"
-elif [ -f "$STORE/cancel" ];   then echo "CANCELLED"; cat "$STORE/cancel"
-elif [ -f "$STORE/share" ];    then echo "SHARE";     cat "$STORE/share"
-elif [ -f "$STORE/pending" ];  then cat "$STORE/pending"
-else echo "review closed"; fi
+node review-server.mjs watch --all --stream        # or --file <page.html>
 ```
 
-Run with `run_in_background: true`. It ends when the user hits **Send to
-Claude**, **Approve**, **Cancel** or **Publish a link to this wireframe**, or when they close the tab and the server
-shuts itself down — the `url` file exists only while the server is listening, so
-the loop can never outlive the review. Test the sentinels before falling through
-to `review closed`: approve closes the server too, so a waiter that only watches
-`url` reports a signed-off design as an abandoned tab. First thing after waking
-on a review: delete `pending`.
+Run it with the **Monitor tool**, `persistent: true`. One line of stdout is one
+event and the process never exits, so there is nothing to restart between rounds:
+
+```text
+WATCHING  2 review(s): wireframe, spec-tree
+REVIEW    wireframe · 3 comment(s) · …/reviews/v12/feedback.md
+REPLIED   wireframe · v12/c7h0zh0 · "let's align it to the bottom"
+CANCELLED wireframe · read …/cancel
+OPENED    story-map-template · now watching 3 review(s)
+CLOSED    spec-tree · the tab went away
+```
+
+`--all` covers every review with a live server under the project, including ones
+opened after the watcher started; `--file` can be repeated, and combines with
+`--all` for a page living outside the project. While it runs each page shows
+**Linked**; with no watcher they show **Unlinked**, in amber.
+
+First thing after a `REVIEW`: delete `pending`. Same for the `cancel` and `share`
+sentinels once acted on — the watcher announces each once per appearance, but a
+sentinel left behind is a round the store still thinks is open.
+
+A one-shot form (`watch` without `--stream`) still exists: it exits on the first
+event and prints the command to restart itself. Nothing points at it any more —
+it is there for scripting, not for the loop.
 
 **Cancel is a request, not a kill.** Nothing can reach into a turn you are
 already running — the sentinel is how the reviewer says *stop*, and you answer
@@ -111,6 +155,7 @@ bottom is the same data structured. Each comment:
 | `covers` | area comments only — every named element the box was drawn around, in page order |
 | `anchorText` | the words on screen under the mark — the short form of `anchor.text` |
 | `screenSize` | `ultrawide` / `desktop` / `tablet` / `phone` — the layout it was made at |
+| `route` | live review only — the screen of the app it was made on. The way back to it, and half the answer to which component renders it |
 | `point` / `rect` | where, in the page's own coordinates at that size |
 | `status` | `open` (yours to act on) · `question` (you asked, waiting on them) · `addressed` |
 | `replies` | the thread so far — `{by: 'claude' \| 'reviewer', text, at}` |
@@ -197,3 +242,36 @@ version's comments, read-only. Comments also only render at the screen size
 they were made at; the panel lists the others under "On other screen sizes".
 
 **Bundle is huge.** `--versions 1` keeps only the newest published version.
+
+**Live: the frame says it can't reach the app.** The app is not running, or died.
+Start it and hit reload in the window bar — the review stays open either way.
+
+**Live: the app loads but its data doesn't.** The app is calling an API on
+another origin that only allows its own. Through the proxy the browser's origin
+is `localhost:<review-port>`, so that call is refused. If the app proxies its own
+API (the usual dev-server setup) this never happens. When it does, say so — do
+not loosen the app's CORS to make a review work unless the user asks.
+
+**Live: comments all say "another screen".** The app changed route and the marks
+went with it, which is the design. Click a comment to go back to where it was
+made, or check that the route in the address bar is the one you expect.
+
+**Live: `--name` finds nothing.** The store is resolved from the current
+directory. Run the command where `serve` was run, or pass `--store`.
+
+**A public site.** Same command with a real URL. Text responses are rewritten so
+the site's own absolute links stay inside the proxy, HSTS is stripped, cookies
+lose their `Domain` so a session survives on localhost, `Origin`/`Referer` are
+sent as the site's own, and service-worker registration is refused so a site
+cannot take over the origin the workspace lives on.
+
+- **Redirects at the front door.** If the target redirects to another origin —
+  usually the `www` host — the server prints the URL to use instead. Use it;
+  everything past that redirect is outside the proxy.
+- **Off-site links.** The frame leaves the proxy and the workspace says *off-site*
+  in the address bar. Nothing on another origin can be read or annotated. Back
+  returns.
+- **A site that won't load.** Bot protection, an interstitial or a rate limit.
+  That is the site's answer — report it rather than working around it.
+- **Reads work, writes may not.** A hardened site can still refuse a POST whose
+  CSRF token was minted for its own origin.

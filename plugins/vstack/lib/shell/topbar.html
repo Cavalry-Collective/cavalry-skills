@@ -19,22 +19,43 @@
        `actions` after them, where the primary action belongs. -->
   <!-- vstack:slot tools -->
   <!-- /vstack:slot tools -->
-  <div class="seg" id="themeSwitch">
-    <button data-theme-set="auto" aria-pressed="true" title="Match the system">A</button>
-    <button data-theme-set="light" aria-pressed="false" title="Light">
-      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
-        <circle cx="8" cy="8" r="3.1"/><path d="M8 .9v2M8 13.1v2M.9 8h2M13.1 8h2M3 3l1.4 1.4M11.6 11.6 13 13M13 3l-1.4 1.4M4.4 11.6 3 13" stroke-linecap="round"/>
+  <!-- How you like the page, rather than anything about the work: two segmented
+       controls sat in the bar all day for a choice made once. They live behind
+       the cog now, and the bar keeps only what the tool is doing. -->
+  <div class="cogwrap">
+    <button class="cog" id="settingsBtn" aria-haspopup="true" aria-expanded="false" aria-label="Settings">
+      <!-- A real gear: a toothed rim with a hole. Spokes radiating from a circle
+           is a brightness dial, which is what the first attempt drew. -->
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"
+              d="M13.15 9.45 L14.64 10.22 L14.26 11.13 L12.67 10.61 L10.61 12.67 L11.13 14.26 L10.22 14.64 L9.45 13.15 L6.55 13.15 L5.78 14.64 L4.87 14.26 L5.39 12.67 L3.33 10.61 L1.74 11.13 L1.36 10.22 L2.85 9.45 L2.85 6.55 L1.36 5.78 L1.74 4.87 L3.33 5.39 L5.39 3.33 L4.87 1.74 L5.78 1.36 L6.55 2.85 L9.45 2.85 L10.22 1.36 L11.13 1.74 L10.61 3.33 L12.67 5.39 L14.26 4.87 L14.64 5.78 L13.15 6.55 Z M8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8Z"/>
       </svg>
     </button>
-    <button data-theme-set="dark" aria-pressed="false" title="Dark">
-      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.8 5.8 0 1 0 7 7Z" stroke-linejoin="round"/>
-      </svg>
-    </button>
-  </div>
-  <div class="seg" id="langSwitch">
-    <button data-lang="en" aria-pressed="true">EN</button>
-    <button data-lang="zh" aria-pressed="false">中文</button>
+    <div class="cogmenu" id="settingsMenu" hidden>
+      <div class="row">
+        <span class="lbl" id="cogTheme">Theme</span>
+        <div class="seg" id="themeSwitch">
+          <button data-theme-set="auto" aria-pressed="true" title="Match the system">A</button>
+          <button data-theme-set="light" aria-pressed="false" title="Light">
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="8" r="3.1"/><path d="M8 .9v2M8 13.1v2M.9 8h2M13.1 8h2M3 3l1.4 1.4M11.6 11.6 13 13M13 3l-1.4 1.4M4.4 11.6 3 13" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button data-theme-set="dark" aria-pressed="false" title="Dark">
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.8 5.8 0 1 0 7 7Z" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="row">
+        <span class="lbl" id="cogLang">Language</span>
+        <div class="seg" id="langSwitch">
+          <button data-lang="en" aria-pressed="true">EN</button>
+          <button data-lang="zh" aria-pressed="false">中文</button>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="sep"></div>
   <span class="linkdot" id="linkDot" hidden></span>

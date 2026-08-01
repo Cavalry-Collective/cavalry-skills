@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * check-subtraction.mjs — prove a phase wireframe is a pure subtraction of its base.
+ * check-subtraction.mjs — prove a phase screen is a pure subtraction of its base.
  *
  * Three checks, all mechanical:
  *

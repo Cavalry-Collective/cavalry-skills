@@ -19,6 +19,7 @@
  *   node json-bridge.mjs serve --json <doc.json> --template <page.html>
  *        [--port 0] [--idle-timeout 90] [--name <label>]
  *   node json-bridge.mjs patch --json <doc.json> --id <nodeId> --set k=v [--set k=v ...]
+ *   node json-bridge.mjs watch --json <doc.json> [--seq <n>]   (blocks; heartbeats presence)
  *
  * serve injects `window.__VSTACK_BRIDGE__ = {token, doc, save, events, history,
  * name}` ahead of the template; opened off disk the template sees no handle and
@@ -34,13 +35,10 @@
  *
  * Bookkeeping lives in <json-dir>/.vstack-bridge/<stem>.{seq,url} and
  * <stem>.history/.
- * The seq waiter (from the skill instructions):
+ * Watching, from the skill instructions — one line of stdout per event, run
+ * under the Monitor tool so it never has to be restarted:
  *
- *   S=<dir>/.vstack-bridge/<stem>.seq ; N=<the seq printed when you armed>
- *   until [ ! -f "<...>.url" ] || [ "$(cat "$S" 2>/dev/null)" != "$N" ]; do sleep 2; done
- *
- * Carry the printed seq forward from the previous wake — never re-read it when
- * re-arming, or a send that lands in between is swallowed.
+ *   node json-bridge.mjs watch --json <doc.json> --stream --seq <printed seq>
  */
 
 import fs from 'node:fs'
@@ -48,6 +46,7 @@ import path from 'node:path'
 import http from 'node:http'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
+import { checkForUpdate, withUpdate } from './update-check.mjs'
 
 const argv = process.argv.slice(2)
 const cmd = argv[0] && !argv[0].startsWith('--') ? argv.shift() : 'serve'
@@ -91,7 +90,59 @@ if (cmd === 'patch') {
   process.exit(0)
 }
 
-if (cmd !== 'serve') { console.error(`unknown command "${cmd}" — serve or patch`); process.exit(2) }
+/* ── watch — wait for the page, and say so on it while waiting ──
+   Replaces the shell `until [ "$(cat seq)" != "$N" ]` loop the skills used to
+   describe, and adds the half that was missing: a heartbeat the page can see,
+   so its link dot can tell "this server is up" from "someone will read what I
+   send". Exits as soon as there is something to do. */
+if (cmd === 'watch') {
+  const dir = path.join(path.dirname(DOC), '.vstack-bridge')
+  const stem = path.basename(DOC, '.json')
+  const F = {
+    seq: path.join(dir, stem + '.seq'),
+    url: path.join(dir, stem + '.url'),
+    approved: path.join(dir, stem + '.approved'),
+    watching: path.join(dir, stem + '.watching'),
+  }
+  const readSeq = () => { try { return fs.readFileSync(F.seq, 'utf8').trim() } catch { return '0' } }
+  const from = arg('--seq', null) ?? readSeq()
+  const beat = setInterval(() => {
+    try { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(F.watching, String(Date.now())) } catch {}
+  }, 2000)
+  const stop = () => { clearInterval(beat); fs.rmSync(F.watching, { force: true }) }
+  process.on('SIGINT', () => { stop(); process.exit(130) })
+  process.on('SIGTERM', () => { stop(); process.exit(143) })
+  try { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(F.watching, String(Date.now())) } catch {}
+  /* --stream never exits: one line of stdout is one event, which is the shape
+     the Monitor tool consumes and the shape every other file watcher has. The
+     one-shot form below has to exit to be heard, which makes re-arming a step
+     someone has to remember — and it gets forgotten. */
+  const streaming = argv.includes('--stream')
+  let at = from
+  console.log(streaming ? `WATCHING  ${stem} from seq ${at}` : `watching ${stem} from seq ${at}`)
+  /* Top-level await, deliberately: scheduling a callback here would let the
+     rest of this file — the whole serve path, template check and all — run on
+     underneath the waiter. */
+  let announced = false
+  while (true) {
+    if (fs.existsSync(F.approved)) {
+      if (!announced) {
+        console.log(`APPROVED  ${stem} · read ${F.approved}`)
+        announced = true
+        if (!streaming) { stop(); process.exit(0) }
+      }
+    } else announced = false
+    if (!fs.existsSync(F.url)) { stop(); console.log(`CLOSED    ${stem} · the link is over`); process.exit(0) }
+    const now = readSeq()
+    if (now !== at) {
+      at = now
+      console.log(`SENT      ${stem} · seq ${now} · read ${DOC}`)
+      if (!streaming) { stop(); process.exit(0) }
+    }
+    await new Promise(r => setTimeout(r, 1000))
+  }
+}
+if (cmd !== 'serve') { console.error(`unknown command "${cmd}" — serve, watch or patch`); process.exit(2) }
 
 /* ── serve ── */
 const TEMPLATE = arg('--template', null)
@@ -105,10 +156,26 @@ const BRIDGE_DIR = path.join(path.dirname(DOC), '.vstack-bridge')
 const STEM = path.basename(DOC, '.json')
 const SEQ_FILE = path.join(BRIDGE_DIR, STEM + '.seq')
 const URL_FILE = path.join(BRIDGE_DIR, STEM + '.url')
+/* Sign-off, the way the review workspace has it: the document is settled and
+   the link is over. A sentinel rather than a status inside the document,
+   because it is a statement about the round, not about the map. */
+const APPROVED_FILE = path.join(BRIDGE_DIR, STEM + '.approved')
+/* Touched every couple of seconds by `watch`, deleted when it stops. A
+   heartbeat rather than a flag, because the waiter can be killed without a
+   chance to tidy up, and a stale marker claiming someone is listening is worse
+   than no marker at all. */
+const WATCH_FILE = path.join(BRIDGE_DIR, STEM + '.watching')
+const WATCH_STALE_MS = 15000
+const someoneWatching = () => {
+  try { return Date.now() - fs.statSync(WATCH_FILE).mtimeMs < WATCH_STALE_MS } catch { return false }
+}
 const HIST_DIR = path.join(BRIDGE_DIR, STEM + '.history')
 const HIST_INDEX = path.join(HIST_DIR, 'index.json')
 fs.mkdirSync(BRIDGE_DIR, { recursive: true })
 if (!fs.existsSync(SEQ_FILE)) fs.writeFileSync(SEQ_FILE, '0')
+// A verdict belongs to the round that raised it — a new link starts unsigned,
+// or the first waiter it arms fires on last week's approval.
+fs.rmSync(APPROVED_FILE, { force: true })
 
 /* ── history — one frozen copy per version, so a reload keeps the trail ──
    The page owns the labels; the server records only what moved the document
@@ -137,13 +204,19 @@ const clients = new Set()
 let everConnected = false
 let idleSince = Date.now()
 
+/* Answered once at startup — see lib/update-check.mjs. */
+let update = null
+
 function page () {
   const body = fs.readFileSync(TEMPLATE, 'utf8')
   const handle = `<script>window.__VSTACK_BRIDGE__=${JSON.stringify({
     token: TOKEN, name: NAME, doc: '/doc', save: '/save', events: '/events', history: '/history',
+    approve: '/approve', watching: someoneWatching(),
   })}</script>\n`
-  if (/^\s*<!doctype/i.test(body)) return body.replace(/(<head[^>]*>)/i, `$1\n${handle}`)
-  return `<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n${handle}${body}`
+  const doc = /^\s*<!doctype/i.test(body)
+    ? body.replace(/(<head[^>]*>)/i, `$1\n${handle}`)
+    : `<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n${handle}${body}`
+  return withUpdate(doc, update)
 }
 
 const send = (res, code, type, body) => {
@@ -202,6 +275,31 @@ const server = http.createServer((req, res) => {
     return
   }
 
+  /**
+   * Sign-off. The document is settled: write the verdict, bump the seq so the
+   * session's waiter wakes on it, then close — the same exit that means "tab
+   * closed" now carries a reason, and Claude carries on with the map agreed.
+   */
+  if (req.method === 'POST' && url.pathname === '/approve') {
+    if (!okToken(url) && !okHeader(req)) return send(res, 403, 'application/json', '{"error":"bad token"}')
+    let body = ''
+    req.on('data', c => { body += c; if (body.length > 1e6) req.destroy() })
+    req.on('end', () => {
+      let note = {}
+      try { note = JSON.parse(body || '{}') } catch {}
+      writeAtomic(APPROVED_FILE, JSON.stringify({
+        name: NAME, doc: DOC, at: new Date().toISOString(), note: note.note || null,
+      }, null, 2))
+      const seq = Number(fs.readFileSync(SEQ_FILE, 'utf8') || '0') + 1
+      writeAtomic(SEQ_FILE, String(seq))
+      console.log(`\n✓ Approved — ${NAME} is signed off; the link is closing`)
+      send(res, 200, 'application/json', JSON.stringify({ ok: true, seq }))
+      // Let the response land before the socket goes away with the process.
+      setTimeout(() => close(0), 350)
+    })
+    return
+  }
+
   if (req.method === 'GET' && url.pathname === '/events') {
     if (!okToken(url)) return send(res, 403, 'text/plain', 'bad token')
     res.writeHead(200, {
@@ -234,8 +332,17 @@ setInterval(() => {
   console.log(`pushed v${v.n} to ${clients.size} client(s)`)
 }, 1000)
 
-/* keepalive — SSE clients are the only tab-alive signal we have */
-setInterval(() => { for (const c of clients) c.write(': keepalive\n\n') }, 5000)
+/* keepalive — SSE clients are the only tab-alive signal we have. It carries the
+   presence of a waiting Claude session too: the page's link dot should say who
+   is listening, not merely that this server answered. */
+let lastPresence = null
+setInterval(() => {
+  const now = someoneWatching()
+  const line = now === lastPresence ? ': keepalive\n\n'
+    : `event: presence\ndata: ${JSON.stringify({ watching: now })}\n\n`
+  lastPresence = now
+  for (const c of clients) c.write(line)
+}, 3000)
 
 /* idle watchdog — the tab closing is how a session knows the link ended */
 if (IDLE > 0) {
@@ -259,6 +366,8 @@ server.on('error', e => {
   console.error(e.code === 'EADDRINUSE' ? `port ${PORT} is busy — pass --port` : String(e))
   process.exit(2)
 })
+
+checkForUpdate().then(u => { update = u }).catch(() => {})
 
 server.listen(PORT, '127.0.0.1', () => {
   const url = `http://127.0.0.1:${server.address().port}/?t=${TOKEN}`

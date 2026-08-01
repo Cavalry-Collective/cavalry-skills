@@ -25,13 +25,13 @@ Then report position in one short block — stage, phase, what exists — and of
 | `requirements` | `/vstack:wireframe` |
 | `wireframe` | `/vstack:spec` |
 | `spec` | `/vstack:user-story-map` |
-| `user-story-map` | `/vstack:phase-wireframe` |
-| `phase-wireframe` | `/vstack:phase-build` — builds phase `phase` |
-| `phase-build` | phases remain → `/vstack:phase-wireframe` for the next phase (or `/vstack:phase-build` directly if its wireframes exist); otherwise the chain is done |
+| `user-story-map` | `/vstack:phase-preview` |
+| `phase-preview` | `/vstack:phase-build` — builds phase `phase` |
+| `phase-build` | phases remain → `/vstack:phase-preview` for the next phase (or `/vstack:phase-build` directly if its wireframes exist); otherwise the chain is done |
 | `"done"` | say so; offer another feature pass through `/vstack:wireframe` |
 
 If `"specsOnly": true`, `phase-build` doesn't apply — the chain for this project is
-wireframe → spec → story map → phase wireframes, and adding development later is `/vstack:start`
+wireframe → spec → story map → phase screens, and adding development later is `/vstack:start`
 again.
 
 **Offer, don't interrogate.** Name the successor and offer to run it — never ask *"shall I
@@ -55,9 +55,10 @@ Map what you find to an entry point:
 |---|---|
 | An idea is being discussed; little or nothing on disk | `/vstack:start` — or `/vstack:wireframe` directly if they just want to see a screen |
 | A UI, screen, or design is being discussed, or wireframes exist | `/vstack:wireframe` — build it, or open the existing page for review |
+| A UI that already exists is being critiqued — an app that runs, or a website ("the UI needs work", "I have comments on the admin", "look at their pricing page") | `/vstack:wireframe` — its live mode proxies the target so comments land on the real screens |
 | Acceptance criteria, "what exactly should it do", or a wireframe that needs formalising | `/vstack:spec` |
 | Scope, phases, releases, or "what's in v1" is being discussed | `/vstack:user-story-map` |
-| A story map and a signed-off wireframe both exist | `/vstack:phase-wireframe` |
+| A story map and a signed-off wireframe both exist | `/vstack:phase-preview` |
 | "Build it" — a spec or story map exists and the ask is implementation | `/vstack:phase-build` |
 | A real codebase with no vstack state | `/vstack:start` — its existing-app mode records the project without touching code |
 

@@ -1,5 +1,5 @@
 /* The scrubber: one control for moving along an ordered set of states.
-   `spec` and `wireframe` scrub versions, `phase-wireframe` scrubs release
+   `spec` and `wireframe` scrub versions, `phase-preview` scrubs release
    phases — same control, different axis, so it lives here rather than being
    written a third time. The page supplies the stops and decides what showing
    one means; everything below is how it looks and behaves. */

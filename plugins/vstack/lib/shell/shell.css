@@ -7,9 +7,13 @@
    `display` outranks the browser's default [hidden] rule, and .btn/.linkdot
    both do, so state this here rather than trusting each page's reset. */
 [hidden]{display:none!important}
+/* Above anything the page floats at its edges. The bar makes a stacking context,
+   so a menu opening out of it can never rise past a sibling with a higher
+   z-index — which is how the comments handle came to sit on top of the settings
+   menu. Raising the bar raises everything it opens. */
 .vs-topbar{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
   background:var(--surface);border-bottom:1px solid var(--line);
-  position:sticky;top:0;z-index:40}
+  position:sticky;top:0;z-index:50}
 .vs-topbar .brand{display:flex;align-items:center;gap:8px;min-width:0}
 .vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
 .vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
@@ -45,8 +49,13 @@
   position:relative;flex:none;transition:background .14s}
 .switch .knob{position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;
   background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .14s}
-.switch[aria-checked=true]{color:var(--ink);border-color:var(--brand-line)}
-.switch[aria-checked=true] .track{background:var(--brand)}
+/* On is the same "this one is selected" the segmented control uses. The brand
+   red is the primary action — a view option wearing it read as the thing to
+   press; solid black read like one too. */
+.switch[aria-checked=true]{color:var(--ink);border-color:var(--line-2)}
+/* The same near-black the segmented controls use when selected — on is on,
+   whichever control is saying it. */
+.switch[aria-checked=true] .track{background:var(--ink-2)}
 .switch[aria-checked=true] .knob{transform:translateX(11px)}
 
 /* buttons — one shape, three sizes of intent */
@@ -75,11 +84,28 @@
   cursor:pointer;font:inherit;font-weight:550}
 .seg button:last-child{border-right:0}
 .seg button:hover{background:var(--surface-2)}
-.seg button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+/* Selected is near-black rather than black: dark enough to find at a glance,
+   one step off the ink the page's own words are set in, so the bar never
+   out-blacks the content. --ink-2 flips with the theme, so in dark mode this is
+   the same step down from white. */
+.seg button[aria-pressed=true]{background:var(--ink-2);color:var(--surface);font-weight:650}
 .seg.sm button{height:25px;padding:0 9px;font-size:11.5px}
 #langSwitch button,#themeSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
 #themeSwitch button{padding:0 8px}
 #themeSwitch svg{width:13px;height:13px;display:block}
+
+/* ── settings: how you like the page, out of the way ── */
+.cogwrap{position:relative;flex:none}
+.cog{width:30px;height:30px;border:1px solid var(--line-2);border-radius:7px;background:var(--surface);
+  color:var(--ink-2);display:grid;place-items:center;cursor:pointer}
+.cog:hover,.cog[aria-expanded=true]{background:var(--surface-2);color:var(--ink)}
+.cog svg{width:15px;height:15px;display:block}
+.cogmenu{position:absolute;top:36px;right:0;z-index:60;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:10px;box-shadow:var(--shadow-pop);padding:9px;
+  display:grid;gap:9px;min-width:210px}
+.cogmenu[hidden]{display:none}
+.cogmenu .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.cogmenu .lbl{font-size:12px;color:var(--ink-2);white-space:nowrap}
 
 /* the live link, stated rather than implied */
 .linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
@@ -88,6 +114,16 @@
   box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
 .linkdot.on{color:var(--ok)}
 .linkdot.on::before{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+/* Up, but nobody is waiting to read what you send. Amber rather than green,
+   because the page works and the round will not — the same distinction the
+   WIP tag makes. */
+.linkdot.idle{color:#b0761a}
+.linkdot.idle::before{background:#b0761a;box-shadow:0 0 0 3px color-mix(in srgb,#b0761a 22%,transparent)}
+@media (prefers-color-scheme:dark){.linkdot.idle{color:#d29a3f}
+  .linkdot.idle::before{background:#d29a3f;box-shadow:0 0 0 3px color-mix(in srgb,#d29a3f 22%,transparent)}}
+:root[data-theme=dark] .linkdot.idle{color:#d29a3f}
+:root[data-theme=dark] .linkdot.idle::before{background:#d29a3f;
+  box-shadow:0 0 0 3px color-mix(in srgb,#d29a3f 22%,transparent)}
 
 /* floating banners — the page talking back, never blocking the work */
 .banner{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:38;display:none;
@@ -100,6 +136,30 @@
 .banner.dark .btn:hover{background:color-mix(in srgb,var(--surface) 28%,transparent)}
 .banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
 .banner.good .tick{color:var(--ok);font-weight:700}
+
+/* ── "there is a newer one" ──
+   One line under the bar, in the workmanlike amber the WIP tag uses: it is
+   information, not an alarm, and it goes away for good on ×. */
+.vs-update{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:7px 12px;font-size:12px;color:var(--ink-2);
+  background:color-mix(in srgb,#b0761a 8%,var(--surface));
+  border-bottom:1px solid color-mix(in srgb,#b0761a 26%,transparent)}
+.vs-update .v{font:700 9.5px/1 var(--mono);letter-spacing:.06em;color:#8a5c06;
+  background:color-mix(in srgb,#b0761a 16%,transparent);border-radius:999px;padding:4px 7px;flex:none}
+.vs-update .t{flex:1;min-width:0}
+.vs-update button{font:inherit;font-size:11.5px;font-weight:600;color:var(--ink-2);
+  border:1px solid var(--line-2);background:var(--surface);border-radius:6px;padding:3px 8px;flex:none}
+.vs-update button:hover{color:var(--ink);background:var(--surface-2)}
+.vs-update .no{width:24px;padding:0;font-size:14px;line-height:1}
+.vs-update-how{flex-basis:100%;margin:2px 0 0;font-size:11.5px;color:var(--ink-3)}
+.vs-update-how[hidden]{display:none}
+.vs-update-how p{margin:0 0 4px}
+.vs-update-how pre{margin:0 0 4px;padding:7px 9px;border-radius:7px;overflow-x:auto;
+  font:500 11px/1.6 var(--mono);color:var(--ink);background:var(--surface);border:1px solid var(--line)}
+.vs-update-how .auto{margin:0 0 4px}
+.vs-update-how a{color:var(--ink-2)}
+@media (prefers-color-scheme:dark){.vs-update .v{color:#e2b567}}
+:root[data-theme=dark] .vs-update .v{color:#e2b567}
 
 @media (max-width:720px){
   .brand .eyebrow,.wip{display:none}

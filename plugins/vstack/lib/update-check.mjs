@@ -1,0 +1,184 @@
+/*
+ * update-check.mjs — "is there a newer Visual Stack than the one you are using?"
+ *
+ * The pages are self-contained and the servers are local, so nothing here can
+ * be answered from inside the browser: an Artifact runs under a CSP that blocks
+ * every external request, and a served page has no business reaching GitHub on
+ * its own. The server asks instead, once, and hands the answer to the page it
+ * serves — `window.__VSTACK_UPDATE__`, which the shell turns into one
+ * dismissable line under the bar.
+ *
+ * WHAT COUNTS AS NEWER
+ * This plugin ships without a `version` in plugin.json, which is Claude Code's
+ * way of saying "every commit is a release": it then keys its own update
+ * decision on the git commit the plugin was installed from, and records that in
+ * ~/.claude/plugins/installed_plugins.json. So this asks the same question the
+ * same way — the SHA behind the installed copy, against the head of the default
+ * branch. Should a `version` ever come back, it wins, because that is what
+ * Claude Code would key on instead.
+ *
+ * A working copy is not an install. Running from a clone (developing the plugin
+ * itself) finds no entry, and the check returns nothing rather than telling you
+ * your own uncommitted branch is out of date.
+ *
+ * What it does, exactly, so nothing here is a surprise:
+ *   - one GET of a public GitHub endpoint, per server start, 2.5s timeout
+ *   - the answer cached for six hours
+ *   - fails silent: no network, a rate limit, a bad parse — the page is served
+ *     exactly as it would have been, with no banner and no error
+ *
+ * Nothing is sent: no identifiers, no telemetry, no query. Set
+ * VSTACK_NO_UPDATE_CHECK=1 to skip it entirely.
+ */
+
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const HERE = path.dirname(fileURLToPath(import.meta.url))
+const MANIFEST = path.join(HERE, '..', '.claude-plugin', 'plugin.json')
+const REPO = 'Cavalry-Collective/visual-stack'
+const BRANCH = 'main'
+const MARKET = 'cavalry-collective'   // .claude-plugin/marketplace.json → name
+const PLUGIN = 'vstack'               // the marketplace entry's name
+const INSTALLS = path.join(os.homedir(), '.claude', 'plugins', 'installed_plugins.json')
+const CACHE = path.join(os.tmpdir(), 'vstack-update-check.json')
+const TTL_MS = 6 * 60 * 60 * 1000
+const TIMEOUT_MS = 2500
+
+const readJSON = f => { try { return JSON.parse(fs.readFileSync(f, 'utf8')) } catch { return null } }
+const short = sha => String(sha || '').slice(0, 7)
+
+/** Whatever plugin.json still declares — normally nothing, by design. */
+export const manifestVersion = () => readJSON(MANIFEST)?.version || null
+
+/**
+ * The installed copy this file belongs to, as Claude Code recorded it: the
+ * entry whose installPath contains us. Null when running from a clone.
+ */
+export function installedCopy () {
+  const all = readJSON(INSTALLS)?.plugins
+  if (!all) return null
+  for (const [id, entries] of Object.entries(all)) {
+    for (const e of entries || []) {
+      const root = e.installPath && path.resolve(e.installPath)
+      if (root && (HERE === root || HERE.startsWith(root + path.sep))) {
+        return { id, sha: e.gitCommitSha || null, version: e.version || null }
+      }
+    }
+  }
+  return null
+}
+
+/** 4.10.0 is newer than 4.9.3 — compare numbers, not strings. */
+export function isNewer (a, b) {
+  const parts = v => String(v).split('-')[0].split('.').map(n => parseInt(n, 10) || 0)
+  const [x, y] = [parts(a), parts(b)]
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0)
+  }
+  return false
+}
+
+/** One cache for both questions, so a server start costs at most one request. */
+async function ask (kind) {
+  const cached = readJSON(CACHE)
+  if (cached?.at && cached.kind === kind && Date.now() - cached.at < TTL_MS) return cached.value ?? null
+  const ctl = new AbortController()
+  const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS)
+  try {
+    let value = null
+    if (kind === 'sha') {
+      /* The commit feed rather than the REST API: api.github.com allows 60
+         unauthenticated requests an hour per IP, which an office or a VPN
+         burns through without anyone noticing, and this would then be a
+         feature that quietly never fires. The feed is public, CDN-served and
+         answers the one thing needed — the id of the newest commit. */
+      const res = await fetch(`https://github.com/${REPO}/commits/${BRANCH}.atom`,
+        { signal: ctl.signal, headers: { accept: 'application/atom+xml' } })
+      if (!res.ok) throw new Error(String(res.status))
+      value = /Commit\/([0-9a-f]{40})/.exec(await res.text())?.[1] || null
+    } else {
+      const res = await fetch(
+        `https://raw.githubusercontent.com/${REPO}/${BRANCH}/plugins/${PLUGIN}/.claude-plugin/plugin.json`,
+        { signal: ctl.signal, headers: { accept: 'application/json' } })
+      if (!res.ok) throw new Error(String(res.status))
+      value = (await res.json())?.version || null
+    }
+    // Cache the answer either way: a repo that has not moved should not be
+    // asked again every time a server starts.
+    try { fs.writeFileSync(CACHE, JSON.stringify({ at: Date.now(), kind, value })) } catch {}
+    return value
+  } catch {
+    return cached?.kind === kind ? cached.value ?? null : null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** The words for the banner, composed here because only this end knows which
+    question it asked. */
+const say = (pill, title) => ({ pill, title })
+
+/**
+ * `{ pill, title, install, auto, url }` when there is something newer,
+ * otherwise null. Never throws, never blocks longer than the timeout.
+ */
+export async function checkForUpdate () {
+  if (process.env.VSTACK_NO_UPDATE_CHECK) return null
+  const installed = installedCopy()
+  if (!installed) return null            // a clone is not an install
+
+  let words = null
+  const version = manifestVersion()
+  if (version && installed.version) {
+    const latest = await ask('version')
+    if (latest && isNewer(latest, installed.version)) {
+      words = say(latest, `Visual Stack ${latest} is out — you have ${installed.version}.`)
+    }
+  } else if (installed.sha) {
+    const latest = await ask('sha')
+    if (latest && latest !== installed.sha) {
+      words = say('new', `Visual Stack has moved on since you installed it — ` +
+        `you are on ${short(installed.sha)}, ${BRANCH} is ${short(latest)}.`)
+    }
+  }
+  if (!words) return null
+
+  return {
+    ...words,
+    url: `https://github.com/${REPO}/commits/${BRANCH}`,
+    /* The marketplace refresh comes first: this plugin's source is a path
+       inside the marketplace repository, so the newer copy is only visible once
+       the catalog clone has moved. */
+    install: [
+      `/plugin marketplace update ${MARKET}`,
+      `/plugin update ${PLUGIN}@${MARKET}`,
+      '/reload-plugins',
+    ],
+    // Third-party marketplaces ship with auto-update off, so this is worth
+    // saying once rather than showing this banner every release.
+    auto: `Or turn on auto-update: /plugin → Marketplaces → ${MARKET}`,
+  }
+}
+
+/** The one-line handle a served page reads. Empty string when there is nothing
+    to say, so callers can drop it into a template unconditionally. */
+export function updateScript (info) {
+  return info ? `<script>window.__VSTACK_UPDATE__=${JSON.stringify(info)}</script>\n` : ''
+}
+
+/**
+ * Put the handle into a page, whatever shape the page is. Some of these files
+ * are whole documents and some are fragments that start with <title> — a
+ * `.replace(/<head>/)` on the second kind silently does nothing, which is a
+ * lousy way to find out a feature is off.
+ */
+export function withUpdate (html, info) {
+  const tag = updateScript(info)
+  if (!tag) return html
+  return /<head[^>]*>/i.test(html)
+    ? html.replace(/<head[^>]*>/i, m => m + '\n' + tag)
+    : tag + html
+}

@@ -36,6 +36,7 @@ import path from 'node:path'
 import http from 'node:http'
 import { execFile } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { checkForUpdate, withUpdate } from '../../../lib/update-check.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
@@ -200,10 +201,14 @@ if (MODE === 'template' && !inventory.packs.length) {
   process.exit(2)
 }
 
-const page = fs.readFileSync(path.join(HERE, 'chooser.html'), 'utf8').replace(
+const template = fs.readFileSync(path.join(HERE, 'chooser.html'), 'utf8').replace(
   /(<script id="data" type="application\/json">)[\s\S]*?(<\/script>)/,
   (_m, a, b) => a + '\n' + JSON.stringify(inventory, null, 2) + '\n' + b,
 )
+/* Answered once at startup — see lib/update-check.mjs. */
+let update = null
+checkForUpdate().then(u => { update = u }).catch(() => {})
+const page = () => withUpdate(template, update)
 
 const send = (res, code, type, body) => {
   res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' })
@@ -216,7 +221,7 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://127.0.0.1')
 
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
-    return send(res, 200, 'text/html; charset=utf-8', page)
+    return send(res, 200, 'text/html; charset=utf-8', page())
   }
 
   /* the page's link indicator polls this — alive means "Claude is listening" */

@@ -2,7 +2,7 @@
 /**
  * phase-view.mjs — put the phases on a scrubber, in one self-contained file.
  *
- * `phase-wireframe` writes one file per phase. Those files are the build
+ * `phase-preview` writes one file per phase. Those files are the build
  * targets and stay exactly as they are; this is the way to *look* at them —
  * drag along the rail and watch the screen fill in release by release.
  *

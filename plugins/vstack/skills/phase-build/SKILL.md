@@ -10,7 +10,7 @@ node coloured by what it is: **new** this phase, **changed** (exists, this phase
 being built and fill in as they land.
 
 ```
-story map slice + specs + phase wireframes ──► plan JSON ──► board ──► user adjusts ──► Start
+story map slice + specs + phase screens ──► plan JSON ──► board ──► user adjusts ──► Start
                                                                                          │
         done ◄── infra ◄── ui ◄── api  — one node at a time, each reported to the board ◄┘
 ```
@@ -62,17 +62,21 @@ node "$LIB/json-bridge.mjs" serve --json "$DOC" --template "$SKILL/assets/build-
 
 `--idle-timeout 0` because the link must survive the whole build. Start with
 **`run_in_background: true`**, hand over the printed URL, then arm the seq waiter
-(**`run_in_background: true`**, carry the printed seq forward — never re-read it on re-arm):
+(the **Monitor tool**, `persistent: true` — carry the printed seq forward):
 
 ```bash
-BRD=.vstack/build/.vstack-bridge
-S="$BRD/phase-<n>.seq"; U="$BRD/phase-<n>.url"
-N=<seq printed when armed>
-until [ ! -f "$U" ] || [ "$(cat "$S" 2>/dev/null)" != "$N" ]; do sleep 2; done
-if [ -f "$U" ]; then echo "SENT seq=$(cat "$S")"; else echo "LINK CLOSED"; fi
+node "$VSTACK/lib/json-bridge.mjs" watch --json .vstack/build/phase-<n>.json --stream \
+  --seq <seq printed when the server started>
 ```
 
-On `SENT`, read the JSON. A plain save is a **plan adjustment** — take it as the new plan and re-arm.
+Start it with the **Monitor tool, `persistent: true`**. It never exits — each line is one event
+(`SENT`, `APPROVED`, `CLOSED`), so there is nothing to re-arm after a round, which is the step that
+gets forgotten and leaves a page nobody is reading.
+
+While it runs the board says **Linked to Claude**; with no watcher it says **Unlinked**, in amber, so
+the user can see that a Send would sit there unread.
+
+On `SENT`, read the JSON. A plain save is a **plan adjustment** — take it as the new plan and carry on.
 A save carrying `"action": "start"` is the user pressing **Start**: remove the `action` key, write
 the file back, and begin the build. This is the cheapest moment the user will ever have to move an
 endpoint or collapse two components — never start building before they've had it.
@@ -124,5 +128,5 @@ section. The plan JSON can live wherever the user likes (default `.vstack/build/
 - **Write** — **this skill owns the phase counter.** On completing phase N: `phase: N + 1`, or
   `stage: "done"` if N was the last phase in the story map; either way `stage: "phase-build"` in
   history with a note (`"phase 1: 9 built, 1 failed"`). No other stage touches `phase`.
-- **Next** — the loop: the next phase starts back at `/vstack:phase-wireframe` (or straight here if
-  phase wireframes already exist for it). After the last phase, the chain is done — say so plainly.
+- **Next** — the loop: the next phase starts back at `/vstack:phase-preview` (or straight here if
+  phase screens already exist for it). After the last phase, the chain is done — say so plainly.

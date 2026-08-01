@@ -52,7 +52,7 @@ VSShell.name('Phase 2 build');                 // when the page renames itself
 ```
 
 The scrubber is an ordered set of stops and a handle between them — versions on
-the spec and the review workspace, release phases on `phase-wireframe`. The page
+the spec and the review workspace, release phases on `phase-preview`. The page
 says what the stops are and what showing one does; the component owns the track,
 the ticks, the drag and the caption (and escapes what it renders):
 

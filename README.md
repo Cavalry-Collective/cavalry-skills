@@ -39,10 +39,10 @@ Use the whole sequence or enter at the stage that matches the work in front of y
 | --- | --- |
 | `/vstack:go` | Reads the conversation, repository, and current pipeline, then suggests the right next stage |
 | `/vstack:start` | Sets up a new project or records an existing one through a guided form |
-| `/vstack:wireframe` | Builds or opens a screen in a workspace where you can comment directly on it |
+| `/vstack:wireframe` | Builds or opens a screen in a workspace where you can comment directly on it — including an app that is already running |
 | `/vstack:spec` | Turns the product into a drill-down tree of epics, stories, and acceptance criteria |
 | `/vstack:user-story-map` | Arranges stories across the user journey and release phases |
-| `/vstack:phase-wireframe` | Shows what an approved screen contains at each release phase |
+| `/vstack:phase-preview` | Shows what an approved screen contains at each release phase |
 | `/vstack:phase-build` | Plans a phase as endpoints, components, and resources, then follows the build |
 
 `/vstack:start` uses the
@@ -56,6 +56,11 @@ codebase without restructuring it.
 
 Comments stay attached to the element under review. Claude receives the comment, applies the change,
 and publishes the next version into the same workspace.
+
+The same workspace also reviews a UI that already exists — an app on localhost, or a website on the
+internet. It proxies the target into the canvas, so you click through the real screens and comment on
+them. Each comment remembers the route it was made on, and a round changes the source rather than a
+mockup.
 
 [Open the wireframe example](examples/wireframe.html).
 
@@ -75,7 +80,7 @@ Move a story between phases or activities and Claude replans around the new rele
 
 ### See each phase before building it
 
-![A signed-off screen at Phase 2, with everything the phase adds outlined](docs/screens/phase-wireframe.png)
+![A signed-off screen at Phase 2, with everything the phase adds outlined](docs/screens/phase-preview.png)
 
 Drag through the release timeline to see the approved screen fill in phase by phase. Highlighting
 shows exactly what the selected phase adds.
@@ -112,6 +117,33 @@ does not require a particular specification system.
 
 Use it with ordinary Claude Code or alongside tools such as Spec Kit and Superpowers. Existing
 projects can adopt it without moving their code.
+
+---
+
+## Update checks
+
+Each tool's local server asks GitHub once, when it starts, whether a newer Visual Stack has been
+published, and the page shows one dismissable line if there is. It is a plain `GET` of the plugin
+manifest on the default branch — nothing is sent, the answer is cached for six hours, and a failure
+is silent. Turn it off with `VSTACK_NO_UPDATE_CHECK=1`.
+
+To take an update:
+
+```text
+/plugin marketplace update cavalry-collective
+/plugin update vstack@cavalry-collective
+/reload-plugins
+```
+
+Or turn on auto-update once, under `/plugin` → **Marketplaces** → `cavalry-collective`. Third-party
+marketplaces ship with it off, so nothing updates in the background until you say so.
+
+**Releasing:** `plugins/vstack/.claude-plugin/plugin.json` deliberately carries no `version`. Claude
+Code then keys updates on the git commit a copy was installed from, so every push to `main` is a
+release and nothing has to be bumped by hand. The check above compares the same thing — the SHA
+recorded for your install against the head of `main` — so the banner and Claude Code always agree.
+Adding a `version` back would switch both to that field, and then it has to be bumped every release
+or nothing ships.
 
 ---
 

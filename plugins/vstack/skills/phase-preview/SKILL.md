@@ -1,11 +1,13 @@
 ---
-name: phase-wireframe
-description: Take one signed-off UI wireframe and cut it down into a series of phased wireframes — one per release phase, each showing only what exists by that phase, with the layout untouched — then put them on a scrubber you drag to watch the screen fill in release by release. Use when the user wants a Phase 1 / MVP version of an existing wireframe or mockup, phased or staged screens, a design sliced by release phase or story map, or wants to see what a screen looks like before later features land.
+name: phase-preview
+description: Preview a signed-off design one release phase at a time — cut it down into a series of phase screens, each showing only what exists by that phase with the layout untouched, then put them on a scrubber you drag to watch the screen fill in release by release. Use when the user wants a Phase 1 / MVP version of an existing wireframe or mockup, phased or staged screens, a design sliced by release phase or story map, or wants to see what a screen looks like before later features land.
 ---
 
-One wireframe in, one wireframe per phase out. Each phase file shows everything available **by** that
+One design in, one screen per phase out. Each phase file shows everything available **by** that
 phase and nothing that isn't, in exactly the positions the approved design already put them — so a
-phase wireframe is the real build target for that release, not a redrawing of it.
+phase screen is the real build target for that release, not a redrawing of it. Nothing here is
+drawn: this is the approved design with the later releases taken out, which is why it can be
+checked mechanically rather than by eye.
 
 ```
 base.html ──┬──► phase-1/base.html    only what ships in phase 1
@@ -167,7 +169,7 @@ With a state file:
   land when. `artifacts.wireframes[]` for the base page. While a story map exists it is the phase
   truth; don't re-derive phases from anything else.
 - **Write** `artifacts.wireframes[].phases` — the per-phase files, against the wireframe they were
-  cut from — plus `stage: "phase-wireframe"` and a history entry. The generated `<name>-phases.html`
+  cut from — plus `stage: "phase-preview"` and a history entry. The generated `<name>-phases.html`
   (§6) is a view, not an artifact: don't record it, and don't let a later stage read it.
 - **Next** — `/vstack:phase-build` plans and builds phase 1. Offer to run it; don't ask whether to
   continue.

@@ -5,7 +5,7 @@
    works identically served, opened off disk, or published as an Artifact. */
 window.VSShell = (function () {
   const $ = s => document.querySelector(s);
-  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang' };
+  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang', seen: 'vstack:update-seen' };
   const store = {
     get (k, d) { try { return localStorage.getItem(k) ?? d } catch { return d } },
     set (k, v) { try { localStorage.setItem(k, v) } catch {} },
@@ -49,13 +49,35 @@ window.VSShell = (function () {
   }
 
   /* ── the live link, said out loud ── */
-  function setLink (up, labels) {
+  /* Three states, not two. "The page reached its server" and "a Claude session
+     is waiting to read what you send" are different facts, and only the second
+     is the one anyone actually wants to know. `watching` undefined means the
+     page has no way to tell, and the dot behaves as it always did. */
+  let linked = null, linkLabels = null, watching;
+  function paintLink () {
     const el = $('#linkDot');
-    if (!el) return;
+    if (!el || linked === null) return;
     el.hidden = false;
-    el.classList.toggle('on', !!up);
-    el.textContent = up ? (labels?.on ?? 'LINKED TO CLAUDE') : (labels?.off ?? 'LINK LOST');
-    el.title = up ? '' : (labels?.offTitle ?? '');
+    const idle = linked && watching === false;
+    el.classList.toggle('on', linked && !idle);
+    el.classList.toggle('idle', !!idle);
+    el.textContent = !linked ? (linkLabels?.off ?? 'LINK LOST')
+      : idle ? (linkLabels?.idle ?? 'UNLINKED')
+      : (linkLabels?.on ?? 'LINKED TO CLAUDE');
+    el.title = !linked ? (linkLabels?.offTitle ?? '')
+      : idle ? (linkLabels?.idleTitle ?? '') : '';
+  }
+  function setLink (up, labels, isWatching) {
+    linked = !!up;
+    if (labels) linkLabels = labels;
+    if (isWatching !== undefined) watching = isWatching;
+    paintLink();
+  }
+  /** The server saying who is listening now, without the page repeating itself. */
+  function setWatching (isWatching) {
+    if (watching === isWatching) return;
+    watching = isWatching;
+    paintLink();
   }
   const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
 
@@ -71,6 +93,47 @@ window.VSShell = (function () {
     if (!el) return;
     el.hidden = !on;
     el.textContent = label || 'Work in progress';
+  }
+
+  /* ── a newer Visual Stack than this one ──
+     The server looked it up before serving this page and left the answer on
+     `window.__VSTACK_UPDATE__`; nothing here reaches the network. Dismissal is
+     remembered per version, so saying "not now" to 4.2 stays said, and 4.3
+     asks once. */
+  function updateNotice () {
+    const info = window.__VSTACK_UPDATE__;
+    // Dismissal is per release: saying "not now" to this one stays said, and
+    // the next one asks once.
+    if (!info?.title || store.get(KEY.seen, '') === info.title) return;
+    const bar = document.createElement('div');
+    bar.className = 'vs-update';
+    bar.innerHTML =
+      `<span class="v">${esc(info.pill || 'new')}</span>` +
+      `<span class="t">${esc(info.title)}</span>` +
+      `<button class="how">How</button><button class="no" aria-label="Dismiss">×</button>`;
+    const how = document.createElement('div');
+    how.className = 'vs-update-how';
+    how.hidden = true;
+    how.innerHTML = `<p>Run these in Claude Code:</p><pre>${esc((info.install || []).join('\n'))}</pre>` +
+      (info.auto ? `<p class="auto">${esc(info.auto)}</p>` : '') +
+      (info.url ? `<a href="${esc(info.url)}" target="_blank" rel="noopener">What changed</a>` : '');
+    bar.appendChild(how);
+    bar.querySelector('.how').onclick = () => { how.hidden = !how.hidden };
+    bar.querySelector('.no').onclick = () => { store.set(KEY.seen, info.title); bar.remove() };
+    const top = $('.vs-topbar');
+    if (top) top.insertAdjacentElement('afterend', bar);
+  }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  /* The cog: one button for the two choices nobody makes twice. */
+  function wireSettings () {
+    const btn = $('#settingsBtn'), menu = $('#settingsMenu');
+    if (!btn || !menu) return;
+    const open = on => { menu.hidden = !on; btn.setAttribute('aria-expanded', String(on)) };
+    btn.addEventListener('click', e => { e.stopPropagation(); open(menu.hidden) });
+    menu.addEventListener('click', e => e.stopPropagation());
+    document.addEventListener('click', () => open(false));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) open(false) });
   }
 
   function init (opts = {}) {
@@ -91,13 +154,15 @@ window.VSShell = (function () {
     if (send && opts.send) send.hidden = false;
     if (opts.wip) wip(true, typeof opts.wip === 'string' ? opts.wip : undefined);
     name(opts.name, opts.eyebrow);
+    wireSettings();
     applyTheme();
     applyLang();
+    updateNotice();
     return api;
   }
 
   const api = {
-    init, setTheme, setLang, setLink, hideLink, name, wip,
+    init, setTheme, setLang, setLink, setWatching, hideLink, name, wip,
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
@@ -107,7 +172,7 @@ window.VSShell = (function () {
 
 /* ── the scrubber ──
    An ordered set of states and a handle that moves between them: versions on
-   the spec and the review workspace, release phases on phase-wireframe. The
+   the spec and the review workspace, release phases on phase-preview. The
    page says what the stops are and what showing one does; this owns the track,
    the ticks, the drag, and the caption.
 

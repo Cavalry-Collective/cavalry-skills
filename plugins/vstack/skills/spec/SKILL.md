@@ -95,15 +95,19 @@ Start it with **`run_in_background: true`**. It prints the URL (with its token) 
 open it. Then arm the waiter with **`run_in_background: true`**, carrying the seq the server printed:
 
 ```bash
-BRD=.vstack/specs/.vstack-bridge
-S="$BRD/<feature>.seq"; U="$BRD/<feature>.url"
-N=<the seq value printed when you armed — carry it forward, never re-read it on re-arm>
-until [ ! -f "$U" ] || [ "$(cat "$S" 2>/dev/null)" != "$N" ]; do sleep 2; done
-if [ -f "$U" ]; then echo "SENT seq=$(cat "$S")"; else echo "LINK CLOSED"; fi
+node "$VSTACK/lib/json-bridge.mjs" watch --json .vstack/specs/<feature>.json --stream \
+  --seq <the seq printed when the server started>
 ```
 
-`SENT` means an edited tree landed in the JSON; `LINK CLOSED` means the tab went away — say so and
-stop serving. **Never re-read the seq when re-arming** — a send that lands between rounds would be
+Start it with the **Monitor tool, `persistent: true`**. It never exits — each line is one event
+(`SENT`, `APPROVED`, `CLOSED`), so there is nothing to re-arm after a round, which is the step that
+gets forgotten and leaves a page nobody is reading.
+
+While it runs the page says **Linked to Claude**; with no watcher it says **Unlinked**, in amber, so
+the user can see that a Send would sit there unread.
+
+`SENT` means an edited tree landed in the JSON; `CLOSED` means the tab went away — say so and
+stop serving. **Pass the seq the server printed** — a send that lands between rounds would be
 swallowed; use the seq printed by the previous waiter's output.
 
 ## 3 · The round
@@ -123,7 +127,7 @@ On `SENT`, read the JSON back:
   answer line. **An answered clarification is a decision**: apply it and remove the note in the next
   round.
 - Rewrite the JSON (the page offers a *Refresh* bar — it never yanks the tree mid-edit), regenerate
-  the markdown (§4), re-arm the waiter, and say in a few lines what changed. Don't ask "shall I
+  the markdown (§4), and say in a few lines what changed. Don't ask "shall I
   continue?" — the loop is the point.
 
 ## 4 · Generate the markdown, every round
