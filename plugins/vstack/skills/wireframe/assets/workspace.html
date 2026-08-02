@@ -479,10 +479,10 @@ body.phase #hiNew{display:inline-flex}
   max-height:190px;overflow:auto}
 #composer .cthread.on{display:flex}
 #composer .msg{border-left:2px solid var(--line-2);padding-left:8px}
-#composer .msg.claude{border-left-color:var(--brand)}
+#composer .msg.agent,#composer .msg.claude{border-left-color:var(--brand)}
 #composer .msg .who{font:600 10px/1 var(--font);letter-spacing:.04em;text-transform:uppercase;
   color:var(--ink-3);margin-bottom:3px}
-#composer .msg.claude .who{color:var(--brand)}
+#composer .msg.agent .who,#composer .msg.claude .who{color:var(--brand)}
 #composer .msg .body{font-size:12.5px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
 #composer .creply{display:none;margin-top:8px;min-height:44px}
 #composer .creply.on{display:block}
@@ -583,10 +583,10 @@ body.phase #hiNew{display:inline-flex}
 .item .tbox{margin-top:7px;padding-top:7px;border-top:1px solid var(--line);
   display:flex;flex-direction:column;gap:7px;cursor:default}
 .item .tmsg{font-size:11.5px;line-height:1.4;border-left:2px solid var(--line-2);padding-left:7px}
-.item .tmsg.claude{border-left-color:var(--brand)}
+.item .tmsg.agent,.item .tmsg.claude{border-left-color:var(--brand)}
 .item .tmsg .who{display:block;font:600 9.5px/1 var(--font);letter-spacing:.04em;
   text-transform:uppercase;color:var(--ink-3);margin-bottom:3px}
-.item .tmsg.claude .who{color:var(--brand)}
+.item .tmsg.agent .who,.item .tmsg.claude .who{color:var(--brand)}
 .item .tmsg .body{display:block;white-space:pre-wrap;word-break:break-word}
 /* the field and its send are one control, so they share one border */
 .item .treplyrow{display:flex;align-items:flex-end;gap:0;border:1px solid var(--line-2);
@@ -699,6 +699,13 @@ body.phase #hiNew{display:inline-flex}
 #tlMeta .row{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* /vstack:shell scrubber-css */
 
+#btnClearHistory{flex:none;min-height:28px;padding:0 9px;border:1px solid var(--line-2);border-radius:7px;
+  color:var(--ink-3);font-size:11px;white-space:nowrap;background:var(--surface)}
+#btnClearHistory:hover:not(:disabled){border-color:var(--brand-line);color:var(--brand);background:var(--surface-2)}
+#btnClearHistory:disabled{opacity:.35;cursor:default}
+#btnClearHistory[hidden],body.phase #btnClearHistory{display:none}
+@media(max-width:720px){#btnClearHistory{width:28px;padding:0;font-size:0}#btnClearHistory::before{content:"⌫";font-size:15px}}
+
 /* ── floating banners ── */
 .banner{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:28;display:none;
   align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow-pop);
@@ -728,6 +735,19 @@ body.phase #hiNew{display:inline-flex}
 #zoombar .z{min-width:44px;text-align:center;font:600 11px/1 var(--mono);color:var(--ink-2)}
 
 /* ── modal / toast ── */
+#historyDialog{width:min(440px,calc(100% - 32px));padding:0;border:1px solid var(--line-2);border-radius:12px;
+  background:var(--surface);color:var(--ink);box-shadow:var(--shadow-pop)}
+#historyDialog::backdrop{background:rgba(10,11,15,.48);backdrop-filter:blur(2px)}
+#historyDialog .modalbody{padding:20px 20px 16px}
+#historyDialog h2{margin:0 0 9px;font-size:17px;line-height:1.25}
+#historyDialog p{margin:0;color:var(--ink-2);font-size:13px;line-height:1.55}
+#historyDialog .kept{margin-top:10px;padding:9px 10px;border-radius:7px;background:var(--surface-2);
+  border:1px solid var(--line);color:var(--ink-2)}
+#historyDialog .modalactions{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;
+  border-top:1px solid var(--line);background:var(--surface-2)}
+#historyDialog .danger{background:var(--brand);border-color:var(--brand);color:#fff}
+#historyDialog .danger:hover{filter:brightness(1.08)}
+#historyDialog .danger:disabled{opacity:.45;filter:none}
 #toast{position:fixed;bottom:18px;left:50%;transform:translate(-50%,20px);background:var(--ink);color:#fff;
   padding:9px 14px;border-radius:8px;font-weight:550;opacity:0;pointer-events:none;transition:.2s;z-index:120}
 #toast.on{opacity:1;transform:translate(-50%,0)}
@@ -898,6 +918,9 @@ body.phase #hiNew{display:inline-flex}
   <div id="tlTrack"><div id="tlFill"></div><div id="tlHandle"></div></div>
   <button class="step" id="tlNext" aria-label="Next">›</button>
   <div id="tlMeta"></div>
+  <!-- vstack:slot scrubber-actions -->
+  <button id="btnClearHistory" hidden></button>
+  <!-- /vstack:slot scrubber-actions -->
 </div>
 <!-- /vstack:shell scrubber -->
     </div>
@@ -927,6 +950,18 @@ body.phase #hiNew{display:inline-flex}
     </div>
   </div>
 </div>
+
+<dialog id="historyDialog" aria-labelledby="historyDialogTitle" aria-describedby="historyDialogImpact historyDialogKept">
+  <div class="modalbody">
+    <h2 id="historyDialogTitle"></h2>
+    <p id="historyDialogImpact"></p>
+    <p class="kept" id="historyDialogKept"></p>
+  </div>
+  <div class="modalactions">
+    <button class="btn" id="btnCancelHistory"></button>
+    <button class="btn danger" id="btnConfirmHistory"></button>
+  </div>
+</dialog>
 
 <div id="doneScreen">
   <div class="card">
@@ -992,10 +1027,11 @@ window.VSShell = (function () {
   }
 
   /* ── the live link, said out loud ── */
-  /* Three states, not two. "The page reached its server" and "a Claude session
+  /* Three states, not two. "The page reached its server" and "an agent session
      is waiting to read what you send" are different facts, and only the second
      is the one anyone actually wants to know. `watching` undefined means the
-     page has no way to tell, and the dot behaves as it always did. */
+     page has no way to tell, and the dot behaves as it always did. Host name
+     comes from window.__VSTACK_HOST__ (contracts/host.md). */
   let linked = null, linkLabels = null, watching;
   function paintLink () {
     const el = $('#linkDot');
@@ -1004,9 +1040,10 @@ window.VSShell = (function () {
     const idle = linked && watching === false;
     el.classList.toggle('on', linked && !idle);
     el.classList.toggle('idle', !!idle);
+    const agent = window.__VSTACK_HOST__?.name || 'agent';
     el.textContent = !linked ? (linkLabels?.off ?? 'LINK LOST')
       : idle ? (linkLabels?.idle ?? 'UNLINKED')
-      : (linkLabels?.on ?? 'LINKED TO CLAUDE');
+      : (linkLabels?.on ?? `LINKED TO ${String(agent).toUpperCase()}`);
     el.title = !linked ? (linkLabels?.offTitle ?? '')
       : idle ? (linkLabels?.idleTitle ?? '') : '';
   }
@@ -1057,7 +1094,8 @@ window.VSShell = (function () {
     const how = document.createElement('div');
     how.className = 'vs-update-how';
     how.hidden = true;
-    how.innerHTML = `<p>Run these in Claude Code:</p><pre>${esc((info.install || []).join('\n'))}</pre>` +
+    const lead = info.howLead || 'To update:';
+    how.innerHTML = `<p>${esc(lead)}</p><pre>${esc((info.install || []).join('\n'))}</pre>` +
       (info.auto ? `<p class="auto">${esc(info.auto)}</p>` : '') +
       (info.url ? `<a href="${esc(info.url)}" target="_blank" rel="noopener">What changed</a>` : '');
     bar.appendChild(how);
@@ -1251,37 +1289,45 @@ const MARK = 'var(--brand)';
 const STR = {
   en: {
     viewLabel: 'View', annotateLabel: 'Annotate',
-    view: 'View — click through the page (space)', annotate: 'Annotate — click for a comment, drag for an area (space)',
+    view: 'View — click through the page (esc)', annotate: 'Annotate — click for a comment, drag for an area (esc)',
     del: 'Delete comment', clearAll: 'Clear all', clearSure: 'Sure?',
     cleared: n => `Cleared ${n} comment${n > 1 ? 's' : ''}`,
+    clearHistory: 'Clear history',
+    clearHistoryTitle: 'Delete past versions',
+    clearHistoryDialogTitle: 'Clear version history?',
+    clearHistoryImpact: n => `This permanently deletes ${n} past version${n === 1 ? '' : 's'}. You will no longer be able to scrub back to ${n === 1 ? 'it' : 'them'}.`,
+    clearHistoryKept: 'The current version and all comments will stay.',
+    clearHistoryCancel: 'Cancel', clearHistoryConfirm: 'Clear history', clearHistoryWorking: 'Clearing…',
+    historyCleared: 'Past versions cleared', historyClearFail: 'Could not clear history',
+    historyClearRestart: 'Restart the review server, then try clearing history again',
     comments: 'Comments',
     open: 'Open',
-    send: 'Send to Claude', copyFor: 'Copy for Claude',
+    send: 'Send to {agent}', copyFor: 'Copy for {agent}',
     comment: 'Comment', areaComment: 'Area comment', generalComment: 'On the page',
     addGeneral: 'Add a comment about the page as a whole', notePlaceholder: 'What needs to change?',
-    replyPlaceholder: 'Reply…', answerPlaceholder: 'Answer Claude…',
-    statusAddressed: 'addressed', statusAsked: 'claude asked',
-    you: 'You', claude: 'Claude',
-    noNote: 'No note yet', claudeAsked: 'Claude asked something',
+    replyPlaceholder: 'Reply…', answerPlaceholder: 'Answer {agent}…',
+    statusAddressed: 'addressed', statusAsked: '{agent} asked',
+    you: 'You', agent: '{agent}', claude: '{agent}',
+    noNote: 'No note yet', claudeAsked: '{agent} asked something',
     awaitingYou: n => `${n} waiting on you`,
     reply: 'reply', replies: 'replies',
     openGroup: n => `Open (${n})`,
-    noOpen: 'No open comments', openCount: n => `${n} open`, waiting: 'Claude is waiting on an answer',
+    noOpen: 'No open comments', openCount: n => `${n} open`, waiting: '{agent} is waiting on an answer',
     carried: n => `${n} carried from earlier`,
-    instructions: 'Instructions for Claude', close: 'Close', copy: 'Copy',
-    hintLocal: 'Sending writes the review and wakes Claude.', hintArtifact: 'Copy this and paste it into the Claude conversation.',
+    instructions: 'Instructions for {agent}', close: 'Close', copy: 'Copy',
+    hintLocal: 'Sending writes the review and wakes {agent}.', hintArtifact: 'Copy this and paste it into the {agent} conversation.',
     copyClose: 'Copy & close', copied: 'Copied', sendFail: 'Could not reach the server',
-    working: n => `Sent ${n} comment${n > 1 ? 's' : ''} — Claude is working…`,
+    working: n => `Sent ${n} comment${n > 1 ? 's' : ''} — {agent} is working…`,
     hiNew: 'Highlight new', hiNewTitle: 'Outline what this phase adds over the one before it',
     phaseCur: 'the full design', phaseOf: n => `Phase ${n}`,
     stop: 'Stop', stopping: 'Stopping…',
-    stopTitle: 'Ask Claude to stop this round at its next checkpoint',
-    stopAsked: 'Asked Claude to stop — it stops at its next checkpoint',
+    stopTitle: 'Ask {agent} to stop this round at its next checkpoint',
+    stopAsked: 'Asked {agent} to stop — it stops at its next checkpoint',
     stopped: 'Round called off — send it again whenever you are ready',
-    editing: 'Claude is editing the page…', ready: v => `<b>v${v} is ready</b>`, changed: '<b>The page changed</b> — reload to see it',
+    editing: '{agent} is editing the page…', ready: v => `<b>v${v} is ready</b>`, changed: '<b>The page changed</b> — reload to see it',
     reviewChanges: 'Review changes', later: 'Later', backToCurrent: 'Back to current',
     viewingOld: v => `Viewing v${v} — read only`, readOnly: v => `read-only · v${v}`,
-    reloadTitle: 'Reload the page', current: 'current', replied: 'Claude replied',
+    reloadTitle: 'Reload the page', current: 'current', replied: '{agent} replied',
     nowReviewing: v => `Now reviewing v${v}`, historyBlocked: 'Viewing an earlier version — return to current to comment',
     raised: v => `Raised on v${v} — still unanswered`, onlyOne: 'Only one version so far',
     ultrawide: 'Ultrawide', desktop: 'Desktop', tablet: 'Tablet', phone: 'Phone',
@@ -1289,41 +1335,41 @@ const STR = {
     save: 'Save', newlineHint: 'Shift+Enter for a new line',
     linkOn: 'Linked', linkOff: 'Link lost',
     linkIdle: 'Unlinked',
-    linkIdleTitle: 'This page is live, but no Claude session is waiting for it — what you send will sit here until one is.',
-    linkOffTitle: 'The Claude session is no longer serving this review — anything you write is kept in this tab only.',
-    workingOn: n => `Claude is working on ${n} comment${n > 1 ? 's' : ''}`,
+    linkIdleTitle: 'This page is live, but no {agent} session is waiting for it — what you send will sit here until one is.',
+    linkOffTitle: 'The {agent} session is no longer serving this review — anything you write is kept in this tab only.',
+    workingOn: n => `{agent} is working on ${n} comment${n > 1 ? 's' : ''}`,
     queuedOn: n => `${n} comment${n > 1 ? 's' : ''} waiting to be picked up`,
-    workingAndQueued: (w, q) => `Claude is working on ${w} · ${q} waiting`,
+    workingAndQueued: (w, q) => `{agent} is working on ${w} · ${q} waiting`,
     queuedTag: 'queued',
     heldOn: n => `${n} comment${n > 1 ? 's' : ''} queued — sends when this round ends`,
     sendNow: 'Send the queue now',
     sendNowDesc: n => `${n} queued comment${n > 1 ? 's' : ''} — don't wait for this round to finish`,
-    cancel: 'Cancel', cancelled: 'Asked Claude to pause', cancelFail: 'Could not ask Claude to stop',
+    cancel: 'Cancel', cancelled: 'Asked {agent} to pause', cancelFail: 'Could not ask {agent} to stop',
     addressedGroup: n => `Addressed (${n})`, earlierGroup: n => `Earlier (${n})`,
     revert: 'Revert', refine: 'Refine',
-    revertTitle: 'Ask Claude to put this back the way it was',
+    revertTitle: 'Ask {agent} to put this back the way it was',
     refineTitle: 'Reopen this and say what still needs doing',
-    revertAsked: 'Revert requested — send it back to Claude',
+    revertAsked: 'Revert requested — send it back to {agent}',
     refineAsked: 'Reopened — say what still needs doing',
     dismiss: 'Dismiss',
     dismissTitle: 'Take this off the list',
-    more: 'More', sendOne: 'Send just this one to Claude',
+    more: 'More', sendOne: 'Send just this one to {agent}',
     landedTag: v => 'refresh to see',
-    landedTitle: 'Claude changed this. Bring the new version in to see it.',
+    landedTitle: '{agent} changed this. Bring the new version in to see it.',
     dismissed: 'Dismissed',
     undoReply: 'Take back this reply',
     revertNote: 'Revert this change — put it back the way it was before.',
     wantsRevert: 'Revert requested',
     approve: 'Approve & finish', approveSure: 'Approve & close the review?',
     approvedTitle: 'Approved — the review is closed',
-    approvedBody: 'Claude has been told the design is signed off and can carry on. You can close this tab.',
+    approvedBody: '{agent} has been told the design is signed off and can carry on. You can close this tab.',
     approveFail: 'Could not reach the server to approve',
     share: 'Publish a link to this wireframe',
-    shareWorking: 'Claude is publishing the link…', shareWait: 'It appears here when it is ready.',
+    shareWorking: '{agent} is publishing the link…', shareWait: 'It appears here when it is ready.',
     shareReady: 'Wireframe link — click to copy',
     shareStale: 'Republish the wireframe link',
     shareStaleHint: v => `The published link shows v${v} — the wireframe has moved on since.`,
-    shareAsked: 'Asked Claude for a link to the wireframe',
+    shareAsked: 'Asked {agent} for a link to the wireframe',
     shareBannerReady: '<b>The wireframe link is ready</b>', copyLink: 'Copy link',
     shareFail: 'Could not ask for a link',
     sendReply: 'Reply', addReply: 'Reply',
@@ -1344,37 +1390,45 @@ const STR = {
   },
   zh: {
     viewLabel: '查看', annotateLabel: '批注',
-    view: '查看 — 直接操作页面（空格键）', annotate: '批注 — 点击留言，拖拽框选区域（空格键）',
+    view: '查看 — 直接操作页面（Esc）', annotate: '批注 — 点击留言，拖拽框选区域（Esc）',
     del: '删除批注', clearAll: '全部清除', clearSure: '确定？',
     cleared: n => `已清除 ${n} 条批注`,
+    clearHistory: '清除历史',
+    clearHistoryTitle: '删除过往版本',
+    clearHistoryDialogTitle: '清除版本历史？',
+    clearHistoryImpact: n => `这会永久删除 ${n} 个过往版本，之后将无法再切换回这些版本。`,
+    clearHistoryKept: '当前版本和所有批注都会保留。',
+    clearHistoryCancel: '取消', clearHistoryConfirm: '清除历史', clearHistoryWorking: '正在清除…',
+    historyClearRestart: '请重启评审服务器，然后重试清除历史',
+    historyCleared: '已清除过往版本', historyClearFail: '无法清除历史',
     comments: '批注',
     open: '待处理',
-    send: '发送给 Claude', copyFor: '复制给 Claude',
+    send: '发送给 {agent}', copyFor: '复制给 {agent}',
     comment: '批注', areaComment: '区域批注', generalComment: '关于整个页面',
     addGeneral: '添加一条关于整个页面的批注', notePlaceholder: '需要改什么？',
-    replyPlaceholder: '回复…', answerPlaceholder: '回答 Claude…',
-    statusAddressed: '已处理', statusAsked: 'Claude 提问',
-    you: '你', claude: 'Claude',
-    noNote: '还没写内容', claudeAsked: 'Claude 有疑问',
+    replyPlaceholder: '回复…', answerPlaceholder: '回答 {agent}…',
+    statusAddressed: '已处理', statusAsked: '{agent} 提问',
+    you: '你', agent: '{agent}', claude: '{agent}',
+    noNote: '还没写内容', claudeAsked: '{agent} 有疑问',
     awaitingYou: n => `${n} 条等你回复`,
     reply: '条回复', replies: '条回复',
     openGroup: n => `待处理（${n}）`,
-    noOpen: '没有待处理批注', openCount: n => `${n} 条待处理`, waiting: 'Claude 在等你回复',
+    noOpen: '没有待处理批注', openCount: n => `${n} 条待处理`, waiting: '{agent} 在等你回复',
     carried: n => `${n} 条来自早前版本`,
-    instructions: '给 Claude 的说明', close: '关闭', copy: '复制',
-    hintLocal: '发送后会写入评审并唤醒 Claude。', hintArtifact: '复制后粘贴到 Claude 对话中。',
+    instructions: '给 {agent} 的说明', close: '关闭', copy: '复制',
+    hintLocal: '发送后会写入评审并唤醒 {agent}。', hintArtifact: '复制后粘贴到 {agent} 对话中。',
     copyClose: '复制并关闭', copied: '已复制', sendFail: '无法连接服务器',
-    working: n => `已发送 ${n} 条批注 — Claude 处理中…`,
+    working: n => `已发送 ${n} 条批注 — {agent} 处理中…`,
     hiNew: '高亮新增', hiNewTitle: '标出本阶段相对上一阶段新增的部分',
     phaseCur: '完整设计', phaseOf: n => `阶段 ${n}`,
     stop: '停止', stopping: '正在停止…',
-    stopTitle: '请求 Claude 在下一个检查点停止本轮',
-    stopAsked: '已请求 Claude 停止 — 将在下一个检查点停下',
+    stopTitle: '请求 {agent} 在下一个检查点停止本轮',
+    stopAsked: '已请求 {agent} 停止 — 将在下一个检查点停下',
     stopped: '本轮已取消 — 随时可以重新发送',
-    editing: 'Claude 正在修改页面…', ready: v => `<b>v${v} 已就绪</b>`, changed: '<b>页面已更新</b> — 重新加载查看',
+    editing: '{agent} 正在修改页面…', ready: v => `<b>v${v} 已就绪</b>`, changed: '<b>页面已更新</b> — 重新加载查看',
     reviewChanges: '查看更新', later: '稍后', backToCurrent: '回到最新版本',
     viewingOld: v => `正在查看 v${v} — 只读`, readOnly: v => `只读 · v${v}`,
-    reloadTitle: '重新加载页面', current: '当前', replied: 'Claude 回复了',
+    reloadTitle: '重新加载页面', current: '当前', replied: '{agent} 回复了',
     nowReviewing: v => `正在评审 v${v}`, historyBlocked: '正在查看历史版本 — 回到最新版本才能批注',
     raised: v => `在 v${v} 提出 — 仍未解决`, onlyOne: '目前只有一个版本',
     ultrawide: '超宽屏', desktop: '桌面', tablet: '平板', phone: '手机',
@@ -1382,41 +1436,41 @@ const STR = {
     save: '保存', newlineHint: 'Shift+Enter 换行',
     linkOn: '已连接', linkOff: '连接已断开',
     linkIdle: '未连接',
-    linkIdleTitle: '页面是通的，但没有 Claude 会话在等待——发送的内容会一直留在这里，直到有会话接手。',
-    linkOffTitle: 'Claude 会话不再提供此评审——你写的内容只保存在这个标签页里。',
-    workingOn: n => `Claude 正在处理 ${n} 条批注`,
+    linkIdleTitle: '页面是通的，但没有 {agent} 会话在等待——发送的内容会一直留在这里，直到有会话接手。',
+    linkOffTitle: '{agent} 会话不再提供此评审——你写的内容只保存在这个标签页里。',
+    workingOn: n => `{agent} 正在处理 ${n} 条批注`,
     queuedOn: n => `${n} 条批注等待接收`,
-    workingAndQueued: (w, q) => `Claude 正在处理 ${w} 条 · ${q} 条等待中`,
+    workingAndQueued: (w, q) => `{agent} 正在处理 ${w} 条 · ${q} 条等待中`,
     queuedTag: '等待中',
     heldOn: n => `${n} 条已排队 — 本轮结束后发送`,
     sendNow: '立即发送队列',
     sendNowDesc: n => `${n} 条排队中 — 不等本轮结束`,
-    cancel: '取消', cancelled: '已请求 Claude 暂停', cancelFail: '无法通知 Claude 停止',
+    cancel: '取消', cancelled: '已请求 {agent} 暂停', cancelFail: '无法通知 {agent} 停止',
     addressedGroup: n => `已处理（${n}）`, earlierGroup: n => `更早（${n}）`,
     revert: '撤回', refine: '继续完善',
-    revertTitle: '让 Claude 把这处改回原样',
+    revertTitle: '让 {agent} 把这处改回原样',
     refineTitle: '重新打开这条，说明还差什么',
-    revertAsked: '已标记撤回 — 发送后 Claude 会处理',
+    revertAsked: '已标记撤回 — 发送后 {agent} 会处理',
     refineAsked: '已重新打开 — 说明还差什么',
     dismiss: '不用管了',
     dismissTitle: '从列表中移除',
-    more: '更多', sendOne: '只发送这一条给 Claude',
+    more: '更多', sendOne: '只发送这一条给 {agent}',
     landedTag: v => '刷新查看',
-    landedTitle: 'Claude 改过这处。加载新版本即可看到。',
+    landedTitle: '{agent} 改过这处。加载新版本即可看到。',
     dismissed: '已移除',
     undoReply: '撤回这条回复',
     revertNote: 'Revert this change — put it back the way it was before.',
     wantsRevert: '要求撤回',
     approve: '批准并结束', approveSure: '确定批准并关闭评审？',
     approvedTitle: '已批准 — 评审已关闭',
-    approvedBody: 'Claude 已收到定稿通知，可以继续下一步。你可以关闭此标签页。',
+    approvedBody: '{agent} 已收到定稿通知，可以继续下一步。你可以关闭此标签页。',
     approveFail: '无法连接服务器，批准失败',
     share: '发布原型链接',
-    shareWorking: 'Claude 正在发布链接…', shareWait: '完成后会显示在这里。',
+    shareWorking: '{agent} 正在发布链接…', shareWait: '完成后会显示在这里。',
     shareReady: '原型链接 — 点击复制',
     shareStale: '重新发布原型链接',
     shareStaleHint: v => `已发布的链接是 v${v}，之后原型又有更新。`,
-    shareAsked: '已请求 Claude 生成原型链接',
+    shareAsked: '已请求 {agent} 生成原型链接',
     shareBannerReady: '<b>原型链接已就绪</b>', copyLink: '复制链接',
     shareFail: '无法请求分享链接',
     sendReply: '发送', addReply: '回复',
@@ -1437,7 +1491,22 @@ const STR = {
   },
 };
 let LANG = 'en';
-const T = k => STR[LANG][k] ?? STR.en[k];
+/* Host profile from the server (contracts/host.md). Defaults keep offline
+   / Artifact bundles readable without a serve. */
+const HOST = window.__VSTACK_HOST__ || {
+  id: 'claude', name: 'Claude',
+  capabilities: { share: 'artifact', watch: 'stream', browser: true, updateDetect: 'claude-install' },
+};
+const agentName = () => HOST.name || 'agent';
+const canShareArtifact = () => HOST.capabilities?.share === 'artifact';
+/** Thread role: writers use "agent"; readers accept legacy "claude". */
+const isAgent = by => by === 'agent' || by === 'claude';
+const fillAgent = s => String(s ?? '').replaceAll('{agent}', agentName());
+const T = k => {
+  const v = STR[LANG]?.[k] ?? STR.en[k];
+  if (typeof v === 'function') return (...args) => fillAgent(v(...args));
+  return fillAgent(v);
+};
 
 /* The four screens people actually design for. Comments belong to the size they
    were made at — a note about the phone layout is meaningless on ultrawide. */
@@ -1457,6 +1526,7 @@ const S = {
   name: 'Review', fileName: 'page.html',
   html: '', versions: [], reviews: {},
   version: 1, viewing: 1,
+  historyClearedAt: null, clearingHistory: false,
   mode: 'annotate',
   size: SIZES[1],
   zoom: 1,
@@ -1467,6 +1537,7 @@ const S = {
   // Threads opened in the panel, and which reply box the cursor is in.
   threadOpen: new Set(), focusReply: null,
   awaiting: false, pendingUpdate: null, sentSig: null, sentAt: 0,
+  activeRoundId: null,
   watching: undefined,    // is a Claude session actually waiting on this review?
   queued: new Set(),      // sent, but the brief has not been collected yet
   collected: new Set(),   // ids Claude has taken delivery of
@@ -1515,6 +1586,7 @@ async function boot () {
   S.versions = data.versions || [];
   S.reviews = data.reviews || {};
   S.version = S.viewing = data.currentVersion || 1;
+  S.historyClearedAt = data.historyClearedAt || null;
   S.app = data.app || null;
   S.startPath = data.startPath || '/';
   if (live()) S.route = S.startPath;
@@ -1527,11 +1599,13 @@ async function boot () {
      The brief on disk names the comments that went out, so a reload — or a
      second tab — picks the progress back up instead of showing a workspace
      where nothing ever happened. */
-  const out = data.pendingReview?.comments;
+  S.activeRoundId = data.activeReview?.id || null;
+  const out = data.activeReview?.comments || data.pendingReview?.comments;
   if (out?.length) {
     S.awaiting = true;
-    S.sentAt = Date.parse(data.pendingReview.sentAt) || Date.now();
-    const at = data.pendingReview.sentAt || new Date().toISOString();
+    const sentAt = data.pendingReview?.sentAt || data.activeReview?.createdAt;
+    S.sentAt = Date.parse(sentAt) || Date.now();
+    const at = sentAt || new Date().toISOString();
     for (const id of out) { const a = annById(id); if (a && !a.sentAt) a.sentAt = at }
     setWorking(out);
   }
@@ -1558,7 +1632,7 @@ async function boot () {
 
 /** Claude spoke last and nobody has answered — the one state that stalls a round. */
 const awaitsReply = a => a.status === 'question' ||
-  (a.status !== 'addressed' && (a.replies || []).at(-1)?.by === 'claude');
+  (a.status !== 'addressed' && isAgent((a.replies || []).at(-1)?.by));
 
 function loadAnnotations () {
   const local = S.runtime === 'artifact' ? lsGet() : null;
@@ -1626,6 +1700,11 @@ function liveReload () {
     // The link can land on its own, without the page or the review moving.
     adoptShare(data, true);
     if (data.watching !== S.watching) { S.watching = data.watching; setLink(S.linked) }
+    if (data.historyClearedAt && data.historyClearedAt !== S.historyClearedAt) {
+      applyHistoryClear(data);
+      toast(T('historyCleared'));
+      return;
+    }
     /* A stop that has been taken: the server drops the brief when it records the
        request, so a brief that is gone while we are stopping means the round is
        over whether or not anyone is still listening — which is the whole reason
@@ -1635,12 +1714,21 @@ function liveReload () {
        and deleted it, which is the *start* of the work, not the end of it —
        reading that as "round over" is what took the progress bars off comments
        the moment anything else touched the store. */
-    if (S.stopping && !data.pendingReview) { roundEnded(); toast(T('stopped')) }
-    readFlight(data);   // collected yet, or still waiting in the brief?
+    const finishedRound = readFlight(data);   // collected, active, or complete?
     const bumped = (data.currentVersion || 1) !== S.version;
     if (!bumped && data.html === S.html) {
       // Only the conversation moved — fold it in without touching the page.
-      if (mergeThreads(data.reviews?.[S.version]?.annotations || [])) {
+      const latest = new Map();
+      for (const version of Object.keys(data.reviews || {}).map(Number).sort((a, b) => a - b)) {
+        for (const comment of data.reviews?.[version]?.annotations || []) latest.set(comment.id, comment);
+      }
+      const conversationChanged = mergeThreads([...latest.values()]);
+      if (finishedRound) {
+        const stopped = S.stopping;
+        roundEnded();
+        if (stopped) toast(T('stopped'));
+      }
+      if (conversationChanged) {
         render();
         if (S.sel) openComposer(S.sel, false);
         toast(T('replied'));
@@ -1689,14 +1777,25 @@ const setWorking = ids => { S.working = new Set(ids); renderPanel() };
    has been collected, and is being worked on. */
 function readFlight (data) {
   const brief = data?.pendingReview?.comments;
+  const active = data?.activeReview;
+  const wasActive = S.activeRoundId;
+  if (active) {
+    S.activeRoundId = active.id;
+    S.working = new Set(active.comments || []);
+    S.awaiting = true;
+  } else if (wasActive) {
+    S.activeRoundId = null;
+    S.working.clear();
+  }
   const next = new Set(brief ? brief.filter(id => !S.collected.has(id)) : []);
   // The cards carry this, not just the strip: collecting a brief turns "queued"
   // into "being worked on", and repainting only the strip left every card
   // saying queued while the strip said Claude was working on them.
   const moved = next.size !== S.queued.size || [...next].some(id => !S.queued.has(id));
   S.queued = next;
-  if (!data?.pendingReview) for (const id of S.working) S.collected.add(id);
+  if (active && !data?.pendingReview) for (const id of S.working) S.collected.add(id);
   moved ? renderPanel() : renderWork();
+  return !!wasActive && !active;
 }
 function clearWorking () {
   if (!S.working.size) return;
@@ -1788,7 +1887,7 @@ function mergeThreads (serverAnn) {
   const seen = new Set();
   for (const sa of serverAnn) {
     seen.add(sa.id);
-    const local = S.ann.find(a => a.id === sa.id);
+    const local = annById(sa.id);
     if (!local) { S.ann.push(normalise(sa)); changed = true; continue }
     const sr = (sa.replies || []).length, lr = (local.replies || []).length;
     // Claude has said something — open that thread in the list, where the
@@ -1796,7 +1895,7 @@ function mergeThreads (serverAnn) {
     if (sr !== lr) {
       local.replies = sa.replies || [];
       S.threadOpen.add(local.id); changed = true;
-      if ((sa.replies || []).at(-1)?.by === 'claude') asked = true;
+      if (isAgent((sa.replies || []).at(-1)?.by)) asked = true;
     }
     if (sa.status !== local.status) {
       local.status = sa.status;
@@ -1883,7 +1982,7 @@ function setSize (id) {
 function applyLang () {
   const mv = $('#modeSwitch [data-mode=view]'), ma = $('#modeSwitch [data-mode=annotate]');
   mv.textContent = T('viewLabel'); mv.title = T('view');
-  ma.innerHTML = esc(T('annotateLabel')) + ' <span class="kbd">space</span>'; ma.title = T('annotate');
+  ma.innerHTML = esc(T('annotateLabel')) + ' <span class="kbd">esc</span>'; ma.title = T('annotate');
   $('#hiNew .lbl').textContent = T('hiNew');
   $('#hiNew').title = T('hiNewTitle');
   $('#btnReload').title = T('reloadTitle');
@@ -1904,6 +2003,8 @@ function applyLang () {
   $('#btnGeneral').setAttribute('aria-label', T('addGeneral'));
   $('#btnGeneral').hidden = isHistory();
   renderCounts();   // the primary button says Send or Stop depending on the round
+  renderHistoryButton();
+  renderHistoryDialog();
   buildSizes();
   render(); syncTimeline();
   if (S.sel) openComposer(S.sel, false);
@@ -1916,6 +2017,14 @@ function setLang (l) {
 
 function wireChrome () {
   $$('#modeSwitch button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  $('#btnClearHistory').onclick = openHistoryDialog;
+  $('#btnCancelHistory').onclick = () => $('#historyDialog').close();
+  $('#btnConfirmHistory').onclick = confirmClearReviewHistory;
+  $('#historyDialog').onclick = e => { if (e.target === $('#historyDialog') && !S.clearingHistory) $('#historyDialog').close() };
+  $('#historyDialog').addEventListener('cancel', e => {
+    e.preventDefault();
+    if (!S.clearingHistory) $('#historyDialog').close();
+  });
   VSShell.onLang(setLang);   /* the switch is the shell's; this is the workspace's answer */
   $('#btnReload').onclick = () => S.pendingUpdate ? adoptUpdate() : loadFrame(true);
   // Two clicks, because throwing away a whole review by accident would sting.
@@ -2255,8 +2364,7 @@ function setMode (m) {
   S.mode = m;
   $$('#modeSwitch button').forEach(b => {
     b.setAttribute('aria-pressed', String(b.dataset.mode === m));
-    // A focused button swallows the next space as "activate me", which is
-    // exactly the key we want for toggling — let it go.
+    // Leave focus in the page rather than on the chrome after changing modes.
     if (document.activeElement === b) b.blur();
   });
   overlay.classList.toggle('view', m === 'view');
@@ -2271,9 +2379,21 @@ function onKey (e) {
   const t = e.target;
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable;
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); openSend(); return }
-  if (e.key === 'Escape') { closeSendMenu(); closeComposer(); return }
+  if (e.key === 'Escape') {
+    const historyDialog = $('#historyDialog');
+    if (historyDialog.open) {
+      if (!S.clearingHistory) historyDialog.close();
+      e.preventDefault();
+      return;
+    }
+    const closing = sendMenu.classList.contains('on') || composerOpen()
+      || !$('#settingsMenu').hidden;
+    closeSendMenu(); closeComposer();
+    if (!closing && !typing) toggleMode();
+    e.preventDefault();
+    return;
+  }
   if (typing) return;
-  if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); toggleMode(); return }
   if (e.key === 'ArrowLeft') stepVersion(-1);
   if (e.key === 'ArrowRight') stepVersion(1);
 }
@@ -2696,7 +2816,7 @@ function placeComposer () {
   composer.style.left = clamp(or.left - ar.left + r.x * S.zoom, 8, Math.max(8, ar.width - 294)) + 'px';
   composer.style.top = clamp(or.top - ar.top + (r.y + r.h) * S.zoom + 8, 8, Math.max(8, ar.height - 250)) + 'px';
 }
-const who = by => T(by === 'claude' ? 'claude' : 'you');
+const who = by => T(isAgent(by) ? 'agent' : 'you');
 
 function openComposer (id, focus) {
   const a = annById(id);
@@ -2735,7 +2855,7 @@ function openComposer (id, focus) {
   const replies = a.replies || [];
   thread.classList.toggle('on', replies.length > 0);
   thread.innerHTML = replies.map(m =>
-    `<div class="msg ${m.by === 'claude' ? 'claude' : ''}">
+    `<div class="msg ${isAgent(m.by) ? 'agent' : ''}">
        <div class="who">${who(m.by)}</div>
        <div class="body">${esc(m.text)}</div>
      </div>`).join('');
@@ -2826,7 +2946,7 @@ function undoReply (a, i) {
   if (i !== reps.length - 1 || reps[i]?.by !== 'reviewer') return;
   reps.splice(i, 1);
   // Unsaying the answer puts the question back — it is unanswered again.
-  if (reps.at(-1)?.by === 'claude') live.status = 'question';
+  if (isAgent(reps.at(-1)?.by)) live.status = 'question';
   S.sentSig = null;
   save();
   render();
@@ -2924,7 +3044,7 @@ function threadBox (a) {
   // not gone anywhere — so it is the one thing you can take back.
   const pending = (i, m, all) => !isHistory() && m.by === 'reviewer' && i === all.length - 1;
   const msgs = (a.replies || []).map((m, i, all) =>
-    `<div class="tmsg${m.by === 'claude' ? ' claude' : ''}">
+    `<div class="tmsg${isAgent(m.by) ? ' agent' : ''}">
        ${pending(i, m, all) ? `<button class="tkill" data-ri="${i}"
          title="${esc(T('undoReply'))}" aria-label="${esc(T('undoReply'))}">×</button>` : ''}
        <span class="who">${esc(who(m.by))}</span>
@@ -3313,6 +3433,7 @@ function renderCounts () {
   clear.disabled = !S.ann.some(hasSubstance);
   renderSendButton(open);
   renderPanelBadge(open);
+  renderHistoryButton();
 }
 
 /* The button has to say what is behind it, because a folded-away panel says
@@ -3355,6 +3476,78 @@ function renderSendButton (open) {
 }
 
 /* ─────────────── version timeline ─────────────── */
+
+const hasVersionHistory = () => S.versions.some(v => v.n !== S.version);
+const pastVersionCount = () => S.versions.filter(v => v.n !== S.version).length;
+
+function renderHistoryButton () {
+  const btn = $('#btnClearHistory');
+  if (!btn) return;
+  btn.hidden = !served() || S.runtime === 'phase';
+  if (btn.hidden) return;
+  btn.disabled = S.clearingHistory || !hasVersionHistory();
+  btn.textContent = S.clearingHistory ? T('clearHistoryWorking') : T('clearHistory');
+  btn.title = T('clearHistoryTitle');
+  btn.setAttribute('aria-label', btn.textContent);
+}
+
+function renderHistoryDialog () {
+  const dialog = $('#historyDialog');
+  if (!dialog.open) return;
+  $('#historyDialogTitle').textContent = T('clearHistoryDialogTitle');
+  $('#historyDialogImpact').textContent = T('clearHistoryImpact')(pastVersionCount());
+  $('#historyDialogKept').textContent = T('clearHistoryKept');
+  $('#btnCancelHistory').textContent = T('clearHistoryCancel');
+  $('#btnCancelHistory').disabled = S.clearingHistory;
+  $('#btnConfirmHistory').textContent = S.clearingHistory ? T('clearHistoryWorking') : T('clearHistoryConfirm');
+  $('#btnConfirmHistory').disabled = S.clearingHistory;
+}
+
+function openHistoryDialog () {
+  if (!hasVersionHistory() || S.clearingHistory) return;
+  const dialog = $('#historyDialog');
+  if (!dialog.open) dialog.showModal();
+  renderHistoryDialog();
+  $('#btnCancelHistory').focus();
+}
+
+function applyHistoryClear (data) {
+  const wasHistory = isHistory();
+  if (wasHistory) closeComposer();
+  if ($('#historyDialog').open) $('#historyDialog').close();
+  S.historyClearedAt = data.historyClearedAt || S.historyClearedAt;
+  S.versions = data.versions || S.versions.filter(v => v.n === S.version);
+  S.viewing = S.version;
+  S.clearingHistory = false;
+  if (wasHistory) { setMode('annotate'); loadFrame() }
+  buildTimeline(); render();
+}
+
+async function confirmClearReviewHistory () {
+  if (!hasVersionHistory() || S.clearingHistory) return;
+  /* Confirmation is the end of the modal interaction. Closing immediately also
+     keeps any network error toast in the visible top layer instead of behind a
+     native dialog backdrop. */
+  S.clearingHistory = true;
+  $('#historyDialog').close();
+  renderHistoryButton();
+  try {
+    const res = await fetch(API + '/history/clear', { method: 'POST' });
+    const type = res.headers.get('content-type') || '';
+    const data = type.includes('application/json') ? await res.json() : {};
+    if (!res.ok) {
+      const error = new Error(data.error || `clear failed (${res.status})`);
+      error.status = res.status;
+      throw error;
+    }
+    applyHistoryClear(data);
+    toast(T('historyCleared'));
+  } catch (error) {
+    S.clearingHistory = false;
+    renderHistoryButton();
+    toast(error?.status === 404 ? T('historyClearRestart') : T('historyClearFail'));
+  }
+}
 
 const versionList = () => {
   const ns = S.versions.map(v => v.n).sort((a, b) => a - b);
@@ -3504,7 +3697,7 @@ function buildFeedback () {
       if (a.note) L.push(a.note);
       for (const m of a.replies || []) {
         L.push('');
-        L.push(`> **${m.by === 'claude' ? 'You asked' : 'They replied'}:** ${m.text}`);
+        L.push(`> **${isAgent(m.by) ? 'You asked' : 'They replied'}:** ${m.text}`);
       }
       L.push('');
     }
@@ -3518,12 +3711,13 @@ function buildFeedback () {
     L.push('');
   }
   L.push('---');
-  L.push('Mark what you changed as done, and ask about anything unclear instead of guessing:');
+  L.push('Claim the round id from the pending record first. Then mark every applied comment done, and ask about anything unclear instead of guessing:');
   L.push('```bash');
   const subject = live() ? '--name <review-name>' : '--file <page.html>';
-  L.push(`node review-server.mjs publish ${subject} --label "<what changed>" --addressed ` +
+  L.push(`node review-server.mjs claim ${subject} --round <round-id>`);
+  L.push(`node review-server.mjs publish ${subject} --round <round-id> --label "<what changed>" --addressed ` +
     items.concat(carried).map(a => a.id).join(','));
-  L.push(`node review-server.mjs reply ${subject} --comment <id> --text "<your question>"`);
+  L.push(`node review-server.mjs reply ${subject} --round <round-id> --comment <id> --text "<your question>"`);
   L.push('```');
 
   const payload = {
@@ -3626,10 +3820,13 @@ async function pushCapture () {
 async function openSend (only) {
   closeComposer();
   const at = new Date().toISOString();
-  const going = Array.isArray(only)
-    ? only.map(annById).filter(Boolean)
-    : only
-      ? [annById(only)].filter(Boolean)
+  // DOM event handlers pass the click event as their first argument. Only an
+  // explicit string/array is a scoped send; everything else means Send all.
+  const scope = Array.isArray(only) || typeof only === 'string' ? only : null;
+  const going = Array.isArray(scope)
+    ? scope.map(annById).filter(Boolean)
+    : scope
+      ? [annById(scope)].filter(Boolean)
       : S.ann.filter(a => a.status !== 'addressed' && !a.dismissed && hasSubstance(a));
   /* A collected round is a Claude already working — sending into it would raise
      a second wake-up mid-round. So the comment waits here, marked queued, and
@@ -3637,7 +3834,7 @@ async function openSend (only) {
      uncollected is different: writing into it just grows the batch Claude will
      pick up in one read, so those sends go straight through. */
   const collected = [...S.working].some(id => !S.queued.has(id));
-  if (!Array.isArray(only) && collected && served()) {
+  if (!Array.isArray(scope) && collected && served()) {
     for (const a of going) {
       if (S.working.has(a.id) || S.held.has(a.id)) continue;
       a.held = true; S.held.add(a.id);
@@ -3678,10 +3875,13 @@ async function openSend (only) {
        it as open into the new version's record would resurrect it there. */
     const anns = S.ann.filter(hasSubstance)
       .map(a => S.landed.has(a.id) ? { ...a, status: 'addressed' } : a);
-    await fetch(API + '/feedback', {
+    const response = await fetch(API + '/feedback', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ version: v, annotations: anns, ...pending }),
     });
+    if (!response.ok) throw new Error(`feedback failed (${response.status})`);
+    const receipt = await response.json();
+    S.activeRoundId = receipt.roundId || S.activeRoundId;
     S.awaiting = true;
     S.sentSig = reviewSignature();
     S.sentAt = Date.now();
@@ -3709,7 +3909,7 @@ async function openSend (only) {
     toast(T('sendFail'));
   }
 }
-$('#btnSend').onclick = openSend;
+$('#btnSend').onclick = () => openSend();
 
 /* ─────────────── approve: the way out of the loop ───────────────
    Send says "one more round". Approve says the design is done — it closes the
@@ -3795,7 +3995,7 @@ function showShareReady () {
 const hideShare = () => $('#shareBanner').classList.remove('on');
 function renderShare () {
   const b = $('#btnShare');
-  if (S.runtime === 'artifact') { b.hidden = true; $('#shareRule').hidden = true; return }
+  if (S.runtime === 'artifact' || !canShareArtifact()) { b.hidden = true; $('#shareRule').hidden = true; return }
   const s = S.share;
   b.disabled = s.pending;
   if (s.pending) { b.querySelector('.t').textContent = T('shareWorking'); b.querySelector('.d').textContent = T('shareWait'); return }
@@ -3829,16 +4029,18 @@ $('#btnShare').onclick = requestShare;
 
 async function approve () {
   closeSendMenu();
-  const open = S.ann.filter(a => a.status !== 'addressed' && hasSubstance(a));
+  const all = new Map(S.carried.concat(S.ann).map(a => [a.id, a]));
+  const open = [...all.values()].filter(a => !a.dismissed && a.status !== 'addressed' && hasSubstance(a));
   if (S.runtime === 'artifact') { showDone(); return }
   try {
-    await fetch(API + '/approve', {
+    const response = await fetch(API + '/approve', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         version: S.version,
-        openComments: open.map(a => ({ id: a.id, note: a.note })),
+        expectedOpenCount: open.length,
       }),
     });
+    if (!response.ok) throw new Error(`approval failed (${response.status})`);
     showDone();
   } catch { toast(T('approveFail')) }
 }

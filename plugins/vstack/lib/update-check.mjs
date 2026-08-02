@@ -122,11 +122,17 @@ async function ask (kind) {
 const say = (pill, title) => ({ pill, title })
 
 /**
- * `{ pill, title, install, auto, url }` when there is something newer,
+ * `{ pill, title, install, howLead, auto, url }` when there is something newer,
  * otherwise null. Never throws, never blocks longer than the timeout.
+ *
+ * @param {object} [hostProfile] Host profile (contracts/host.md). When
+ *   capabilities.updateDetect is "none", returns null. install/howLead/auto
+ *   come from the profile when present so banners stay host-agnostic.
  */
-export async function checkForUpdate () {
+export async function checkForUpdate (hostProfile = null) {
   if (process.env.VSTACK_NO_UPDATE_CHECK) return null
+  if (hostProfile?.capabilities?.updateDetect === 'none') return null
+
   const installed = installedCopy()
   if (!installed) return null            // a clone is not an install
 
@@ -146,20 +152,25 @@ export async function checkForUpdate () {
   }
   if (!words) return null
 
+  const install = hostProfile?.install?.commands?.length
+    ? hostProfile.install.commands
+    : [
+        `/plugin marketplace update ${MARKET}`,
+        `/plugin update ${PLUGIN}@${MARKET}`,
+        '/reload-plugins',
+      ]
+  const howLead = hostProfile?.install?.howLead
+    || 'Run these in Claude Code:'
+  const auto = hostProfile?.install && 'auto' in hostProfile.install
+    ? hostProfile.install.auto
+    : `Or turn on auto-update: /plugin → Marketplaces → ${MARKET}`
+
   return {
     ...words,
     url: `https://github.com/${REPO}/commits/${BRANCH}`,
-    /* The marketplace refresh comes first: this plugin's source is a path
-       inside the marketplace repository, so the newer copy is only visible once
-       the catalog clone has moved. */
-    install: [
-      `/plugin marketplace update ${MARKET}`,
-      `/plugin update ${PLUGIN}@${MARKET}`,
-      '/reload-plugins',
-    ],
-    // Third-party marketplaces ship with auto-update off, so this is worth
-    // saying once rather than showing this banner every release.
-    auto: `Or turn on auto-update: /plugin → Marketplaces → ${MARKET}`,
+    howLead,
+    install,
+    auto: auto || null,
   }
 }
 

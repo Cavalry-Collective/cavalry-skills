@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cavalry.sg/vstack/contracts/host.schema.json",
+  "title": "Visual Stack Host profile",
+  "type": "object",
+  "required": ["id", "name", "capabilities"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Stable host key (claude, grok, …)."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human label shown in UI (Claude, Grok, …)."
+    },
+    "capabilities": {
+      "type": "object",
+      "required": ["share", "watch", "browser", "updateDetect"],
+      "additionalProperties": false,
+      "properties": {
+        "share": {
+          "type": "string",
+          "enum": ["artifact", "copy", "none"],
+          "description": "Public URL publish (artifact), clipboard-only (copy), or hidden (none)."
+        },
+        "watch": {
+          "type": "string",
+          "enum": ["stream", "oneshot"],
+          "description": "Preferred watch mode. stream is required for product-quality Linked state."
+        },
+        "browser": {
+          "type": "boolean",
+          "description": "Host can navigate and run harvest scripts."
+        },
+        "updateDetect": {
+          "type": "string",
+          "enum": ["claude-install", "none"],
+          "description": "How to detect an installed copy for update banners."
+        }
+      }
+    },
+    "install": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "howLead": {
+          "type": "string",
+          "description": "Sentence above the install command block in the update banner."
+        },
+        "commands": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Commands the user runs to update."
+        },
+        "auto": {
+          "type": ["string", "null"],
+          "description": "Optional one-liner about auto-update."
+        }
+      }
+    }
+  }
+}

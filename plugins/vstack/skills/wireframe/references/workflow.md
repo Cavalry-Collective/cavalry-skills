@@ -21,7 +21,8 @@ wireframes/
         annotations.json         live workspace state (autosaved while reviewing)
         feedback.md              the brief you read
         feedback.json            the same, structured
-      pending                    sentinel — written on send, deleted by you
+      rounds/r1.json             durable membership, revisions and outcomes
+      pending                    notification — written on send, cleared by claim
       cancel                     sentinel — the reviewer called this round off
       approved                   sentinel — signed off; the review is over
       share                      sentinel — they want a shareable Artifact link
@@ -38,28 +39,34 @@ the workspace says in the frame rather than showing an error.
 `pending`, `cancel`, `approved` and `share` are the four ways the workspace
 reaches you, and only one is ever meaningful at a time: sending clears `cancel`,
 cancelling clears `pending`, approving clears both, publishing clears `cancel`,
-and `serve` clears `cancel`, `approved` and `share` at startup so a new review
-never fires on an old verdict. You delete `pending` and `cancel` once you have
-acted on them; `share --url` clears `share` for you.
+and `serve` clears `approved` and `share` at startup. It clears `cancel` only
+when no active round needs to recover, so a restart cannot bypass Stop. Do not delete protocol files manually: `claim`
+clears `pending`, `cancelled` clears `cancel`, and `share --url` clears `share`.
+The round record remains as the validation and recovery ledger.
 
 ## Commands
 
 ```bash
 # freeze the file as the next version and make it current
 node "$SKILL/assets/review-server.mjs" publish --file "$FILE" --label "Initial version"
+node "$SKILL/assets/review-server.mjs" claim --file "$FILE" --round r1
 node "$SKILL/assets/review-server.mjs" publish --file "$FILE" \
-  --label "Filters collapsed" --addressed c1f3k2,c9dk1
+  --round r1 --label "Filters collapsed" --addressed c1f3k2,c9dk1
 
 # ask about a comment instead of guessing — the question lands on the mark
 node "$SKILL/assets/review-server.mjs" reply --file "$FILE" \
-  --comment c7f2a1 --text "Every overdue row, or only the ones assigned to you?" 
+  --round r1 --comment c7f2a1 --text "Every overdue row, or only the ones assigned to you?"
 
-# serve (run_in_background: true) — closes itself 90s after the tab does
-node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788
-node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --idle-timeout 0   # stay up until stopped
+# acknowledge Stop without publishing the partial round
+node "$SKILL/assets/review-server.mjs" cancelled --file "$FILE" --round r1
 
-# hand back the published Artifact URL — it appears under the ▾ in the workspace
-node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "https://claude.ai/public/artifacts/…"
+# serve (Host op background) — closes itself 90s after the tab does
+# --host / VSTACK_HOST selects UI labels (claude | grok); see contracts/host.md
+node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788 --host "$VSTACK_HOST"
+node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --idle-timeout 0 --host "$VSTACK_HOST"  # stay up until stopped
+
+# hand back a public URL when Host capabilities.share is artifact
+node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "https://example.com/…"
 
 # where are we — current version, a waiting review, a cancel, a sign-off, a share request
 node "$SKILL/assets/review-server.mjs" status --file "$FILE"
@@ -76,8 +83,9 @@ node "$SKILL/assets/review-server.mjs" serve --app http://localhost:5173 --name 
 node "$SKILL/assets/review-server.mjs" serve --app :5173 --name lora-ui --start /workflows
 
 # every other command names the review instead of a file
-node "$SKILL/assets/review-server.mjs" publish --name lora-ui --label "Date column added" --addressed c1f3k2
-node "$SKILL/assets/review-server.mjs" reply   --name lora-ui --comment c7f2a1 --text "Created, or finished?"
+node "$SKILL/assets/review-server.mjs" claim   --name lora-ui --round r1
+node "$SKILL/assets/review-server.mjs" publish --name lora-ui --round r1 --label "Date column added" --addressed c1f3k2
+node "$SKILL/assets/review-server.mjs" reply   --name lora-ui --round r1 --comment c7f2a1 --text "Created, or finished?"
 node "$SKILL/assets/review-server.mjs" status  --name lora-ui
 node "$SKILL/assets/review-server.mjs" check   --name lora-ui
 ```
@@ -102,18 +110,23 @@ fixing up a version nobody has reviewed yet.
 
 `serve` publishes v1 automatically if nothing has been published.
 
+The timeline's **Clear history** action keeps the current frozen version and its
+number, then deletes every earlier snapshot. Comments stay intact and use the
+separate **Clear all** action in the comments panel.
+
 ## Catching a review
 
 ```bash
 node review-server.mjs watch --all --stream        # or --file <page.html>
 ```
 
-Run it with the **Monitor tool**, `persistent: true`. One line of stdout is one
-event and the process never exits, so there is nothing to restart between rounds:
+Run it with Host op **`watch_stream`** (adapter names the tool). One line of
+stdout is one event and the process never exits, so there is nothing to restart
+between rounds:
 
 ```text
 WATCHING  2 review(s): wireframe, spec-tree
-REVIEW    wireframe · 3 comment(s) · …/reviews/v12/feedback.md
+REVIEW    wireframe · r17 · 3 comment(s) · …/reviews/v12/feedback.md
 REPLIED   wireframe · v12/c7h0zh0 · "let's align it to the bottom"
 CANCELLED wireframe · read …/cancel
 OPENED    story-map-template · now watching 3 review(s)
@@ -125,9 +138,9 @@ opened after the watcher started; `--file` can be repeated, and combines with
 `--all` for a page living outside the project. While it runs each page shows
 **Linked**; with no watcher they show **Unlinked**, in amber.
 
-First thing after a `REVIEW`: delete `pending`. Same for the `cancel` and `share`
-sentinels once acted on — the watcher announces each once per appearance, but a
-sentinel left behind is a round the store still thinks is open.
+First thing after a `REVIEW`: run `claim --round <id>` using the id in the event.
+It clears the notification but preserves the durable ledger. Use
+`cancelled --round <id>` after honoring Stop, and `share --url` after publishing a link.
 
 A one-shot form (`watch` without `--stream`) still exists: it exits on the first
 event and prints the command to restart itself. Nothing points at it any more —
@@ -158,7 +171,7 @@ bottom is the same data structured. Each comment:
 | `route` | live review only — the screen of the app it was made on. The way back to it, and half the answer to which component renders it |
 | `point` / `rect` | where, in the page's own coordinates at that size |
 | `status` | `open` (yours to act on) · `question` (you asked, waiting on them) · `addressed` |
-| `replies` | the thread so far — `{by: 'claude' \| 'reviewer', text, at}` |
+| `replies` | the thread so far — `{by: 'agent' \| 'reviewer', text, at}` (legacy: `'claude'` = agent) |
 | `reopened` | you closed this once and it came back — read it again before touching anything |
 | `wantsRevert` | undo what you did here first; the note stands only if it still makes sense afterwards |
 | `fromVersion` | earlier than the current version = it was already asked once |
@@ -190,8 +203,10 @@ the desktop one.
 
 ## The conversation
 
-The reviewer has no resolve button — `publish --addressed <ids>` is the only
-thing that closes a comment out, so anything you skip comes back next round.
+The reviewer has no resolve button — a validated
+`publish --round <id> --addressed <ids>` is the only thing that closes a comment out. The command
+fails without creating a version when any round member is left open, an id or
+revision is stale, the round was not claimed, or Stop is outstanding.
 They can delete a comment or clear the lot, but they cannot mark one done.
 Emptying a comment's text deletes it, so an empty comment never reaches you.
 
@@ -207,7 +222,7 @@ edited or answered — so a review landing on your waiter always contains
 something new.
 
 When a comment is ambiguous, `reply` beats guessing. The question renders on the
-mark itself, the comment shows as *Claude asked*, and their answer flips it back
+mark itself, the comment shows as *{agent} asked*, and their answer flips it back
 to open and arrives in the next brief under the thread. Replies also work for
 pushing back: say why something is wrong for the design rather than silently
 ignoring it.

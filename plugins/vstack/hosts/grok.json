@@ -1,0 +1,18 @@
+{
+  "id": "grok",
+  "name": "Grok",
+  "capabilities": {
+    "share": "copy",
+    "watch": "stream",
+    "browser": true,
+    "updateDetect": "none"
+  },
+  "install": {
+    "howLead": "Update Visual Stack from the repo (Grok loads the skill from disk):",
+    "commands": [
+      "git -C <visual-stack-repo> pull",
+      "# Project skill: .grok/skills/wireframe → plugins/vstack/skills/wireframe"
+    ],
+    "auto": null
+  }
+}

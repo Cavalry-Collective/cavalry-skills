@@ -567,6 +567,30 @@ Items 1–3 shipped on 2026-07-29 with plugin 4.0.0.
 7. **A product showcase section** — highlight products actually made with the stack. Nothing sells a
    visual-first pipeline like the things it shipped.
 
+## New wish — 2026-08-03
+
+**Area comments can optionally carry a visual capture — deferred; do not implement.** Sometimes the
+box, element anchor and words are still not enough to preserve an ephemeral UI state. The lightest
+credible version would use the browser's native `getDisplayMedia()` API, take one frame, and crop it
+to the area comment with Canvas. It should not add Playwright or a DOM-to-image dependency.
+
+If this is revisited, keep the boundary narrow:
+
+- offer **Attach visual** only on area comments in served local/live reviews;
+- prefer the current tab, but show a Retake/Remove preview because the browser must show its share
+  picker on every capture and cannot force the reviewer to choose this tab;
+- stop the capture stream immediately after the frame is taken;
+- upload the cropped PNG as a raw Blob, cap its dimensions and bytes, and store it atomically at
+  `reviews/v<n>/images/<comment-id>.png` rather than base64-encoding it into annotations;
+- carry the image path in annotations, `feedback.md`, the pending record and `claim` output, and make
+  the agent workflow inspect every listed image before acting;
+- fail clearly if an attached image was not durably saved; do not silently send text without it;
+- leave Artifact/copy mode unchanged rather than inflating the self-contained bundle with images.
+
+This is intentionally a wishlist record, not planned work. Directly injecting the image into a
+host-specific LLM API is outside the lightweight design; the portable version persists the file and
+makes it required review material.
+
 ## Still open
 
 - **Two lines owed to [`vstack-template-base`](https://github.com/Cavalry-Collective/vstack-template-base)**,

@@ -18,8 +18,10 @@
  *
  *   node review-server.mjs serve   --file <page.html> [--port 7788] [--idle-timeout 90]
  *   node review-server.mjs serve   --app <url> [--name <slug>] [--start /path] [--port 7788]
- *   node review-server.mjs publish --file <page.html> --label "…" [--addressed c1,c3]
- *   node review-server.mjs reply   --file <page.html> --comment <id> --text "…"
+ *   node review-server.mjs claim   --file <page.html> --round r1
+ *   node review-server.mjs publish --file <page.html> --round r1 --label "…" [--addressed c1,c3]
+ *   node review-server.mjs reply   --file <page.html> --round r1 --comment <id> --text "…"
+ *   node review-server.mjs cancelled --file <page.html> --round r1
  *   node review-server.mjs share   --file <page.html> --url <artifact-url>
  *   node review-server.mjs status  --file <page.html>
  *   node review-server.mjs check   --file <page.html>   (exit 2 = stop asked)
@@ -35,17 +37,22 @@
  *                           (live: the DOM as it stood when a review was sent)
  *     versions/v<n>.meta.json  label, date, what it addressed
  *     reviews/v<n>/         annotations.json · feedback.json · feedback.md
- *     pending               sentinel written on send, watched by Claude
+ *     pending               sentinel written on send, watched by the agent
+ *     rounds/r<n>.json       durable round membership and completion record
  *     cancel                sentinel written when the reviewer calls a round off
  *     approved              sentinel written on sign-off — the review is over
- *     share                 sentinel — they want a shareable Artifact link
+ *     share                 sentinel — they want a shareable public link
  *     url                   the live URL — present only while the server runs
- *     watching              heartbeat — a Claude session is waiting on this review
+ *     watching              heartbeat — an agent session is waiting on this review
  *
  * The server closes itself when the browser tab does: the workspace holds an
  * SSE connection, and once the last one goes away and none returns within the
- * grace period the server removes `url` and exits. That exit re-invokes Claude
- * and ends the waiter, so nothing is left listening.
+ * grace period the server removes `url` and exits. That exit re-invokes the
+ * agent and ends the waiter, so nothing is left listening.
+ *
+ * Host selection (contracts/host.md): --host <id> or VSTACK_HOST. Injects
+ * window.__VSTACK_HOST__ so the workspace never hardcodes a product name.
+ * Protocol details: contracts/review-loop.md.
  */
 
 import http from 'node:http'
@@ -53,8 +60,10 @@ import https from 'node:https'
 import zlib from 'node:zlib'
 import fs from 'node:fs'
 import path from 'node:path'
+import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { checkForUpdate, withUpdate } from '../../../lib/update-check.mjs'
+import { resolveHostId, loadHost, withHost, AGENT_ROLE } from '../../../lib/host.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
@@ -73,6 +82,12 @@ function parseArgs (argv) {
   return out
 }
 const args = parseArgs(process.argv.slice(2))
+
+/** Host profile for UI injection (serve). Other commands ignore it. */
+let HOST_PROFILE = null
+try { HOST_PROFILE = loadHost(resolveHostId(args)) } catch (e) {
+  if (args._ === 'serve') { console.error(e.message); process.exit(2) }
+}
 
 /* ── what is under review: a file, or a running app ───────────────── */
 
@@ -136,6 +151,9 @@ const P = {
   versions: () => path.join(STORE, 'versions'),
   version: n => path.join(STORE, 'versions', `v${n}.html`),
   review: n => path.join(STORE, 'reviews', `v${n}`),
+  rounds: () => path.join(STORE, 'rounds'),
+  round: id => path.join(STORE, 'rounds', `${id}.json`),
+  lock: () => path.join(STORE, 'transition.lock'),
   pending: () => path.join(STORE, 'pending'),
   cancel: () => path.join(STORE, 'cancel'),
   approved: () => path.join(STORE, 'approved'),
@@ -155,8 +173,47 @@ const someoneWatching = () => {
 const readJSON = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')) } catch { return d } }
 const writeJSON = (f, v) => {
   fs.mkdirSync(path.dirname(f), { recursive: true })
-  fs.writeFileSync(f, JSON.stringify(v, null, 2) + '\n')
+  const tmp = `${f}.tmp-${process.pid}`
+  fs.writeFileSync(tmp, JSON.stringify(v, null, 2) + '\n')
+  fs.renameSync(tmp, f)
 }
+
+let heldLock = null
+const lockWait = new Int32Array(new SharedArrayBuffer(4))
+function acquireStoreLock (timeout = 2500) {
+  fs.mkdirSync(STORE, { recursive: true })
+  const until = Date.now() + timeout
+  while (true) {
+    try {
+      heldLock = fs.openSync(P.lock(), 'wx')
+      fs.writeFileSync(heldLock, `${process.pid}\n`)
+      return
+    } catch (error) {
+      if (error.code !== 'EEXIST') throw error
+      try {
+        // A killed process cannot clean up. A transition never legitimately
+        // holds this lock for thirty seconds, so recover that orphan safely.
+        if (Date.now() - fs.statSync(P.lock()).mtimeMs > 30000) {
+          fs.rmSync(P.lock(), { force: true })
+          continue
+        }
+      } catch {}
+      if (Date.now() >= until) throw new Error('review state is busy; retry the command')
+      Atomics.wait(lockWait, 0, 0, 25)
+    }
+  }
+}
+function releaseStoreLock () {
+  if (heldLock === null) return
+  try { fs.closeSync(heldLock) } catch {}
+  heldLock = null
+  try { fs.rmSync(P.lock(), { force: true }) } catch {}
+}
+function withStoreLock (fn) {
+  acquireStoreLock()
+  try { return fn() } finally { releaseStoreLock() }
+}
+process.on('exit', releaseStoreLock)
 
 /** The page names itself through its <title>; the filename is the fallback.
     A running app has no one title — it has a different one per route — so the
@@ -175,6 +232,145 @@ function pageName () {
 const appOrigin = () => (APP ? APP.origin : loadState().app || null)
 const loadState = () => readJSON(P.state(), { version: 0 })
 const saveState = s => writeJSON(P.state(), s)
+
+/** Review folders outlive snapshot history. Scan them directly so clearing old
+ * versions cannot make carried comments impossible to reply to or close. */
+function listReviewVersions () {
+  let files = []
+  try { files = fs.readdirSync(path.join(STORE, 'reviews')) } catch { return [] }
+  return files.flatMap(file => {
+    const match = /^v(\d+)$/.exec(file)
+    return match ? [Number(match[1])] : []
+  }).sort((a, b) => a - b)
+}
+
+function commentRecords (id) {
+  return listReviewVersions().flatMap(version => {
+    const file = path.join(P.review(version), 'annotations.json')
+    const saved = readJSON(file)
+    const comment = saved?.annotations?.find(a => a.id === id)
+    return comment ? [{ version, file, saved, comment }] : []
+  })
+}
+
+const latestComment = id => commentRecords(id).at(-1) || null
+
+function latestComments () {
+  const found = new Map()
+  for (const version of listReviewVersions()) {
+    const file = path.join(P.review(version), 'annotations.json')
+    const saved = readJSON(file)
+    for (const comment of saved?.annotations || []) found.set(comment.id, { version, file, saved, comment })
+  }
+  return [...found.values()]
+}
+
+/** A submitted comment revision is immutable for that round. Agent replies are
+ * a disposition, so only open comments are compared against this fingerprint. */
+function commentRevision (comment) {
+  const value = {
+    id: comment?.id || '',
+    status: comment?.status || 'open',
+    note: comment?.note || '',
+    replies: (comment?.replies || []).map(reply => ({
+      by: reply.by || '', text: reply.text || '', at: reply.at || '',
+    })),
+    reopened: !!(comment?.reopened ?? comment?.reopenedAt),
+    wantsRevert: !!(comment?.wantsRevert ?? comment?.revert),
+  }
+  return createHash('sha256').update(JSON.stringify(value)).digest('hex').slice(0, 16)
+}
+
+function loadActiveRound (state = loadState()) {
+  if (!state.activeRound) return null
+  const round = readJSON(P.round(state.activeRound))
+  return round && !['completed', 'cancelled', 'approved'].includes(round.status) ? round : null
+}
+
+function saveActiveRound (round) {
+  writeJSON(P.round(round.id), round)
+  const state = loadState()
+  state.activeRound = round.id
+  state.roundSeq = Math.max(Number(state.roundSeq) || 0, Number(String(round.id).replace(/^r/, '')) || 0)
+  saveState(state)
+  return round
+}
+
+function finishActiveRound (round, status, extra = {}) {
+  if (!round) return
+  const finished = { ...round, ...extra, status, finishedAt: new Date().toISOString() }
+  writeJSON(P.round(round.id), finished)
+  const state = loadState()
+  if (state.activeRound === round.id) delete state.activeRound
+  state.lastRound = { id: round.id, status, version: extra.publishedVersion || state.version }
+  saveState(state)
+  fs.rmSync(P.pending(), { force: true })
+  return finished
+}
+
+function nextRound (version, comments, feedback) {
+  const state = loadState()
+  let round = loadActiveRound(state)
+  if (!round) {
+    const seq = (Number(state.roundSeq) || 0) + 1
+    round = {
+      id: `r${seq}`, baseVersion: version, status: 'queued',
+      createdAt: new Date().toISOString(), comments: [],
+    }
+  }
+  const members = new Map((round.comments || []).map(comment => [comment.id, comment]))
+  for (const comment of comments || []) {
+    members.set(comment.id, { id: comment.id, revision: commentRevision(comment) })
+  }
+  round.comments = [...members.values()]
+  round.feedback = feedback
+  round.updatedAt = new Date().toISOString()
+  if (fs.existsSync(P.cancel())) round.status = 'queued'
+  return saveActiveRound(round)
+}
+
+/** Upgrade an in-flight review created by a pre-round-ledger server. This keeps
+ * a tool update or server restart from stranding feedback already on disk. */
+function migrateLegacyPending () {
+  const state = loadState()
+  const existing = loadActiveRound(state)
+  if (existing) return existing
+  const pending = readJSON(P.pending())
+  if (!pending?.comments?.length) return null
+  const seq = (Number(state.roundSeq) || 0) + 1
+  const round = {
+    id: `r${seq}`,
+    baseVersion: Number(pending.version) || state.version,
+    status: 'queued',
+    createdAt: pending.sentAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    feedback: pending.feedback || null,
+    comments: pending.comments.map(id => ({
+      id,
+      revision: commentRevision(latestComment(id)?.comment || { id }),
+    })),
+    migrated: true,
+  }
+  saveActiveRound(round)
+  writeJSON(P.pending(), { ...pending, roundId: round.id })
+  return round
+}
+
+function roundSummary (round) {
+  if (!round) return null
+  return {
+    id: round.id, status: round.status, baseVersion: round.baseVersion,
+    comments: (round.comments || []).map(comment => comment.id),
+    createdAt: round.createdAt, claimedAt: round.claimedAt || null,
+  }
+}
+
+function unresolvedComments () {
+  return latestComments()
+    .map(record => record.comment)
+    .filter(comment => !comment.dismissed && comment.status !== 'addressed' && String(comment.note || '').trim())
+    .map(comment => ({ id: comment.id, note: comment.note, status: comment.status || 'open' }))
+}
 
 /* A published round is its meta file. The frozen html beside it is optional —
    a live round only has one once a review has been sent from it, and a round
@@ -201,29 +397,78 @@ function listVersions () {
  * reviewed yet).
  */
 function cmdPublish (quiet) {
-  const state = loadState()
+  let state = loadState()
+  const active = loadActiveRound(state) || migrateLegacyPending()
+  const requestedRound = args.round && args.round !== true ? String(args.round) : null
+
+  // Retrying a completed command is a no-op, not another version.
+  if (!active && requestedRound) {
+    const finished = readJSON(P.round(requestedRound))
+    if (finished?.status === 'completed') {
+      if (!quiet) console.log(`Round ${requestedRound} already published as v${finished.publishedVersion}`)
+      return
+    }
+    console.error(`No active round ${requestedRound}`)
+    process.exit(2)
+  }
+
+  const addressed = [...new Set(String(args.addressed || '').split(',').map(s => s.trim()).filter(Boolean))]
+  if (active) {
+    const errors = []
+    if (!requestedRound) errors.push(`include --round ${active.id}`)
+    else if (requestedRound !== active.id) errors.push(`active round is ${active.id}, not ${requestedRound}`)
+    if (active.status !== 'active') errors.push(`claim ${active.id} before publishing it`)
+    if (args.replace === true || args.replace === 'true') errors.push('--replace cannot complete an active review round')
+    if (fs.existsSync(P.cancel())) errors.push('the reviewer asked to stop this round')
+
+    const members = new Map((active.comments || []).map(comment => [comment.id, comment]))
+    for (const id of addressed) if (!members.has(id)) errors.push(`${id} does not belong to ${active.id}`)
+    for (const member of members.values()) {
+      const found = latestComment(member.id)
+      const comment = found?.comment
+      if (!comment) { errors.push(`${member.id} no longer exists`); continue }
+      if (comment.dismissed || comment.status === 'addressed' || comment.status === 'question') continue
+      if (!addressed.includes(member.id)) {
+        errors.push(`${member.id} is still open`)
+        continue
+      }
+      if (commentRevision(comment) !== member.revision) {
+        errors.push(`${member.id} changed after ${active.id} was submitted; collect the updated review before closing it`)
+      }
+    }
+    for (const id of addressed) {
+      const status = latestComment(id)?.comment?.status
+      if (status && status !== 'open') errors.push(`${id} is ${status}, not open`)
+    }
+    if (errors.length) {
+      console.error(`Cannot publish ${active.id}:`)
+      for (const error of errors) console.error(`  - ${error}`)
+      process.exit(2)
+    }
+  } else if (addressed.length) {
+    console.error('Cannot mark comments addressed without an active review round')
+    process.exit(2)
+  } else if (fs.existsSync(P.cancel())) {
+    console.error('Cannot publish: the reviewer asked to stop')
+    process.exit(2)
+  }
+
+  // Validation is complete. Nothing above this line mutates a version or a
+  // comment, so a rejected completion cannot leave a half-published round.
   const replace = args.replace === true || args.replace === 'true'
   const n = replace ? Math.max(1, state.version) : state.version + 1
-
   fs.mkdirSync(P.versions(), { recursive: true })
-  // Live has no file to freeze: the round is the change you just made to the
-  // source, and what the reviewer will see is whatever the app serves next.
-  // The capture in versions/ is the DOM as it stood when they last commented.
   if (!LIVE) fs.copyFileSync(FILE, P.version(n))
 
-  const addressed = String(args.addressed || '').split(',').map(s => s.trim()).filter(Boolean)
-  let hit = 0
-  if (addressed.length) {
-    // Feedback carries items forward, so patch every review, not just the last.
-    for (const v of listVersions().map(v => v.n).concat(state.version)) {
-      const f = path.join(P.review(v), 'annotations.json')
-      const saved = readJSON(f)
-      if (!saved?.annotations) continue
-      let changed = false
-      for (const a of saved.annotations) {
-        if (addressed.includes(a.id) && a.status === 'open') { a.status = 'addressed'; hit++; changed = true }
-      }
-      if (changed) writeJSON(f, saved)
+  // Feedback carries items forward, so patch every stored occurrence. Review
+  // directories are the source here, not version history, which may be cleared.
+  for (const id of addressed) {
+    for (const record of commentRecords(id)) {
+      if (record.comment.status !== 'open') continue
+      record.comment.status = 'addressed'
+      delete record.comment.reopenedAt
+      delete record.comment.revert
+      writeJSON(record.file, record.saved)
     }
   }
 
@@ -233,39 +478,24 @@ function cmdPublish (quiet) {
     label: args.label || prev.label || (n === 1 ? (LIVE ? 'The app as it stands' : 'Initial version') : `${LIVE ? 'Round' : 'Version'} ${n}`),
     date: new Date().toISOString(),
     addressed,
+    ...(active ? { round: active.id } : {}),
   })
 
+  state = loadState()
   state.version = n
   state.name = pageName()
   saveState(state)
-  // A round that reaches publish is over, whatever was asked of it mid-flight —
-  // leaving the sentinel behind would fire the next waiter the instant it arms.
-  const hadCancel = fs.existsSync(P.cancel())
-  if (hadCancel) fs.rmSync(P.cancel(), { force: true })
-
-  /* The brief goes only if this publish answered it. A review sent while you
-     were working — or seconds before you published something unrelated — is
-     still unread, and dropping it threw away comments nobody had looked at
-     while the workspace went on saying they were queued. */
-  const brief = readJSON(P.pending())
-  const stillOpen = (brief?.comments || []).filter(id => {
-    for (const v of listVersions().map(v => v.n)) {
-      const saved = readJSON(path.join(P.review(v), 'annotations.json'))
-      const a = saved?.annotations?.find(x => x.id === id)
-      if (a) return a.status === 'open'
-    }
-    return false
-  })
-  if (brief && !stillOpen.length) fs.rmSync(P.pending(), { force: true })
-
-  if (!quiet) {
-    console.log(`Published v${n}${hit ? ` — ${hit} item(s) marked addressed` : ''}`)
-    if (hadCancel) console.log('  (cleared a cancel request — say what you did and did not do)')
-    if (stillOpen.length) {
-      console.log(`  ⚠ a review of ${stillOpen.length} comment(s) is still waiting — read it before you carry on:`)
-      console.log(`     ${brief.feedback}`)
-    }
+  if (active) {
+    const outcomes = Object.fromEntries((active.comments || []).map(member => {
+      const comment = latestComment(member.id)?.comment
+      return [member.id, addressed.includes(member.id) ? 'addressed'
+        : comment?.status === 'question' ? 'waiting_for_reviewer'
+          : comment?.dismissed ? 'dismissed' : comment?.status || 'unknown']
+    }))
+    finishActiveRound(active, 'completed', { publishedVersion: n, addressed, outcomes })
   }
+
+  if (!quiet) console.log(`Published v${n}${active ? ` — completed ${active.id}` : ''}${addressed.length ? ` — ${addressed.length} item(s) marked addressed` : ''}`)
   touch()
 }
 
@@ -281,23 +511,82 @@ function cmdReply () {
     console.error('Need --comment <id> --text "…"')
     process.exit(1)
   }
-  const state = loadState()
-  for (const v of listVersions().map(v => v.n).concat(state.version)) {
-    const f = path.join(P.review(v), 'annotations.json')
-    const saved = readJSON(f)
-    const target = saved?.annotations?.find(a => a.id === id)
-    if (!target) continue
-    target.replies = (target.replies || []).concat({
-      by: 'claude', text, at: new Date().toISOString(),
-    })
-    if (args.status !== 'open') target.status = 'question'
-    writeJSON(f, saved)
-    console.log(`Replied to ${id} on v${v} — the reviewer will see it on the comment`)
-    touch()
-    return
+  const active = loadActiveRound() || migrateLegacyPending()
+  const requestedRound = args.round && args.round !== true ? String(args.round) : null
+  if (active) {
+    if (!requestedRound || requestedRound !== active.id) {
+      console.error(`Reply belongs to active round ${active.id}; include --round ${active.id}`)
+      process.exit(2)
+    }
+    if (active.status !== 'active') {
+      console.error(`Claim ${active.id} before replying to it`)
+      process.exit(2)
+    }
+    if (!(active.comments || []).some(comment => comment.id === id)) {
+      console.error(`${id} does not belong to ${active.id}`)
+      process.exit(2)
+    }
   }
-  console.error(`No comment ${id} found`)
-  process.exit(1)
+  const record = latestComment(id)
+  if (!record) { console.error(`No comment ${id} found`); process.exit(1) }
+  const target = record.comment
+  target.replies = (target.replies || []).concat({
+    by: AGENT_ROLE, text, at: new Date().toISOString(),
+  })
+  if (args.status !== 'open') target.status = 'question'
+  writeJSON(record.file, record.saved)
+
+  // A round made entirely of questions/dismissals needs no empty publication.
+  // Close its machine-owned work state as soon as no member remains open.
+  if (active) {
+    const outcomes = Object.fromEntries((active.comments || []).map(member => {
+      const comment = latestComment(member.id)?.comment
+      return [member.id, comment?.dismissed ? 'dismissed' : comment?.status || 'missing']
+    }))
+    if (Object.values(outcomes).every(outcome => ['question', 'addressed', 'dismissed'].includes(outcome))) {
+      finishActiveRound(active, 'completed', { outcomes })
+    }
+  }
+  console.log(`Replied to ${id} on v${record.version} — the reviewer will see it on the comment`)
+  touch()
+}
+
+/** Atomically acknowledge delivery without deleting the durable round ledger. */
+function cmdClaim () {
+  const round = loadActiveRound() || migrateLegacyPending()
+  if (!round) { console.error('No active review round to claim'); process.exit(2) }
+  const requested = args.round && args.round !== true ? String(args.round) : null
+  if (!requested || requested !== round.id) {
+    if (!requested) console.error(`Include --round ${round.id}`)
+    else console.error(`Active round is ${round.id}, not ${requested}`)
+    process.exit(2)
+  }
+  round.status = 'active'
+  round.claimedAt ||= new Date().toISOString()
+  round.lastClaimedAt = new Date().toISOString()
+  saveActiveRound(round)
+  fs.rmSync(P.pending(), { force: true })
+  console.log(`Claimed ${round.id} — ${(round.comments || []).length} comment(s) · ${round.feedback}`)
+  touch()
+}
+
+/** Acknowledge that a requested stop was honored. Publish remains blocked until
+ * this explicit transition closes the active round and clears the request. */
+function cmdCancelled () {
+  const request = readJSON(P.cancel())
+  if (!request) { console.error('No cancel request to acknowledge'); process.exit(2) }
+  const round = loadActiveRound()
+  const requested = args.round && args.round !== true ? String(args.round) : null
+  if (round && (!requested || requested !== round.id)) {
+    if (!requested) console.error(`Include --round ${round.id}`)
+    else console.error(`Active round is ${round.id}, not ${requested}`)
+    process.exit(2)
+  }
+  if (round) finishActiveRound(round, 'cancelled', { reason: request.reason || null })
+  fs.rmSync(P.pending(), { force: true })
+  fs.rmSync(P.cancel(), { force: true })
+  console.log(`Cancelled ${round?.id || 'the current review round'} — open comments were left open`)
+  touch()
 }
 
 /**
@@ -339,8 +628,9 @@ function cmdCheck () {
   if (req.comments?.length) console.log(`  in flight  ${req.comments.join(', ')}`)
   console.log(`  reason     ${req.reason || '(none given)'}`)
   console.log('\nStop where you are. Do not publish a half-applied version. Tell the')
-  console.log('reviewer what you had already changed and what you left alone, then:')
-  console.log(`  rm "${P.cancel()}"    # the review is still open`)
+  console.log('reviewer what you had already changed and what you left alone, then acknowledge it:')
+  const round = loadActiveRound()
+  console.log(`  node review-server.mjs cancelled ${SUBJECT}${round ? ` --round ${round.id}` : ''}`)
   process.exit(2)
 }
 
@@ -394,13 +684,13 @@ function liveStores (from = process.cwd(), depth = 5) {
 /**
  * `watch --stream` — the same watch, as an event stream that never ends.
  *
- * The one-shot form below has to exit to be heard, because a finished Bash
- * command is the only thing that re-invokes an idle Claude session. That makes
- * re-arming a step someone has to remember, and it gets forgotten. A stream is
- * how every other file watcher works — nodemon, tsc --watch, entr — and the
- * Monitor tool consumes exactly this shape: one line of stdout is one event, and
- * the process stays up. Nothing to re-arm, and the presence heartbeat no longer
- * flickers off after every round.
+ * The one-shot form below has to exit to be heard, because a finished shell
+ * command is often the only thing that re-invokes an idle agent session. That
+ * makes re-arming a step someone has to remember, and it gets forgotten. A
+ * stream is how every other file watcher works — nodemon, tsc --watch, entr —
+ * and the Host op `watch_stream` consumes exactly this shape: one line of
+ * stdout is one event, and the process stays up. Nothing to re-arm, and the
+ * presence heartbeat no longer flickers off after every round.
  *
  *   node review-server.mjs watch --all --stream
  */
@@ -432,10 +722,10 @@ async function cmdStream (stores, beatAll, stop, label, all) {
       const brief = readJSON(at('pending'))
       if (brief && brief.sentAt !== was.sent) {
         was.sent = brief.sentAt
-        say(`REVIEW    ${label(store)} · ${brief.counts?.total ?? '?'} comment(s) · ${brief.feedback}`)
+        say(`REVIEW    ${label(store)} · ${brief.roundId || 'legacy round'} · ${brief.counts?.total ?? '?'} comment(s) · ${brief.feedback}`)
       }
 
-      // A reply is the other thing that waits on Claude, and it writes no
+      // A reply is the other thing that waits on the agent, and it writes no
       // sentinel — answering a question just lands in annotations.json.
       const now = repliesIn(store)
       for (const [key, cur] of now) {
@@ -458,7 +748,13 @@ async function cmdStream (stores, beatAll, stop, label, all) {
       }
     }
 
-    if (!stores.length) { stop(); say('CLOSED    nothing left to watch'); return process.exit(0) }
+    // With --all, an empty set means "no tab open right now" — keep the
+    // stream and the heartbeat path alive so a later serve can OPENED in.
+    // Without --all, empty means the only subject closed: done.
+    if (!stores.length) {
+      if (!all) { stop(); say('CLOSED    nothing left to watch'); return process.exit(0) }
+      // still waiting
+    }
     beatAll()
     await new Promise(r => setTimeout(r, 1000))
   }
@@ -487,9 +783,16 @@ async function cmdWatch () {
   // living outside it that you name.
   const all = args.all === true || args.all === 'true'
   let stores = [...(all ? liveStores() : []), ...many.map(storeFor)]
-  if (!stores.length) stores = [STORE]
+  // Named subjects only. Never fall back to the placeholder STORE from
+  // `watch --all` (cwd/.ui-review) — that path is not a review store, and
+  // treating it as one exits the stream the moment it sees no `url` file
+  // (classic race: watcher armed before serve wrote its url).
+  if (!stores.length && !all) stores = [STORE]
   stores = [...new Set(stores)]
-  if (!stores.length) { console.log('CLOSED — nothing to watch'); return process.exit(0) }
+  if (!stores.length && !(args.stream === true || args.stream === 'true')) {
+    console.log('CLOSED — nothing to watch')
+    return process.exit(0)
+  }
 
   const label = store => path.basename(store)
   const beatAll = () => {
@@ -507,14 +810,21 @@ async function cmdWatch () {
   beatAll()
   touch()   // the page hears about it straight away
 
-  if (args.stream === true || args.stream === 'true') return cmdStream(stores, beatAll, stop, label, all)
+  if (args.stream === true || args.stream === 'true') {
+    // Stream mode with --all and nothing live yet: wait for a serve to appear
+    // instead of exiting. cmdStream's OPENED path picks new stores up.
+    if (!stores.length && all) {
+      process.stdout.write('WATCHING  0 review(s): waiting for a live serve…\n')
+    }
+    return cmdStream(stores, beatAll, stop, label, all)
+  }
 
   console.log(`watching ${stores.length} review(s): ${stores.map(label).join(', ')}`)
-  /* Exiting IS the wake-up — a running process cannot interrupt an idle Claude
+  /* Exiting IS the wake-up — a running process cannot interrupt an idle agent
      session, so the only way to be called is to finish. That makes re-arming
      the easiest thing in the world to forget, and a forgotten waiter is a
      review nobody is reading. So the last thing printed is the command that
-     puts it back. */
+     puts it back. Prefer `watch --stream` via Host op watch_stream. */
   const rearm = `node "${process.argv[1]}" ${process.argv.slice(2).join(' ')}`
   const done = (what, store, file) => {
     stop()
@@ -558,6 +868,7 @@ function cmdStatus () {
     name: pageName(),
     version: state.version,
     versions: listVersions().map(v => `v${v.n}: ${v.label}`),
+    activeRound: roundSummary(loadActiveRound(state)),
     pendingReview: fs.existsSync(P.pending()) ? readJSON(P.pending(), {}) : null,
     cancelRequest: fs.existsSync(P.cancel()) ? readJSON(P.cancel(), {}) : null,
     approved: fs.existsSync(P.approved()) ? readJSON(P.approved(), {}) : null,
@@ -619,10 +930,11 @@ function readBody (req) {
 function payload () {
   const state = loadState()
   const versions = listVersions()
+  const activeRound = loadActiveRound(state)
   const reviews = {}
-  for (const v of versions.concat([{ n: state.version }])) {
-    const saved = readJSON(path.join(P.review(v.n), 'annotations.json'))
-    if (saved) reviews[v.n] = saved
+  for (const version of new Set([...listReviewVersions(), state.version])) {
+    const saved = readJSON(path.join(P.review(version), 'annotations.json'))
+    if (saved) reviews[version] = saved
   }
   return {
     mode: LIVE ? 'live' : 'local',
@@ -638,12 +950,14 @@ function payload () {
     shareUrl: state.shareUrl || null,
     shareVersion: state.shareVersion || null,
     sharePending: fs.existsSync(P.share()),
+    historyClearedAt: state.historyClearedAt || null,
     /* Whether a round is out, and which comments are in it. The workspace used
        to know this only because it was the tab that pressed Send — so a reload,
        or a second tab, showed a review where nothing was happening. */
     pendingReview: fs.existsSync(P.pending()) ? readJSON(P.pending(), {}) : null,
+    activeReview: roundSummary(activeRound),
     cancelRequest: fs.existsSync(P.cancel()) ? readJSON(P.cancel(), {}) : null,
-    /* Whether a Claude session is actually waiting on this review. The link dot
+    /* Whether an agent session is actually waiting on this review. The link dot
        used to say "Linked" whenever the page could reach this server, which is
        a fact about the browser and the file server — not about anyone being
        there to read what you send. */
@@ -669,6 +983,26 @@ function mergeIncoming (n, incoming) {
     if (prev.status === 'addressed' && a.status !== 'addressed' && !a.reopenedAt) merged.status = 'addressed'
     return merged
   })
+}
+
+/** Keep the current snapshot, but remove every earlier snapshot. Comments stay
+ * in their review folders and can be cleared independently in the workspace.
+ * The current version number deliberately stays put: published links
+ * and any agent already holding that number must not silently point elsewhere. */
+function clearHistory () {
+  const current = loadState().version
+  if (fs.existsSync(P.versions())) {
+    for (const file of fs.readdirSync(P.versions())) {
+      const match = /^v(\d+)\.(?:html|meta\.json)$/.exec(file)
+      if (match && Number(match[1]) !== current) {
+        fs.rmSync(path.join(P.versions(), file), { force: true })
+      }
+    }
+  }
+  const state = loadState()
+  state.historyClearedAt = new Date().toISOString()
+  saveState(state)
+  return true
 }
 
 function serveStatic (res, file) {
@@ -829,6 +1163,7 @@ function proxyUpgrade (req, socket, head) {
 function serveWorkspace (res) {
   let html = fs.readFileSync(path.join(HERE, 'workspace.html'), 'utf8')
   if (BASE) html = html.replace(/<head>/i, `<head>\n<script>window.VS_BASE=${JSON.stringify(BASE)}</script>`)
+  html = withHost(html, HOST_PROFILE)
   send(res, 200, withUpdate(html, update), MIME['.html'])
 }
 
@@ -891,125 +1226,159 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
     const body = JSON.parse(await readBody(req) || '{}')
     const n = Number(body.version) || loadState().version
     if (!body.html) return sendJSON(res, 400, { error: 'no html' })
-    fs.mkdirSync(P.versions(), { recursive: true })
-    fs.writeFileSync(P.version(n), String(body.html))
-    const meta = readJSON(path.join(P.versions(), `v${n}.meta.json`), { n }) || { n }
-    writeJSON(path.join(P.versions(), `v${n}.meta.json`), {
-      ...meta, n, capturedAt: new Date().toISOString(), route: body.route || '/',
+    return withStoreLock(() => {
+      fs.mkdirSync(P.versions(), { recursive: true })
+      fs.writeFileSync(P.version(n), String(body.html))
+      const meta = readJSON(path.join(P.versions(), `v${n}.meta.json`), { n }) || { n }
+      writeJSON(path.join(P.versions(), `v${n}.meta.json`), {
+        ...meta, n, capturedAt: new Date().toISOString(), route: body.route || '/',
+      })
+      return sendJSON(res, 200, { ok: true })
     })
-    return sendJSON(res, 200, { ok: true })
   }
   if (p === '/api/annotations' && req.method === 'POST') {
     const body = JSON.parse(await readBody(req) || '{}')
     const n = Number(body.version) || loadState().version
-    writeJSON(path.join(P.review(n), 'annotations.json'), {
-      version: n, updatedAt: new Date().toISOString(),
-      annotations: mergeIncoming(n, body.annotations || []),
+    return withStoreLock(() => {
+      writeJSON(path.join(P.review(n), 'annotations.json'), {
+        version: n, updatedAt: new Date().toISOString(),
+        annotations: mergeIncoming(n, body.annotations || []),
+      })
+      return sendJSON(res, 200, { ok: true })
     })
-    return sendJSON(res, 200, { ok: true })
+  }
+  if (p === '/api/history/clear' && req.method === 'POST') {
+    return withStoreLock(() => {
+      clearHistory()
+      const data = payload()
+      console.log(`\n⌫ Cleared versions before v${data.currentVersion}`)
+      touch()
+      return sendJSON(res, 200, {
+        ok: true,
+        currentVersion: data.currentVersion,
+        versions: data.versions,
+        historyClearedAt: data.historyClearedAt,
+      })
+    })
   }
   if (p === '/api/feedback' && req.method === 'POST') {
     const body = JSON.parse(await readBody(req) || '{}')
     const n = Number(body.version) || loadState().version
     const dir = P.review(n)
-    /* The brief is written FIRST, before the directory it points at exists.
-       Writing under reviews/ is watched, and a watcher firing between the mkdir
-       and this line hands the workspace a project with no pending round in it —
-       which now reads as "the round is over" and takes the progress bars off
-       the comments that were sent a millisecond ago. */
-    /* A send that lands while an earlier brief is still on disk rewrites that
-       brief in place — it has not been collected, so the wake-up already raised
-       for it covers this one too. Keeping the first sentAt stops the watcher
-       announcing twice for what is one brief. Only a recent one, though: a brief
-       nobody collected in five minutes was announced to a session that is gone,
-       and the next send should wake whoever is listening now. */
-    const prev = fs.existsSync(P.pending()) ? readJSON(P.pending(), {}) : null
-    const stillOut = prev?.sentAt && Date.now() - Date.parse(prev.sentAt) < 5 * 60e3
-    writeJSON(P.pending(), {
-      page: FILE || appOrigin(), app: appOrigin(),
-      name: pageName(),
-      version: n,
-      counts: body.counts || {},
-      // Live: the screens the comments were made on, so the round can be
-      // planned before the brief is even opened.
-      routes: body.feedback?.routes || [],
-      // Which comments went out, so a workspace opened later — or reloaded
-      // mid-round — can put the progress back on the right ones instead of
-      // showing a round that looks like it never happened.
-      comments: (body.feedback?.comments || []).map(c => c.id),
-      feedback: path.join(dir, 'feedback.md'),
-      sentAt: stillOut ? prev.sentAt : new Date().toISOString(),
+    return withStoreLock(() => {
+      /* Prepare the durable review material before raising its notification. The
+         server's reload broadcast is debounced, so these synchronous writes are
+         observed as one state transition rather than a transient empty round. */
+      fs.mkdirSync(dir, { recursive: true })
+      writeJSON(path.join(dir, 'annotations.json'), {
+        version: n, updatedAt: new Date().toISOString(),
+        annotations: mergeIncoming(n, body.annotations || []),
+      })
+      const round = nextRound(n, body.feedback?.comments || [], path.join(dir, 'feedback.md'))
+      writeJSON(path.join(dir, 'feedback.json'), { ...(body.feedback || {}), roundId: round.id })
+      fs.writeFileSync(path.join(dir, 'feedback.md'), String(body.markdown || '').replaceAll('<round-id>', round.id))
+      const prev = fs.existsSync(P.pending()) ? readJSON(P.pending(), {}) : null
+      const stillOut = prev?.roundId === round.id && prev?.sentAt && Date.now() - Date.parse(prev.sentAt) < 5 * 60e3
+      writeJSON(P.pending(), {
+        roundId: round.id,
+        page: FILE || appOrigin(), app: appOrigin(),
+        name: pageName(),
+        version: n,
+        counts: { total: round.comments.length },
+        // Live: the screens the comments were made on, so the round can be
+        // planned before the brief is even opened.
+        routes: body.feedback?.routes || [],
+        // Which comments went out, so a workspace opened later — or reloaded
+        // mid-round — can put the progress back on the right ones instead of
+        // showing a round that looks like it never happened.
+        comments: round.comments.map(comment => comment.id),
+        feedback: path.join(dir, 'feedback.md'),
+        sentAt: stillOut ? prev.sentAt : new Date().toISOString(),
+      })
+      // A new review supersedes any earlier "stop" — they have moved on.
+      fs.rmSync(P.cancel(), { force: true })
+      console.log(`\n● ${round.id} sent for v${n} — ${round.comments.length} comment(s) → ${path.join(dir, 'feedback.md')}`)
+      return sendJSON(res, 200, { ok: true, roundId: round.id })
     })
-    fs.mkdirSync(dir, { recursive: true })
-    writeJSON(path.join(dir, 'annotations.json'), {
-      version: n, updatedAt: new Date().toISOString(), annotations: body.annotations || [],
-    })
-    writeJSON(path.join(dir, 'feedback.json'), body.feedback || {})
-    fs.writeFileSync(path.join(dir, 'feedback.md'), body.markdown || '')
-    // A new review supersedes any earlier "stop" — they have moved on.
-    fs.rmSync(P.cancel(), { force: true })
-    console.log(`\n● Review sent for v${n} — ${body.counts?.total ?? '?'} comment(s) → ${path.join(dir, 'feedback.md')}`)
-    return sendJSON(res, 200, { ok: true })
   }
   /**
    * The reviewer changed their mind while you were working. This is a request to
-   * stop, not a hard kill — nothing here can reach into a running turn. Claude
-   * notices it either through the waiter or on its next check, and answers for
+   * stop, not a hard kill — nothing here can reach into a running turn. The agent
+   * notices it either through watch_stream or on its next check, and answers for
    * whatever it had already done.
    */
   /**
-   * "Give me a link I can send to someone." The workspace cannot publish an
-   * Artifact — only Claude can — so this raises the ask and waits. Claude
-   * bundles, publishes, and hands the URL back with `share --url`.
+   * "Give me a link I can send to someone." The workspace cannot publish a
+   * public URL — only the agent via Host op `share` can — so this raises the ask
+   * and waits. The agent publishes and hands the URL back with `share --url`.
    */
   if (p === '/api/share' && req.method === 'POST') {
     const body = JSON.parse(await readBody(req) || '{}')
     const n = Number(body.version) || loadState().version
     writeJSON(P.share(), { page: FILE || appOrigin(), app: appOrigin(), name: pageName(), version: n, at: new Date().toISOString() })
-    console.log(`\n◆ Shareable link requested for v${n} — bundle it, publish the Artifact, then:`)
-    console.log(`    node review-server.mjs share ${SUBJECT} --url <artifact-url>`)
+    console.log(`\n◆ Shareable link requested for v${n} — Host op share, then:`)
+    console.log(`    node review-server.mjs share ${SUBJECT} --url <public-url>`)
     touch()
     return sendJSON(res, 200, { ok: true })
   }
   if (p === '/api/cancel' && req.method === 'POST') {
     const body = JSON.parse(await readBody(req) || '{}')
     const n = Number(body.version) || loadState().version
-    writeJSON(P.cancel(), {
-      page: FILE || appOrigin(), app: appOrigin(),
-      name: pageName(),
-      version: n,
-      comments: body.comments || [],
-      reason: body.reason || 'The reviewer cancelled this round.',
-      at: new Date().toISOString(),
+    return withStoreLock(() => {
+      writeJSON(P.cancel(), {
+        page: FILE || appOrigin(), app: appOrigin(),
+        name: pageName(),
+        version: n,
+        comments: body.comments || [],
+        reason: body.reason || 'The reviewer cancelled this round.',
+        at: new Date().toISOString(),
+      })
+      fs.rmSync(P.pending(), { force: true })
+      console.log(`\n■ Cancel requested on v${n} — stop, then tell the reviewer what you had already changed`)
+      touch()
+      return sendJSON(res, 200, { ok: true })
     })
-    fs.rmSync(P.pending(), { force: true })
-    console.log(`\n■ Cancel requested on v${n} — stop, then tell the reviewer what you had already changed`)
-    touch()
-    return sendJSON(res, 200, { ok: true })
   }
   /**
    * Sign-off. The review is over: write the verdict and close the server, which
    * removes `url` and ends the waiter — so the same exit that means "tab closed"
-   * now carries a reason, and Claude carries on with the design settled.
+   * now carries a reason, and the agent carries on with the design settled.
    */
   if (p === '/api/approve' && req.method === 'POST') {
     const body = JSON.parse(await readBody(req) || '{}')
     const n = Number(body.version) || loadState().version
-    writeJSON(P.approved(), {
-      page: FILE || appOrigin(), app: appOrigin(),
-      name: pageName(),
-      version: n,
-      openComments: body.openComments || [],
-      at: new Date().toISOString(),
+    return withStoreLock(() => {
+      const openComments = unresolvedComments()
+      const expected = Number.isInteger(Number(body.expectedOpenCount))
+        ? Number(body.expectedOpenCount)
+        : Array.isArray(body.openComments) ? body.openComments.length : null
+      if (expected !== null && expected !== openComments.length) {
+        return sendJSON(res, 409, {
+          error: 'The open-comment count changed. Review the current list before approving.',
+          openComments,
+        })
+      }
+      writeJSON(P.approved(), {
+        page: FILE || appOrigin(), app: appOrigin(),
+        name: pageName(),
+        version: n,
+        openComments,
+        at: new Date().toISOString(),
+      })
+      const active = loadActiveRound()
+      if (active) finishActiveRound(active, 'approved', {
+        approvedVersion: n,
+        outcomes: Object.fromEntries((active.comments || []).map(comment => [comment.id, 'left_open_on_approval'])),
+      })
+      fs.rmSync(P.pending(), { force: true })
+      fs.rmSync(P.cancel(), { force: true })
+      const left = openComments.length
+      console.log(`\n✓ Approved at v${n}${left ? ` — ${left} comment(s) left unapplied` : ''} — the review is closed`)
+      sendJSON(res, 200, { ok: true })
+      // Let the response land before the socket goes away with the process.
+      setTimeout(() => closeServer && closeServer('approved'), 350)
+      return
     })
-    fs.rmSync(P.pending(), { force: true })
-    fs.rmSync(P.cancel(), { force: true })
-    const left = (body.openComments || []).length
-    console.log(`\n✓ Approved at v${n}${left ? ` — ${left} comment(s) left unapplied` : ''} — the review is closed`)
-    sendJSON(res, 200, { ok: true })
-    // Let the response land before the socket goes away with the process.
-    setTimeout(() => closeServer && closeServer('approved'), 350)
-    return
   }
 
   // Anything the page references (images, shared css) resolves beside it.
@@ -1026,9 +1395,14 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
 let update = null
 
 async function cmdServe () {
-  update = await checkForUpdate()
-  // Serving an unpublished page would name a version with no frozen copy.
-  if (loadState().version === 0) cmdPublish(true)
+  update = await checkForUpdate(HOST_PROFILE)
+  if (HOST_PROFILE) console.log(`  host       ${HOST_PROFILE.id} (${HOST_PROFILE.name})`)
+  // Serving an unpublished page would name a version with no frozen copy. The
+  // same startup transaction upgrades feedback left by a pre-ledger server.
+  withStoreLock(() => {
+    if (loadState().version === 0) cmdPublish(true)
+    migrateLegacyPending()
+  })
   if (LIVE) {
     // Whoever picks this store up later — publish, reply, a second serve — needs
     // to know it is an app and which one, without being told again.
@@ -1039,9 +1413,11 @@ async function cmdServe () {
     saveState(state)
   }
   // Terminal signals belong to the review that raised them. A new one starts
-  // clean, or the first waiter it arms fires on last week's verdict.
+  // clean, or the first waiter it arms fires on last week's verdict. An active
+  // round is recovery, not a new review: preserve its Stop request across a
+  // server restart so publication cannot slip past it.
   fs.rmSync(P.approved(), { force: true })
-  fs.rmSync(P.cancel(), { force: true })
+  if (!loadActiveRound()) fs.rmSync(P.cancel(), { force: true })
   fs.rmSync(P.share(), { force: true })
   const port = Number(args.port || 7788)
   const server = http.createServer((req, res) => {
@@ -1059,10 +1435,10 @@ async function cmdServe () {
      call reaches no clients — this one is holding them. The store is the only
      thing both sides share, so watch the files that carry news: the state
      (version, share url), the sentinel that says a link is still wanted, and
-     the brief — whose deletion is Claude collecting it, the moment the
+     the brief — whose deletion is the agent collecting it, the moment the
      workspace starts holding new comments back instead of sending into the
-     round. Without this the menu sits on "Claude is publishing the link…"
-     forever and "queued" never becomes "being worked on". */
+     round. Without this the menu sits on "publishing the link…" forever and
+     "queued" never becomes "being worked on". */
   try { fs.watch(STORE, (_e, name) => { if (name === 'state.json' || name === 'share' || name === 'pending') touch() }) } catch {}
 
   server.on('error', e => {
@@ -1131,14 +1507,16 @@ async function cmdServe () {
 }
 
 switch (args._) {
-  case 'publish': case 'snapshot': cmdPublish(); break
-  case 'reply': cmdReply(); break
-  case 'share': cmdShare(); break
+  case 'publish': case 'snapshot': withStoreLock(() => cmdPublish()); break
+  case 'claim': withStoreLock(cmdClaim); break
+  case 'reply': withStoreLock(cmdReply); break
+  case 'cancelled': withStoreLock(cmdCancelled); break
+  case 'share': withStoreLock(cmdShare); break
   case 'status': cmdStatus(); break
   case 'check': cmdCheck(); break
   case 'watch': cmdWatch(); break
   case 'serve': cmdServe(); break
   default:
-    console.error(`Unknown command "${args._}". Use: serve | publish | reply | share | status | check`)
+    console.error(`Unknown command "${args._}". Use: serve | claim | publish | reply | cancelled | share | status | check | watch`)
     process.exit(1)
 }

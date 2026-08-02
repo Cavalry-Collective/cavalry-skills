@@ -49,10 +49,11 @@ window.VSShell = (function () {
   }
 
   /* ── the live link, said out loud ── */
-  /* Three states, not two. "The page reached its server" and "a Claude session
+  /* Three states, not two. "The page reached its server" and "an agent session
      is waiting to read what you send" are different facts, and only the second
      is the one anyone actually wants to know. `watching` undefined means the
-     page has no way to tell, and the dot behaves as it always did. */
+     page has no way to tell, and the dot behaves as it always did. Host name
+     comes from window.__VSTACK_HOST__ (contracts/host.md). */
   let linked = null, linkLabels = null, watching;
   function paintLink () {
     const el = $('#linkDot');
@@ -61,9 +62,10 @@ window.VSShell = (function () {
     const idle = linked && watching === false;
     el.classList.toggle('on', linked && !idle);
     el.classList.toggle('idle', !!idle);
+    const agent = window.__VSTACK_HOST__?.name || 'agent';
     el.textContent = !linked ? (linkLabels?.off ?? 'LINK LOST')
       : idle ? (linkLabels?.idle ?? 'UNLINKED')
-      : (linkLabels?.on ?? 'LINKED TO CLAUDE');
+      : (linkLabels?.on ?? `LINKED TO ${String(agent).toUpperCase()}`);
     el.title = !linked ? (linkLabels?.offTitle ?? '')
       : idle ? (linkLabels?.idleTitle ?? '') : '';
   }
@@ -114,7 +116,8 @@ window.VSShell = (function () {
     const how = document.createElement('div');
     how.className = 'vs-update-how';
     how.hidden = true;
-    how.innerHTML = `<p>Run these in Claude Code:</p><pre>${esc((info.install || []).join('\n'))}</pre>` +
+    const lead = info.howLead || 'To update:';
+    how.innerHTML = `<p>${esc(lead)}</p><pre>${esc((info.install || []).join('\n'))}</pre>` +
       (info.auto ? `<p class="auto">${esc(info.auto)}</p>` : '') +
       (info.url ? `<a href="${esc(info.url)}" target="_blank" rel="noopener">What changed</a>` : '');
     bar.appendChild(how);

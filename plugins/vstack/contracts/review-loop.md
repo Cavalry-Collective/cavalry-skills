@@ -1,0 +1,162 @@
+# Contract: Review loop
+
+The local protocol between (1) the **review engine** (`review-server.mjs` +
+workspace), (2) the **agent session**, and (3) the **reviewer** in the browser.
+
+Host-independent: any Host that fulfills [host.md](host.md) can drive this loop.
+
+---
+
+## Participants
+
+| Role | Responsibility |
+| --- | --- |
+| **Engine** | Serves workspace, stores state, freezes versions, emits events |
+| **Agent** | Applies feedback, publishes versions, replies, fulfills Host ops |
+| **Reviewer** | Comments in the browser; Send / Stop / Approve / Share |
+
+---
+
+## Subject under review
+
+| Mode | Identity | What a round changes |
+| --- | --- | --- |
+| **File** | `--file <page.html>` | That HTML file |
+| **Live** | `--app <url>` + `--name <slug>` | App source (or notes for a third-party site) |
+
+---
+
+## On-disk store
+
+Beside the file: `<dir>/.ui-review/<name>/`
+Live (no file): `<cwd>/.ui-review/<name>/`
+
+| Path | Role |
+| --- | --- |
+| `state.json` | `{ name, version, app?, … }` |
+| `versions/v<n>.html` | Frozen file or DOM capture |
+| `versions/v<n>.meta.json` | Label, date, addressed ids |
+| `reviews/v<n>/annotations.json` | Live comments + threads |
+| `reviews/v<n>/feedback.md` | Markdown brief for the agent |
+| `reviews/v<n>/feedback.json` | Same, structured |
+| `rounds/r<n>.json` | Durable membership, revisions, outcomes, and completion record |
+| `pending` | Notification only: review sent, agent must `claim` it |
+| `cancel` | Sentinel: reviewer asked to stop the in-flight round |
+| `approved` | Sentinel: design signed off; engine shutting down |
+| `share` | Sentinel: reviewer wants a shareable link |
+| `url` | Present only while `serve` is running |
+| `watching` | Heartbeat while Host op `watch_stream` is active |
+
+Directory names `.ui-review/` are stable historical paths — do not rename.
+
+---
+
+## Thread roles (on disk)
+
+```ts
+type ReplyBy = "agent" | "reviewer"
+// Legacy reads: "claude" MUST be treated as "agent"
+```
+
+Writers always use `"agent"`. Readers accept both `"agent"` and `"claude"`.
+
+CSS/UI may use class `agent`; class `claude` remains a synonym for old markup.
+
+---
+
+## CLI surface
+
+All commands: `node review-server.mjs <cmd> …`
+Host selection: `--host <id>` or `VSTACK_HOST=<id>` (affects UI injection only).
+
+| Command | Contract |
+| --- | --- |
+| `serve --file …` / `serve --app …` | Long-lived via Host `background`. Binds `127.0.0.1`. |
+| `claim --file/name … --round r<n>` | Acknowledge delivery while preserving the durable round ledger |
+| `publish --file/name … --round r<n> --label … [--addressed ids]` | Validate full round coverage, freeze next version, and mark comments addressed |
+| `reply --file/name … --round r<n> --comment <id> --text "…"` | Append `{ by: "agent", text, at }`; status → `question` |
+| `cancelled --file/name … --round r<n>` | Acknowledge Stop, leave comments open, and close the active round |
+| `share --file/name … --url <url>` | Record public URL; clear `share` sentinel |
+| `check --file/name …` | Exit `0` continue, `2` stop requested |
+| `status --file/name …` | Human/debug snapshot |
+| `watch [--all] [--file …] --stream` | Event stream via Host `watch_stream` |
+
+---
+
+## Stream events
+
+One line of stdout per event (from `watch --stream`):
+
+| Prefix | Meaning | Agent action |
+| --- | --- | --- |
+| `WATCHING` | Stream armed | — |
+| `REVIEW` | `pending` written; round id and path to `feedback.md` | `claim` the round, apply brief, publish/reply |
+| `REPLIED` | Reviewer answered a question | Continue that comment’s thread |
+| `CANCELLED` | Stop requested | Do not publish half-work; run `cancelled --round …`; report |
+| `SHARE` | Link requested | Host `share` if capable; then `share --url` |
+| `APPROVED` | Sign-off; server exiting | Confirm; next pipeline stage as skill says |
+| `OPENED` | Another live store joined `--all` | — |
+| `CLOSED` | Tab/store gone | Drop; exit when none left |
+
+---
+
+## Round protocol
+
+```
+serve (background) + watch_stream
+        │
+        ▼
+reviewer comments ──Send──► round record + pending + feedback.md
+        │                         │
+        │                    REVIEW event
+        │                         ▼
+        │              agent: claim · apply · reply/check · publish
+        │                         │
+        │◄──── version ready ─────┘
+        │
+   Stop ──► cancel ──► CANCELLED (agent must check during long rounds)
+ Approve ──► approved ──► APPROVED + server exit
+  Share ──► share ──► SHARE ──► share --url
+```
+
+Rules:
+
+1. Only a validated `publish --round … --addressed …` closes comments (reviewer has no resolve).
+2. The engine rejects publication unless every round member is addressed, dismissed, or waiting on the reviewer.
+3. The engine rejects unknown IDs, changed comment revisions, unclaimed rounds, stale round IDs, and any publish after Stop.
+4. Agent must `check` at checkpoints; `cancelled --round …` acknowledges Stop. Do not delete protocol files manually.
+5. Retrying an already completed `publish --round …` is idempotent and creates no extra version.
+6. One `watch_stream` per session is enough with `--all`.
+
+---
+
+## Feedback brief
+
+`feedback.md` + `feedback.json` carry at least:
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Pass to `--addressed` |
+| `note` | Requirement text |
+| `anchor` | Element identity (tag, id, classes, text, region, selector) |
+| `screenSize` | Layout the comment was made at |
+| `route` | Live only — app path |
+| `status` | `open` · `question` · `addressed` |
+| `replies` | `{ by, text, at }[]` |
+| `reopened` / `wantsRevert` | Returned from Refine / Revert |
+
+---
+
+## Share
+
+- **File review:** subject file (self-contained HTML) is what gets a public URL.
+- **Live review:** a DOM capture for the current round; agent must say it is a still.
+- Offline bundle (`bundle-artifact.mjs`): no session; Send becomes copy-to-clipboard.
+
+---
+
+## Non-goals of this contract
+
+- How the Host names its tools (see Host adapters).
+- Pipeline / `.vstack/pipeline.json` (skill handoff, not the review engine).
+- Marketplace install paths (Host profile `install` + `updateDetect` only).

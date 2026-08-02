@@ -1,7 +1,22 @@
 ---
 name: wireframe
-description: Build a UI wireframe and open it in an interactive review workspace where the user comments directly on the page, turning those comments into the next iteration — or point the same workspace at an app that is already running and review the real thing. Use when the user wants a wireframe, UI mockup, screen design or prototype built; wants to review, annotate, mark up or comment on a page, a design, an existing UI, a running app or a website; wants to iterate on a UI; or wants to compare versions of a screen.
+description: Build a UI wireframe and open it in an interactive review workspace where the user comments directly on the page, turning those comments into the next iteration — or point the same workspace at an app that is already running and review the real thing. Use when the user wants a wireframe, UI mockup, screen design or prototype built; wants to review, annotate, mark up or comment on a page, a design, an existing UI, a running app or a website; wants to iterate on a UI; or wants to compare versions of a screen. Use when the user runs /wireframe or /vstack:wireframe.
 ---
+
+## 0 · Host (do this first)
+
+This skill is **tool-agnostic**. The loop is defined in
+`plugins/vstack/contracts/review-loop.md` and the ops you need in
+`plugins/vstack/contracts/host.md`. **Never invent host-specific tool names in
+this file** — they live only in the Host adapter.
+
+| You are running under… | Load adapter | Set |
+| --- | --- | --- |
+| **Grok** Build / Grok CLI | `hosts/grok.md` | `VSTACK_HOST=grok` (or `--host grok` on `serve`) |
+| **Claude Code** | `hosts/claude.md` | `VSTACK_HOST=claude` (default if unset) |
+
+**Read the adapter before §3.** Every `background`, `watch_stream`, `stop`,
+`share`, and `browser_capture` step is fulfilled exactly as that file says.
 
 A two-way review loop. The user comments on the screen; you apply the comments, ask about anything ambiguous, and publish the next version. Two things can go under it:
 
@@ -49,13 +64,17 @@ says "like Linear", "match our admin", or drops a screenshot in, don't work from
 impression of it — capture it, write down what you measured, and build against those
 numbers.
 
-With a **URL**, use the Chrome tools:
+With a **URL**, use Host op **`browser_capture`** when the adapter says it is
+available; otherwise ask the user for screenshots and derive by eye (§2
+screenshots path).
 
-1. `navigate` to it in a new tab. Dismiss the cookie banner (decline non-essential) so
+When browser capture is available:
+
+1. Navigate to the URL in a new tab. Dismiss the cookie banner (decline non-essential) so
    it isn't in the screenshots or the measurements.
-2. `resize_window` and screenshot at each size the wireframe needs — 1440 first, then 390
+2. Resize and screenshot at each size the wireframe needs — 1440 first, then 390
    if the design has to work small. Save them beside the wireframe.
-3. Run **`assets/harvest-reference.js`** with the javascript tool. It returns JSON —
+3. Run **`assets/harvest-reference.js`** in the page. It returns JSON —
    the palette weighted by how much of the page it covers, the type scale actually in
    use, spacing rhythm, radii, shadows, and the layout skeleton (nav model, content
    width, grid columns, how many tables and inputs). Read it out of the page rather
@@ -94,14 +113,16 @@ Requirements the workspace places on the file:
 ```bash
 SKILL=<this skill dir>          # the directory containing this SKILL.md
 FILE=wireframes/candidate-pipeline.html
+# Prefer export VSTACK_HOST=<id> once; --host on serve is required for correct UI labels.
 
 node "$SKILL/assets/review-server.mjs" publish --file "$FILE" --label "Initial version"
 ```
 
-Start the server **with `run_in_background: true`** (it must outlive the turn):
+Start the server with Host op **`background`** (it must outlive the turn) — see
+your adapter for the exact tool:
 
 ```bash
-node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788
+node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788 --host "$VSTACK_HOST"
 ```
 
 Tell the user to open **http://localhost:7788/**, then arm the waiter (§5).
@@ -129,10 +150,10 @@ The page opens in **its own browser window** on the canvas — own viewport, own
 | **Delete** | on the comment, once it has words in it |
 | **Clear all** | in the comment list footer, behind a confirm |
 | **Link status** | a dot beside Send — linked to your session, or link lost. Nothing is said until the connection has actually answered |
-| **Send to Claude** (⌘⏎) | sends straight through — no preview step — and wakes you up. It greys out until something actually changes |
+| **Send to {agent}** (⌘⏎) | sends straight through — no preview step — and wakes you up. Label uses the Host profile name. Greys out until something actually changes |
 | **In flight** | every comment you were sent keeps an indeterminate progress bar until you publish or reply. No banner covers the page any more — the progress is on the comments it belongs to |
 | **Addressed** | comments you closed stay in the list in their own section, each offering **Revert** or **Refine** |
-| **Publish a link to this wireframe** (the ▾ beside Send) | asks you to publish **the wireframe** as an Artifact they can send to someone else — the design, not the review workspace. The link comes back into that same menu, tagged with the version it was published from, and announces itself in a banner the way a new version does |
+| **Publish a link to this wireframe** (the ▾ beside Send) | only when Host `capabilities.share` is `artifact`. Asks you to publish **the wireframe** (Host op `share`) and hand the URL back. Hidden on hosts without public share |
 | **Approve & finish** (the ▾ beside Send) | sign-off. Ends the review, closes the server, and tells you the design is settled — behind a confirm that warns how many comments are being left unapplied |
 | **Cancel** | stops the round you're working on. Not a kill: finish what you were mid-way through, then say what you'd already changed |
 
@@ -154,7 +175,8 @@ accepts a status going backwards when the reviewer deliberately sent it back.
 
 ## 5 · Catch the review, and hold up your end of the conversation
 
-After starting the server, start the watcher **with the Monitor tool**, `persistent: true`:
+After starting the server, start the watcher with Host op **`watch_stream`** (adapter
+names the tool). Prefer the streaming form so nothing has to be re-armed:
 
 ```bash
 node "$SKILL/assets/review-server.mjs" watch --all --stream    # or --file <page.html>
@@ -168,19 +190,20 @@ so a session with a wireframe and a story map up needs one watcher, not one each
 While it runs the page says **Linked**; with no watcher it says **Unlinked**, in amber, so the
 reviewer can see that what they send will sit there.
 
-Each event is one line:
+Each event is one line (full table: `contracts/review-loop.md`):
 
 | | What it means | What you do |
 |---|---|---|
-| **`REVIEW`** | a review landed; the line names the brief | delete `pending`, then apply it — the steps below |
+| **`REVIEW`** | a review landed; the line names its round and brief | `claim` the round, then apply it — the steps below |
 | **`REPLIED`** | they answered a question you asked | read the thread and carry on with that comment. Nothing else announces this — a reply writes no sentinel |
-| **`CANCELLED`** | the reviewer pressed **Stop** | don't publish what you had half-done. Say what you had already changed and what you hadn't, then delete `cancel` |
-| **`SHARE`** | they want a link to send someone | publish the wireframe as an Artifact and hand the URL back (§6). The review carries on — this is not an ending |
+| **`CANCELLED`** | the reviewer pressed **Stop** | don't publish what you had half-done. Say what you had already changed and what you hadn't, then run `cancelled --round …` |
+| **`SHARE`** | they want a link to send someone | Host op `share` if capable, then §6; if the Host cannot share publicly, say so and offer a file/bundle instead |
 | **`APPROVED`** | the design is signed off; the server has closed itself | say it's approved, note any `openComments` deliberately left, and carry on with whatever comes next |
 | **`CLOSED`** | that review's tab went away | the watcher drops it and keeps watching the rest; it only stops when none are left |
 
-**Delete the sentinel you acted on** (`pending`, `cancel`, `share`). The watcher announces each one
-once per appearance, but a sentinel left behind is a round the store still thinks is open.
+**Use the protocol commands rather than deleting state files.** `claim --round …` consumes `pending`,
+`cancelled --round …` acknowledges Stop, and `share --url` clears `share`. The durable round record
+remains available for validation, recovery, and idempotent retries.
 
 ### Stopping a round in flight
 
@@ -200,37 +223,42 @@ Exit 2 means stop. Then:
 1. **Don't publish.** A half-applied version published as a new one is the worst outcome — the
    reviewer now has to review your interrupted work.
 2. Leave the file as it is. Say plainly what you had already changed and what you hadn't.
-3. `rm "$STORE/cancel"`. The review is still open; only this round ended, and the watcher is still running.
+3. Run `node "$SKILL/assets/review-server.mjs" cancelled --file "$FILE" --round <round-id>`.
+   The review is still open; only this round ended, and the watcher is still running.
 
 The longer the round, the more it matters: a check costs nothing, and one that never runs makes the
 button a lie.
 
 On a review landing:
 
-1. Delete the `pending` file — or the next waiter returns instantly.
-2. Read `feedback.md` (its path is inside `pending`). It carries a markdown brief plus a JSON block with every comment's element, place, screen size and thread.
+1. Claim the round named by the `REVIEW` event. This acknowledges delivery without discarding its ledger:
+   ```bash
+   node "$SKILL/assets/review-server.mjs" claim --file "$FILE" --round r17
+   ```
+2. Read `feedback.md` (the claim output names it). It carries a markdown brief plus a JSON block with every comment's element, place, screen size and thread.
 3. **Apply every comment that isn't addressed.** There are no priorities to sort by — if the reviewer wrote it down, it needs doing. Locate each from its **anchor** — the element and the region it sits in — at the screen size it was made at, using the coordinates only to break a tie.
 4. **Ask instead of guessing.** If a comment is ambiguous, reply to it — the question appears on the mark and in the comment list, where the user answers it:
    ```bash
    node "$SKILL/assets/review-server.mjs" reply --file "$FILE" \
-     --comment c7f2a1 --text "Every overdue row, or only the ones assigned to you?"
+     --round r17 --comment c7f2a1 --text "Every overdue row, or only the ones assigned to you?"
    ```
-   That comment goes to *Claude asked* until they answer, which flips it back to open and returns it in the next round with their reply attached.
+   That comment goes to *{agent} asked* until they answer, which flips it back to open and returns it in the next round with their reply attached. On disk the reply uses `by: "agent"` (legacy files may say `"claude"`; treat them the same).
 5. If a comment is genuinely wrong for the design, reply saying why rather than silently skipping it.
 6. Publish, closing out what you actually did:
    ```bash
    node "$SKILL/assets/review-server.mjs" publish --file "$FILE" \
-     --label "Filters collapsed, overdue sorts first" --addressed c1f3k2,c9dk1
+     --round r17 --label "Filters collapsed, overdue sorts first" --addressed c1f3k2,c9dk1
    ```
-   Only `--addressed` marks a comment done — the user has no button for it, so a comment you quietly skip stays open and comes back.
-7. **Re-arm the waiter** and say what changed in a few lines. Then wait — don't ask "shall I continue?", the loop is the point.
+   Only `--addressed` marks a comment done. Publish fails before creating a version if the round was
+   not claimed, an id is unknown or stale, Stop is outstanding, or any open comment is unaccounted for.
+7. Leave **`watch_stream` running** and say what changed in a few lines. Then wait — don't ask "shall I continue?", the loop is the point. (Only re-arm if you used one-shot `watch` without `--stream`.)
 
 **Closing the browser tab closes the review.** The workspace holds an SSE
 connection; when the last one goes and none returns within the grace period
 (`--idle-timeout`, default 90s — long enough that a reload reconnects), the
 server removes `url` and exits. That exit re-invokes you and ends the waiter.
-`--idle-timeout 0` keeps it up until you stop it with TaskStop. Either way,
-**say when the review is closed** — the user should never have to guess whether
+`--idle-timeout 0` keeps it up until you **`stop`** the background process (adapter).
+Either way, **say when the review is closed** — the user should never have to guess whether
 a socket is still open.
 
 The workspace never swaps the page out from under the reviewer: while you work, each comment you were
@@ -243,6 +271,10 @@ it is the queue they built up while you worked, not an echo of the round you jus
 
 ## 6 · Publish the wireframe as a shareable link
 
+Skip this section when Host `capabilities.share` is not `artifact` — the UI hides
+the control, and there is no public URL backend. Offer a file path or
+`bundle-artifact.mjs` instead (adapter may say more).
+
 **What gets shared is the wireframe** — the design itself, opening full-bleed the way the
 user will meet it. Not the review workspace: someone you send a link to is looking at the
 screen, not at your comment threads.
@@ -251,7 +283,7 @@ Do this when the reviewer asks in chat, or when the waiter returns **`SHARE`** �
 pressed *Publish a link to this wireframe* under the ▾ and the menu is showing a spinner until the
 URL arrives.
 
-Publish **`$FILE` itself** with the **Artifact** tool (favicon `🎨`), then hand the URL back
+Publish **`$FILE` itself** with Host op **`share`** (adapter names the tool), then hand the URL back
 so it appears in the workspace.
 
 **In a live review** there is no `$FILE` — publish the capture the workspace just took,
@@ -259,24 +291,23 @@ so it appears in the workspace.
 still of one screen, not the app.
 
 ```bash
-node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "<artifact-url>"
+node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "<public-url>"
 ```
 
 - **Publish straight after a `publish`**, so the file on disk is the version you're
   claiming to have shared. `$FILE` is the live working copy — mid-round it can be ahead of
   the last published version.
-- The page is already self-contained (§2), so it needs no bundling to survive the
-  Artifact CSP.
+- The page is already self-contained (§2).
 - The link is tagged with the version it came from. After a later round the menu offers
   *Republish* rather than a stale link — **redeploy from the same file path** so the URL
   stays put and anyone holding it sees the new version.
 - Delete the `share` sentinel once you've handed the URL back; `share --url` does it for
   you. Sharing does not end the review, and the watcher is still running.
 
-**If they want to comment remotely**, that's a different artifact and an explicit ask.
+**If they want to comment remotely**, that's a different package and an explicit ask.
 `bundle-artifact.mjs` flattens the whole workspace — page, last 3 versions, and the
-commenting UI — into one file you publish the same way; comments persist in
-`localStorage` and **Send** becomes **Copy for Claude**, since there's no session at the
+commenting UI — into one file; comments persist in
+`localStorage` and **Send** becomes **Copy for {agent}**, since there's no session at the
 other end:
 
 ```bash
@@ -301,14 +332,14 @@ The server reverse-proxies the app, so the workspace and the app share an origin
 — which is the only reason a comment can attach to an element rather than to a
 coordinate. The workspace moves to **http://localhost:7788/__review/**; every
 other path belongs to the app. Sockets are proxied too, so hot reload keeps
-working. Start it with `run_in_background: true`, tell the user the
-`/__review/` URL, and arm the waiter (§5) against `.ui-review/<name>/` in the
+working. Start it with Host op **`background`**, tell the user the
+`/__review/` URL, and arm **`watch_stream`** (§5) against `.ui-review/<name>/` in the
 directory you ran it from — **run every later command from that same directory**,
-or pass `--store`.
+or pass `--store`. Pass `--host` / `VSTACK_HOST` the same as a file review.
 
 **Get the app running first** when it's yours to run. If it isn't up, the canvas
-says so instead of showing a screen: start the dev server yourself (background
-it), or ask which command does it. `--start /workflows` opens on a screen other
+says so instead of showing a screen: start the dev server yourself (`background`),
+or ask which command does it. `--start /workflows` opens on a screen other
 than the front door. A public site needs none of that — point at it and go.
 
 ### What changes
@@ -393,6 +424,8 @@ route.
 - `check --file "$FILE"` is the same question reduced to an exit code — 0 carry on, 2 stop. Use it inside a round, where `status` is too much output to read repeatedly.
 - **Every command takes `--name <slug>` in place of `--file` for a live review** — `publish`, `reply`, `share`, `status`, `check`. The brief tells you which name to use.
 - Full command reference and troubleshooting: `references/workflow.md`.
+- Contracts: `plugins/vstack/contracts/` — Host ops and review-loop protocol.
+- Host adapters: `hosts/claude.md`, `hosts/grok.md`.
 
 ## State & handoff
 

@@ -1,0 +1,19 @@
+{
+  "id": "claude",
+  "name": "Claude",
+  "capabilities": {
+    "share": "artifact",
+    "watch": "stream",
+    "browser": true,
+    "updateDetect": "claude-install"
+  },
+  "install": {
+    "howLead": "Run these in Claude Code:",
+    "commands": [
+      "/plugin marketplace update cavalry-collective",
+      "/plugin update vstack@cavalry-collective",
+      "/reload-plugins"
+    ],
+    "auto": "Or turn on auto-update: /plugin → Marketplaces → cavalry-collective"
+  }
+}

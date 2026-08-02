@@ -62,8 +62,6 @@ internet. It proxies the target into the canvas, so you click through the real s
 them. Each comment remembers the route it was made on, and a round changes the source rather than a
 mockup.
 
-[Open the wireframe example](examples/wireframe.html).
-
 ### Shape the specification
 
 ![The spec as a drill-down tree of epics, stories and acceptance criteria](docs/screens/spec.png)
