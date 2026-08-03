@@ -56,7 +56,7 @@ an endpoint, a component, a migration, a queue.
 SKILL=<this skill dir>
 LIB="$SKILL/../../lib"
 DOC=.vstack/build/phase-<n>.json
-node "$LIB/json-bridge.mjs" serve --json "$DOC" --template "$SKILL/assets/build-board.html" \
+node "$LIB/json-bridge.mjs" serve --json "$DOC" --template "$SKILL/assets/build-board.html" --tool phase-build \
   --port 7792 --idle-timeout 0
 ```
 
@@ -65,7 +65,7 @@ node "$LIB/json-bridge.mjs" serve --json "$DOC" --template "$SKILL/assets/build-
 (the **Monitor tool**, `persistent: true` — carry the printed seq forward):
 
 ```bash
-node "$VSTACK/lib/json-bridge.mjs" watch --json .vstack/build/phase-<n>.json --stream \
+node "$VSTACK/lib/json-bridge.mjs" watch --json .vstack/build/phase-<n>.json --stream --tool phase-build \
   --seq <seq printed when the server started>
 ```
 
@@ -87,9 +87,9 @@ Subjects in order **api → ui → infra**; inside a subject, parents before chi
 `state` isn't `have`:
 
 ```bash
-node "$LIB/json-bridge.mjs" patch --json "$DOC" --id e4 --set status=building
+node "$LIB/json-bridge.mjs" patch --json "$DOC" --id e4 --set status=building --tool phase-build
 # … do the work …
-node "$LIB/json-bridge.mjs" patch --json "$DOC" --id e4 --set status=done
+node "$LIB/json-bridge.mjs" patch --json "$DOC" --id e4 --set status=done --tool phase-build
 ```
 
 - The board updates over SSE on every patch — that's the live build view; keep the reports honest

@@ -6,7 +6,7 @@ Visual Stack is a Claude Code and Codex plugin: skills, prompts, and the HTML wo
 
 - Work on a short-lived branch off `main` and open a PR. `main` requires one.
 - Keep a skill's footprint inside the user's project. Nothing writes outside it, and nothing transmits anywhere, unless that is the skill's stated purpose.
-- Per-machine review state belongs in the gitignored tool directories (`.vstack/wireframe/`, `.vstack/bridge/`), never in the repo. Resolve them with `lib/workdir.mjs`, and add a `.gitignore` line for any new one.
+- Per-machine state belongs under `.vstack/local/<tool>/`, which is gitignored whole — never in the repo, and never elsewhere in `.vstack/`, which is the pipeline. Resolve the path with `lib/workdir.mjs` rather than joining it by hand.
 - Workspaces are self-contained HTML. No external requests at runtime — inline what a page needs.
 - If you add or rename a plugin, update `.claude-plugin/marketplace.json` in the same commit.
 

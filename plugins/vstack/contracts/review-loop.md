@@ -28,8 +28,8 @@ Host-independent: any Host that fulfills [host.md](host.md) can drive this loop.
 
 ## On-disk store
 
-Beside the file: `<dir>/.vstack/wireframe/<name>/`
-Live (no file): `<cwd>/.vstack/wireframe/<name>/`
+Beside the file: `<dir>/.vstack/local/wireframe/<name>/`
+Live (no file): `<cwd>/.vstack/local/wireframe/<name>/`
 
 | Path | Role |
 | --- | --- |
@@ -47,10 +47,11 @@ Live (no file): `<cwd>/.vstack/wireframe/<name>/`
 | `url` | Present only while `serve` is running |
 | `watching` | Heartbeat while Host op `watch_stream` is active |
 
-Every vstack tool keeps its working files under `.vstack/<tool>/`, resolved by
-`lib/workdir.mjs`: the enclosing `.vstack` when the artifact already sits in
-one, otherwise the one beside it. Engines must go through that helper rather
-than joining the path themselves.
+Every vstack tool keeps its per-machine working files under
+`.vstack/local/<tool>/`, resolved by `lib/workdir.mjs`: the enclosing `.vstack`
+when the artifact already sits in one, otherwise the one beside it. Engines must
+go through that helper rather than joining the path themselves. `local/` is
+gitignored whole; the rest of `.vstack/` is the pipeline and is committed.
 
 ---
 

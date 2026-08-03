@@ -17,9 +17,14 @@
  * share one engine instead of growing a third and fourth copy.
  *
  *   node json-bridge.mjs serve --json <doc.json> --template <page.html>
- *        [--port 0] [--idle-timeout 90] [--name <label>]
+ *        [--port 0] [--idle-timeout 90] [--name <label>] [--tool <skill>]
  *   node json-bridge.mjs patch --json <doc.json> --id <nodeId> --set k=v [--set k=v ...]
  *   node json-bridge.mjs watch --json <doc.json> [--seq <n>]   (blocks; heartbeats presence)
+ *
+ * `--tool` names the calling skill — `spec`, `user-story-map`, `phase-build` —
+ * and picks the working directory. Pass the same one to every command for a
+ * document; `watch` will find another tool's files rather than hang, but the
+ * skills should not rely on that.
  *
  * serve injects `window.__VSTACK_BRIDGE__ = {token, doc, save, events, history,
  * name}` ahead of the template; opened off disk the template sees no handle and
@@ -33,9 +38,9 @@
  * (the page pressed Send) or `claude` (the session rewrote the file). The page
  * labels them; the server only records what happened.
  *
- * Bookkeeping lives in <json-dir>/.vstack/bridge/<stem>.{seq,url} and
+ * Bookkeeping lives in <json-dir>/.vstack/local/<tool>/<stem>.{seq,url} and
  * <stem>.history/ — or, when the document is already under a `.vstack`
- * directory (the spec tree writes `.vstack/specs/`), in that one's `bridge/`.
+ * directory (the spec tree writes `.vstack/specs/`), under that one's `local/`.
  * Watching, from the skill instructions — one line of stdout per event, run
  * under the Monitor tool so it never has to be restarted:
  *
@@ -48,7 +53,7 @@ import http from 'node:http'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { checkForUpdate, withUpdate } from './update-check.mjs'
-import { workDir, TOOL } from './workdir.mjs'
+import { workDir, findWorkDir, TOOL } from './workdir.mjs'
 
 const argv = process.argv.slice(2)
 const cmd = argv[0] && !argv[0].startsWith('--') ? argv.shift() : 'serve'
@@ -58,6 +63,11 @@ const args = n => argv.flatMap((a, i) => a === n ? [argv[i + 1]] : [])
 const JSON_PATH = arg('--json', null)
 if (!JSON_PATH) { console.error('--json <doc.json> is required'); process.exit(2) }
 const DOC = path.resolve(JSON_PATH)
+
+/* Which skill this document belongs to — it names the working directory, so
+   `serve` and `watch` on the same document must be told the same thing. Pass
+   one of the TOOL values; a document opened outside a skill gets `documents`. */
+const TOOL_ID = arg('--tool', TOOL.documents)
 
 const sha = s => crypto.createHash('sha256').update(s).digest('hex')
 
@@ -98,8 +108,10 @@ if (cmd === 'patch') {
    so its link dot can tell "this server is up" from "someone will read what I
    send". Exits as soon as there is something to do. */
 if (cmd === 'watch') {
-  const dir = workDir(path.dirname(DOC), TOOL.bridge)
   const stem = path.basename(DOC, '.json')
+  // The reader half: if `serve` was told a different --tool, follow its files
+  // rather than watching an empty directory forever.
+  const dir = findWorkDir(path.dirname(DOC), TOOL_ID, stem + '.seq')
   const F = {
     seq: path.join(dir, stem + '.seq'),
     url: path.join(dir, stem + '.url'),
@@ -154,7 +166,7 @@ const PORT = Number(arg('--port', 0))
 const IDLE = Number(arg('--idle-timeout', 90))
 const NAME = arg('--name', path.basename(DOC, '.json'))
 
-const BRIDGE_DIR = workDir(path.dirname(DOC), TOOL.bridge)
+const BRIDGE_DIR = workDir(path.dirname(DOC), TOOL_ID)
 const STEM = path.basename(DOC, '.json')
 const SEQ_FILE = path.join(BRIDGE_DIR, STEM + '.seq')
 const URL_FILE = path.join(BRIDGE_DIR, STEM + '.url')

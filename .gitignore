@@ -1,15 +1,10 @@
-# Everything a tool writes for one machine mid-flight lives under .vstack/, one
-# directory per tool. The rest of .vstack/ — pipeline.json, specs/, build/ — is
-# the pipeline itself and belongs in the repo, so ignore the tool directories
-# rather than the whole thing. They sit beside the artifact they belong to,
-# hence the leading **/.
-
-# wireframe: frozen versions, annotations, threads, and a `url` file naming a
-# live localhost port.
-**/.vstack/wireframe/
-
-# The JSON-document skills keep theirs the same way: a seq counter, a `url` file
-# naming a live port, and the version history behind the timeline.
-**/.vstack/bridge/
+# Everything the tools write for one machine mid-flight lives under
+# .vstack/local/, one directory per tool: frozen wireframe versions, annotations
+# and threads; the JSON bridge's seq counters, version history, and `url` files
+# naming a live localhost port. None of it belongs in the repo. The rest of
+# .vstack/ — pipeline.json, specs/, build/ — is the pipeline and does, so this
+# ignores local/ rather than the whole thing. It sits beside the artifact it
+# belongs to, hence the leading **/.
+**/.vstack/local/
 
 .DS_Store

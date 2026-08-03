@@ -45,12 +45,12 @@ Derive these from whatever context exists — a spec, a plan, a `tasks.md`, a de
    SKILL=<this skill dir>
    LIB="$SKILL/../../lib"
    MAP=.storymap/<slug>.json
-   node "$LIB/json-bridge.mjs" serve --json "$MAP" --template "$SKILL/assets/story-map-template.html" --port 0
+   node "$LIB/json-bridge.mjs" serve --json "$MAP" --template "$SKILL/assets/story-map-template.html" --port 0 --tool user-story-map
    ```
    It prints the URL (with its token) and the seq path. Give the user the whole URL — the token is required.
 2. **Start the watcher** so their click reaches you with nothing typed — the **Monitor tool**, `persistent: true`:
    ```bash
-   node "$VSTACK/lib/json-bridge.mjs" watch --json .storymap/<slug>.json --stream \
+   node "$VSTACK/lib/json-bridge.mjs" watch --json .storymap/<slug>.json --stream --tool user-story-map \
      --seq <the seq the server printed>
    ```
    It never exits — each line is one event, so there is nothing to re-arm after a round, which is
@@ -66,7 +66,7 @@ Derive these from whatever context exists — a spec, a plan, a `tasks.md`, a de
 Single-card changes can go through the engine's patch command instead of a full rewrite:
 
 ```bash
-node "$LIB/json-bridge.mjs" patch --json "$MAP" --id s12 --set status=done
+node "$LIB/json-bridge.mjs" patch --json "$MAP" --id s12 --set status=done --tool user-story-map
 ```
 
 ### Closing the link

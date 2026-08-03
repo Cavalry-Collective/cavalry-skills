@@ -88,14 +88,14 @@ the document itself), with Atlassian's themes spanning it as labels:
 SKILL=<this skill dir>
 LIB="$SKILL/../../lib"
 DOC=.vstack/specs/<feature>.json
-node "$LIB/json-bridge.mjs" serve --json "$DOC" --template "$SKILL/assets/spec-tree.html" --port 7791
+node "$LIB/json-bridge.mjs" serve --json "$DOC" --template "$SKILL/assets/spec-tree.html" --port 7791 --tool spec
 ```
 
 Start it with **`run_in_background: true`**. It prints the URL (with its token) — tell the user to
 open it. Then arm the waiter with **`run_in_background: true`**, carrying the seq the server printed:
 
 ```bash
-node "$VSTACK/lib/json-bridge.mjs" watch --json .vstack/specs/<feature>.json --stream \
+node "$VSTACK/lib/json-bridge.mjs" watch --json .vstack/specs/<feature>.json --stream --tool spec \
   --seq <the seq printed when the server started>
 ```
 
@@ -166,7 +166,7 @@ generated file, and the next round will overwrite them.
   which is the point.
 - The bridge binds `127.0.0.1` and dies when the tab closes (90s grace). Port busy → another spec
   page is up; pass `--port`.
-- **The version timeline is kept on disk**, in `.vstack/bridge/<feature>.history/` —
+- **The version timeline is kept on disk**, in `.vstack/local/spec/<feature>.history/` —
   one frozen copy per open, send and rewrite. It survives a reload and carries across rounds, so the
   page opens on the whole trail rather than starting from blank. Nothing to run: the bridge records
   it. If the user wants a version back, the bodies are plain JSON files.

@@ -494,13 +494,22 @@ ask *"shall I continue?"* in the abstract, and it doesn't run the next stage una
 | `init` | **`start`** | broke `/vstack:init` for anyone who had it; plugin went to 4.0.0. Internal paths (`.vstack/`, `choice.json`) kept |
 | `next` (planned) | **`go`** | none — it shipped under the new name, nothing to break |
 | `user-story-map` | *unchanged* | none — it keeps its name, and gains only the handoff footer when the chain lands |
-| `.ui-review/`, `.vstack-bridge/` | **`.vstack/wireframe/`, `.vstack/bridge/`** | orphaned reviews mid-flight and in-browser comment drafts on every machine that had them; taken deliberately in 4.4.0 |
+| `.ui-review/`, `.vstack-bridge/` | **`.vstack/local/<tool>/`** | orphaned reviews mid-flight and in-browser comment drafts on every machine that had them; taken deliberately in 4.4.0 |
 
 The engine's internal paths kept the old names for a long while — renaming them orphans work in
 progress, and for two releases that cost bought nothing visible. It stopped being free once a
-project carried three dot-directories for one product. Every tool now writes under `.vstack/<tool>/`,
-resolved by `lib/workdir.mjs`: the enclosing `.vstack` when the artifact already lives in one, the
-one beside it otherwise. The `localStorage` keys moved with them, `ui-review:*` → `vstack:review:*`.
+project carried three dot-directories for one product. Every tool now writes under
+`.vstack/local/<tool>/`, resolved by `lib/workdir.mjs`: the enclosing `.vstack` when the artifact
+already lives in one, the one beside it otherwise. The `localStorage` keys moved with them,
+`ui-review:*` → `vstack:review:*`.
+
+**`local/` is the line, not the tool name.** The first cut put each tool at the top of `.vstack/`,
+which meant `.vstack/spec/` (machine) sitting one letter from `.vstack/specs/` (repo), a new
+`.gitignore` entry per engine, and — because the JSON bridge is shared by three skills — a
+directory named after an `.mjs` file rather than anything a user invokes. Splitting on
+*machine vs repo* first and naming the tool second fixes all three: one ignore line, no
+near-miss names, and `spec`, `user-story-map` and `phase-build` each get their own directory
+because the bridge is told which skill it is serving (`--tool`).
 
 **The name costs one thing, and it's mitigated, not solved.** The skill does two jobs — generate a
 page, and run the comment loop over *any* HTML file. `wireframe` names the first and not the second,

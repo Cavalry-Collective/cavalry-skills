@@ -31,7 +31,7 @@
  * the review is of a running app.
  *
  * State lives in a sibling directory, out of the way of the page:
- *   <dir>/.vstack/wireframe/<name>/     (live: <cwd>/.vstack/wireframe/<name>/)
+ *   <dir>/.vstack/local/wireframe/<name>/   (live: <cwd>/.vstack/local/wireframe/<name>/)
  *     state.json            { name, version, app?, start? }
  *     versions/v<n>.html    frozen copy of each published version
  *                           (live: the DOM as it stood when a review was sent)
@@ -64,7 +64,7 @@ import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { checkForUpdate, withUpdate } from '../../../lib/update-check.mjs'
 import { resolveHostId, loadHost, withHost, AGENT_ROLE } from '../../../lib/host.mjs'
-import { workDir, TOOL } from '../../../lib/workdir.mjs'
+import { workDir, LOCAL, TOOL } from '../../../lib/workdir.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
@@ -667,10 +667,11 @@ function liveStores (from = process.cwd(), depth = 5) {
     for (const e of entries) {
       if (!e.isDirectory() || skip.has(e.name)) continue
       const here = path.join(dir, e.name)
-      // Reviews hang off `.vstack/wireframe/`; the rest of `.vstack` belongs to
-      // the other tools, so stop here rather than walking their files.
+      // Reviews hang off `.vstack/local/wireframe/`; the rest of `.vstack`
+      // belongs to the pipeline and the other tools, so stop here rather than
+      // walking their files.
       if (e.name === '.vstack') {
-        const reviews = path.join(here, TOOL.wireframe)
+        const reviews = path.join(here, LOCAL, TOOL.wireframe)
         let subs = []
         try { subs = fs.readdirSync(reviews, { withFileTypes: true }) } catch {}
         for (const sub of subs) {
@@ -790,7 +791,7 @@ async function cmdWatch () {
   const all = args.all === true || args.all === 'true'
   let stores = [...(all ? liveStores() : []), ...many.map(storeFor)]
   // Named subjects only. Never fall back to the placeholder STORE from
-  // `watch --all` (cwd/.vstack/wireframe) — that path is not a review store, and
+  // `watch --all` (cwd/.vstack/local/wireframe) — that path is not a review store, and
   // treating it as one exits the stream the moment it sees no `url` file
   // (classic race: watcher armed before serve wrote its url).
   if (!stores.length && !all) stores = [STORE]
