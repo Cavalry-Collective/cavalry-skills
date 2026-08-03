@@ -81,8 +81,10 @@ button{cursor:pointer;background:none;border:0;padding:0}
 /* The column is what animates: the track collapses to nothing while the panel
    slides out through it, so the page under review grows into the space instead
    of the panel simply vanishing from it. */
-#main{display:grid;grid-template-columns:1fr var(--pw,var(--panelw));min-height:0;
+#main{display:grid;grid-template-columns:minmax(0,1fr) var(--pw,var(--panelw));min-height:0;
   transition:grid-template-columns .18s ease-out}
+#canvasArea{grid-column:1;grid-row:1;overflow:hidden}
+#panel{grid-column:2;grid-row:1;position:relative;z-index:40}
 
 /* ── the comments panel, and the one handle that shows or hides it ──
    The handle belongs to the panel, not to the bar: it rides on the panel's
@@ -103,31 +105,34 @@ body.panelshut #main{--pw:0px}
 #pbody{flex:1 1 auto!important}
 /* Up at the top, level with the panel's own heading — halfway down the window
    it read as floating, and the thing it belongs to starts here. */
-#panelHandle{display:flex;position:fixed;right:0;top:64px;z-index:43;
+#panelHandle{display:flex;grid-column:2;grid-row:1;align-self:start;justify-self:start;
+  position:relative;z-index:43;margin-top:18px;transform:translateX(-100%);
   flex-direction:column;align-items:center;gap:7px;width:27px;padding:13px 0;
   border:1px solid var(--line);border-right:0;border-radius:9px 0 0 9px;
-  background:var(--surface);color:var(--ink-2);box-shadow:var(--shadow-pop);
-  transition:right .16s ease-out}
-/* open: sitting on the panel's left edge · shut: on the window's right edge */
-body.panelopen #panelHandle{right:var(--panelw)}
+  background:var(--surface);color:var(--ink-2);box-shadow:var(--shadow-pop)}
+/* The handle shares the panel's grid line, so it follows the real edge even
+   when browser zoom or a constrained viewport changes the rendered track. */
 body.panelopen #handleBadge{display:none}
 body.panelopen #panelHandle svg{transform:rotate(180deg)}
 body.phase #panelHandle{display:none!important}
 #panelHandle:hover{color:var(--ink);background:var(--surface-2)}
 #panelHandle svg{width:15px;height:15px;display:block;transition:transform .16s ease-out}
-#scrim{display:none;position:fixed;inset:46px 0 0;z-index:44;
-  background:color-mix(in srgb,var(--ink) 34%,transparent)}
-@media (max-width:820px){
+/* Keep comments beside the canvas for every width that still uses the desktop
+   chrome. The old intermediate breakpoint made a partial drawer cover the
+   reviewed page. At the compact breakpoint comments become their own view, so
+   a card never straddles the panel and the page underneath. */
+@media (max-width:720px){
   #main{grid-template-columns:1fr}
-  #panel{position:fixed;top:46px;right:0;bottom:0;width:min(340px,86vw);z-index:45;
+  #panel{position:fixed;top:46px;right:0;bottom:0;width:100vw;z-index:45;
     box-shadow:var(--shadow-pop);transform:translateX(100%);transition:transform .16s ease-out}
-  /* Off to the side rather than gone: a drawer that slides has to stay laid out. */
+  /* Off to the side rather than gone: the compact view still slides into place. */
   body.panelshut #panel{display:flex}
   body.panelopen #panel{transform:none}
-  body.panelopen #scrim{display:block}
-  /* The drawer is its own width here, not the column's. */
+  /* The compact panel is its own view, not a drawer over part of the page. */
   #panel > *{width:100%}
-  body.panelopen #panelHandle{right:min(340px,86vw);z-index:46}
+  #panelHandle{grid-column:1;position:fixed;right:0;top:64px;margin-top:0;
+    transform:none;justify-self:auto}
+  body.panelopen #panelHandle{right:calc(100vw - 27px);z-index:46}
 }
 @media (prefers-reduced-motion:reduce){
   #main,#panel,#panelHandle,#panelHandle svg{transition:none}
@@ -540,7 +545,6 @@ body.phase #hiNew{display:inline-flex}
 #pfoot .count b{color:var(--ink);font-weight:650}
 #pfoot .clear{font-size:11.5px;color:var(--ink-3);text-decoration:underline;white-space:nowrap;flex:none}
 #pfoot .clear:hover{color:var(--brand)}
-#pfoot .clear.armed{color:var(--brand);font-weight:600;text-decoration:none}
 #pfoot .clear:disabled{opacity:.35;cursor:default;text-decoration:none}
 #pfoot .clear:disabled:hover{color:var(--ink-3)}
 
@@ -735,19 +739,19 @@ body.phase #hiNew{display:inline-flex}
 #zoombar .z{min-width:44px;text-align:center;font:600 11px/1 var(--mono);color:var(--ink-2)}
 
 /* ── modal / toast ── */
-#historyDialog{width:min(440px,calc(100% - 32px));padding:0;border:1px solid var(--line-2);border-radius:12px;
+.confirmDialog{width:min(440px,calc(100% - 32px));padding:0;border:1px solid var(--line-2);border-radius:12px;
   background:var(--surface);color:var(--ink);box-shadow:var(--shadow-pop)}
-#historyDialog::backdrop{background:rgba(10,11,15,.48);backdrop-filter:blur(2px)}
-#historyDialog .modalbody{padding:20px 20px 16px}
-#historyDialog h2{margin:0 0 9px;font-size:17px;line-height:1.25}
-#historyDialog p{margin:0;color:var(--ink-2);font-size:13px;line-height:1.55}
-#historyDialog .kept{margin-top:10px;padding:9px 10px;border-radius:7px;background:var(--surface-2);
+.confirmDialog::backdrop{background:rgba(10,11,15,.48);backdrop-filter:blur(2px)}
+.confirmDialog .modalbody{padding:20px 20px 16px}
+.confirmDialog h2{margin:0 0 9px;font-size:17px;line-height:1.25}
+.confirmDialog p{margin:0;color:var(--ink-2);font-size:13px;line-height:1.55}
+.confirmDialog .kept{margin-top:10px;padding:9px 10px;border-radius:7px;background:var(--surface-2);
   border:1px solid var(--line);color:var(--ink-2)}
-#historyDialog .modalactions{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;
+.confirmDialog .modalactions{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;
   border-top:1px solid var(--line);background:var(--surface-2)}
-#historyDialog .danger{background:var(--brand);border-color:var(--brand);color:#fff}
-#historyDialog .danger:hover{filter:brightness(1.08)}
-#historyDialog .danger:disabled{opacity:.45;filter:none}
+.confirmDialog .danger{background:var(--brand);border-color:var(--brand);color:#fff}
+.confirmDialog .danger:hover{filter:brightness(1.08)}
+.confirmDialog .danger:disabled{opacity:.45;filter:none}
 #toast{position:fixed;bottom:18px;left:50%;transform:translate(-50%,20px);background:var(--ink);color:#fff;
   padding:9px 14px;border-radius:8px;font-weight:550;opacity:0;pointer-events:none;transition:.2s;z-index:120}
 #toast.on{opacity:1;transform:translate(-50%,0)}
@@ -933,7 +937,6 @@ body.phase #hiNew{display:inline-flex}
       </svg>
       <span class="pbadge" id="handleBadge"></span>
     </button>
-    <div id="scrim"></div>
     <div id="panel">
       <div id="phead"><b>Comments</b><span class="scope pill" id="pscope"></span>
         <button id="btnGeneral" aria-label="Add a comment">+</button></div>
@@ -951,7 +954,19 @@ body.phase #hiNew{display:inline-flex}
   </div>
 </div>
 
-<dialog id="historyDialog" aria-labelledby="historyDialogTitle" aria-describedby="historyDialogImpact historyDialogKept">
+<dialog class="confirmDialog" id="clearDialog" aria-labelledby="clearDialogTitle" aria-describedby="clearDialogImpact clearDialogKept">
+  <div class="modalbody">
+    <h2 id="clearDialogTitle"></h2>
+    <p id="clearDialogImpact"></p>
+    <p class="kept" id="clearDialogKept"></p>
+  </div>
+  <div class="modalactions">
+    <button class="btn" id="btnCancelClear"></button>
+    <button class="btn danger" id="btnConfirmClear"></button>
+  </div>
+</dialog>
+
+<dialog class="confirmDialog" id="historyDialog" aria-labelledby="historyDialogTitle" aria-describedby="historyDialogImpact historyDialogKept">
   <div class="modalbody">
     <h2 id="historyDialogTitle"></h2>
     <p id="historyDialogImpact"></p>
@@ -1290,8 +1305,12 @@ const STR = {
   en: {
     viewLabel: 'View', annotateLabel: 'Annotate',
     view: 'View — click through the page (esc)', annotate: 'Annotate — click for a comment, drag for an area (esc)',
-    del: 'Delete comment', clearAll: 'Clear all', clearSure: 'Sure?',
+    del: 'Delete comment', clearAll: 'Clear all',
     cleared: n => `Cleared ${n} comment${n > 1 ? 's' : ''}`,
+    clearDialogTitle: 'Clear all comments?',
+    clearImpact: n => `This removes ${n} comment${n === 1 ? '' : 's'} from the review, including any carried from earlier versions.`,
+    clearKept: 'The wireframe and version history will stay.',
+    clearCancel: 'Cancel', clearConfirm: 'Clear all',
     clearHistory: 'Clear history',
     clearHistoryTitle: 'Delete past versions',
     clearHistoryDialogTitle: 'Clear version history?',
@@ -1391,8 +1410,12 @@ const STR = {
   zh: {
     viewLabel: '查看', annotateLabel: '批注',
     view: '查看 — 直接操作页面（Esc）', annotate: '批注 — 点击留言，拖拽框选区域（Esc）',
-    del: '删除批注', clearAll: '全部清除', clearSure: '确定？',
+    del: '删除批注', clearAll: '全部清除',
     cleared: n => `已清除 ${n} 条批注`,
+    clearDialogTitle: '清除所有批注？',
+    clearImpact: n => `这会从评审中移除 ${n} 条批注，包括从过往版本延续的批注。`,
+    clearKept: '线框图和版本历史都会保留。',
+    clearCancel: '取消', clearConfirm: '全部清除',
     clearHistory: '清除历史',
     clearHistoryTitle: '删除过往版本',
     clearHistoryDialogTitle: '清除版本历史？',
@@ -1803,14 +1826,14 @@ function clearWorking () {
   renderPanel();
 }
 function renderWork () {
-  for (const id of [...S.queued]) if (!S.working.has(id)) S.queued.delete(id);
   // A comment Claude has finished with, or asked about, is no longer in flight.
   // Carried comments go out with a round too, so look for them as well — a
   // reloaded workspace reads its in-flight list from the brief, which has both.
   for (const id of [...S.working]) {
     const a = annById(id);
-    if (!a || a.status !== 'open') S.working.delete(id);
+    if (!a || a.dismissed || a.status !== 'open') S.working.delete(id);
   }
+  for (const id of [...S.queued]) if (!S.working.has(id)) S.queued.delete(id);
   // Held comments are waiting too — just here rather than in a brief on disk.
   const n = S.working.size, q = S.queued.size, h = S.held.size;
   // Claude answering or addressing the last comment in flight ends the round
@@ -1881,23 +1904,29 @@ function flushHeld () {
   else { save(); renderPanel(); }
 }
 
-/** Server-side thread state wins; whatever the reviewer is typing does not. */
+/** Fold in what arrived from the server without rolling back a local action
+    that is still inside the autosave window. The longer thread wins; a local
+    dismissal or explicit reopen also wins until the server has received it. */
 function mergeThreads (serverAnn) {
   let changed = false, asked = false;
-  const seen = new Set();
   for (const sa of serverAnn) {
-    seen.add(sa.id);
     const local = annById(sa.id);
     if (!local) { S.ann.push(normalise(sa)); changed = true; continue }
+    // Dismissal is a deliberate tombstone. A stale reload may still carry the
+    // visible server copy, but it must never make the card reappear.
+    if (local.dismissed) continue;
     const sr = (sa.replies || []).length, lr = (local.replies || []).length;
     // Claude has said something — open that thread in the list, where the
-    // answer is going to be typed.
-    if (sr !== lr) {
+    // answer is going to be typed. A shorter server thread is simply older
+    // than the reply the reviewer just wrote, so leave the local one alone.
+    if (sr > lr) {
       local.replies = sa.replies || [];
       S.threadOpen.add(local.id); changed = true;
       if (isAgent((sa.replies || []).at(-1)?.by)) asked = true;
     }
-    if (sa.status !== local.status) {
+    const localAhead = lr > sr;
+    const locallyReopened = local.status === 'open' && !!local.reopenedAt && sa.status === 'addressed';
+    if (sa.status !== local.status && !localAhead && !locallyReopened) {
       local.status = sa.status;
       if (sa.status === 'question') { S.threadOpen.add(local.id); asked = true }
       // A comment that has been addressed again starts clean: whatever was
@@ -2003,6 +2032,7 @@ function applyLang () {
   $('#btnGeneral').setAttribute('aria-label', T('addGeneral'));
   $('#btnGeneral').hidden = isHistory();
   renderCounts();   // the primary button says Send or Stop depending on the round
+  renderClearDialog();
   renderHistoryButton();
   renderHistoryDialog();
   buildSizes();
@@ -2017,6 +2047,11 @@ function setLang (l) {
 
 function wireChrome () {
   $$('#modeSwitch button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  $('#btnClear').onclick = openClearDialog;
+  $('#btnCancelClear').onclick = () => $('#clearDialog').close();
+  $('#btnConfirmClear').onclick = confirmClearComments;
+  $('#clearDialog').onclick = e => { if (e.target === $('#clearDialog')) $('#clearDialog').close() };
+  $('#clearDialog').addEventListener('cancel', e => { e.preventDefault(); $('#clearDialog').close() });
   $('#btnClearHistory').onclick = openHistoryDialog;
   $('#btnCancelHistory').onclick = () => $('#historyDialog').close();
   $('#btnConfirmHistory').onclick = confirmClearReviewHistory;
@@ -2027,23 +2062,6 @@ function wireChrome () {
   });
   VSShell.onLang(setLang);   /* the switch is the shell's; this is the workspace's answer */
   $('#btnReload').onclick = () => S.pendingUpdate ? adoptUpdate() : loadFrame(true);
-  // Two clicks, because throwing away a whole review by accident would sting.
-  let armed = null;
-  const clear = $('#btnClear');
-  clear.onclick = () => {
-    if (!S.ann.some(hasSubstance)) return;
-    if (!armed) {
-      armed = setTimeout(() => { armed = null; clear.classList.remove('armed'); renderCounts() }, 3000);
-      clear.classList.add('armed');
-      clear.textContent = T('clearSure');
-      return;
-    }
-    clearTimeout(armed); armed = null; clear.classList.remove('armed');
-    const n = S.ann.filter(hasSubstance).length;
-    S.ann = []; S.sentSig = null;
-    closeComposer(); save(); render();
-    toast(T('cleared')(n));
-  };
   $('#btnNow').onclick = () => gotoVersion(S.version);
   $('#btnRefresh').onclick = adoptUpdate;
   $('#btnDismissWork').onclick = hideWork;
@@ -2054,11 +2072,10 @@ function wireChrome () {
   // back, so there is never a second control saying the same thing elsewhere.
   $('#panelHandle').onclick = () => setPanel(!document.body.classList.contains('panelopen'));
   $('#btnGeneral').onclick = addGeneral;
-  $('#scrim').onclick = () => setPanel(false);
   // Open beside the page when there is room for it, away when there is not —
   // and back to that default whenever the window crosses the line, rather than
   // carrying a choice made about one shape over into the other.
-  const wide = window.matchMedia('(min-width:821px)');
+  const wide = window.matchMedia('(min-width:721px)');
   setPanel(wide.matches);
   wide.addEventListener('change', e => setPanel(e.matches));
   $('#canvasWrap').addEventListener('scroll', reposition);
@@ -2769,6 +2786,10 @@ const annById = id => S.ann.find(a => a.id === id) || S.carried.find(a => a.id =
  * there, means there is no comment — dismissing it takes it away.
  */
 const hasSubstance = a => !!(a.note || '').trim();
+/** Everything the current panel can actually clear. Carried comments are just
+    as present as current-version comments, despite living in an older file. */
+const activeComments = () => S.ann.concat(S.carried)
+  .filter(a => !a.dismissed && hasSubstance(a));
 /** A general comment that has just been made and has nothing in it yet. */
 const blank = a => !!a._fresh && a.kind === 'general';
 /* Once a comment has gone to Claude it is a record of what was asked, not a
@@ -2901,6 +2922,9 @@ function postReply (a, text) {
   a.replies = (a.replies || []).concat({ by: 'reviewer', text, at: new Date().toISOString() });
   if (a.status === 'question') a.status = 'open';
   if (a.status === 'addressed') { a.status = 'open'; a.reopenedAt = new Date().toISOString() }
+  // A reply is new review input regardless of which reply surface wrote it.
+  // Reset this here so both the canvas composer and panel thread enable Send.
+  S.sentSig = null;
   save();
 }
 
@@ -2921,16 +2945,21 @@ function adopt (a) {
 
 /**
  * The × on a card, and the one way anything leaves this list. A comment you
- * wrote and have not handed over is simply taken back; one that has been
- * addressed, or came from an earlier round, is kept on file and hidden — the
- * record of what was asked outlives the list it was asked in.
+ * wrote and have not handed over is simply taken back; one that has entered a
+ * conversation, been addressed, or came from an earlier round is kept on file
+ * and hidden — the record of what was asked outlives the list it was asked in.
  */
 function takeOff (a) {
   if (isHistory()) return;
-  if (a.status !== 'addressed' && !a.fromVersion) { removeComment(a.id); return }
+  // Only a draft that has never left this tab can disappear outright. Once
+  // Claude has replied, asked, or addressed it, keep a dismissed record so a
+  // slightly older server snapshot cannot immediately bring it back.
+  if (!a.fromVersion && !sent(a)) { removeComment(a.id); return }
   const live = adopt(a);
   live.dismissed = true;
   delete live.reopenedAt; delete live.revert;
+  S.threadOpen.delete(live.id);
+  replyDrafts.delete(live.id);
   if (S.sel === live.id) closeComposer();
   S.sentSig = null;
   save();
@@ -3010,10 +3039,10 @@ function wireComposer () {
   composer.querySelector('.csave').onclick = closeComposer;
   composer.querySelector('.cclose').onclick = closeComposer;
   composer.querySelector('.cdel').onclick = () => {
-    const id = S.sel;
+    const a = annById(S.sel);
     composer.classList.remove('on');
     S.sel = null;
-    removeComment(id);
+    if (a) takeOff(a);
   };
   composer.addEventListener('pointerdown', e => e.stopPropagation());
   // Anywhere outside closes it. The overlay is excluded because it already
@@ -3423,17 +3452,62 @@ function innerScrolls (el) {
   return false;
 }
 function renderCounts () {
-  const open = S.ann.filter(a => a.status !== 'addressed' && !a.dismissed && hasSubstance(a));
+  const comments = activeComments();
+  const open = comments.filter(a => a.status !== 'addressed');
   $('#counts').innerHTML = open.length
     ? `<b>${open.length}</b> ${esc(T('open').toLowerCase())}`
-      + (S.ann.some(a => a.status === 'question') ? '<br>' + esc(T('waiting')) : '')
+      + (comments.some(a => a.status === 'question') ? '<br>' + esc(T('waiting')) : '')
     : esc(T('noOpen'));
   const clear = $('#btnClear');
-  if (!clear.classList.contains('armed')) clear.textContent = T('clearAll');
-  clear.disabled = !S.ann.some(hasSubstance);
+  clear.textContent = T('clearAll');
+  clear.disabled = isHistory() || !comments.length;
   renderSendButton(open);
   renderPanelBadge(open);
   renderHistoryButton();
+}
+
+function renderClearDialog () {
+  const dialog = $('#clearDialog');
+  if (!dialog.open) return;
+  $('#clearDialogTitle').textContent = T('clearDialogTitle');
+  $('#clearDialogImpact').textContent = T('clearImpact')(activeComments().length);
+  $('#clearDialogKept').textContent = T('clearKept');
+  $('#btnCancelClear').textContent = T('clearCancel');
+  $('#btnConfirmClear').textContent = T('clearConfirm');
+}
+
+function openClearDialog () {
+  if (isHistory() || !activeComments().length) return;
+  const dialog = $('#clearDialog');
+  if (!dialog.open) dialog.showModal();
+  renderClearDialog();
+  $('#btnCancelClear').focus();
+}
+
+function confirmClearComments () {
+  if (isHistory()) return;
+  closeComposer();
+  const n = activeComments().length;
+  $('#clearDialog').close();
+  if (!n) return;
+  /* A carried comment lives in an earlier review file. Emptying only this
+     version cannot remove it; on reload it is carried straight back in. Put a
+     dismissed copy in the current version instead. Doing that for every
+     comment also preserves the audit record and prevents an older copy of a
+     current comment from being resurrected after the current one is gone. */
+  const cleared = new Map();
+  for (const a of S.carried.concat(S.ann)) {
+    if (!hasSubstance(a)) continue;
+    const copy = { ...a, dismissed: true };
+    delete copy.fromVersion; delete copy.reopenedAt; delete copy.revert;
+    delete copy.held; delete copy._fresh;
+    cleared.set(copy.id, copy);
+  }
+  S.ann = [...cleared.values()];
+  S.carried = [];
+  S.held.clear(); S.sentSig = null;
+  save(); render();
+  toast(T('cleared')(n));
 }
 
 /* The button has to say what is behind it, because a folded-away panel says
@@ -3955,8 +4029,7 @@ $('#btnSendMore').onclick = e => {
   clearShareFlag();
   renderApprove(); renderShare(); renderSendNow();
 };
-// Signing off ends the review for everyone, so it asks once — the same second
-// click Clear all asks for.
+// Signing off ends the review for everyone, so it asks once before acting.
 $('#btnApprove').onclick = () => {
   if (!approveArmed) {
     approveArmed = setTimeout(() => { approveArmed = null; renderApprove() }, 4000);
