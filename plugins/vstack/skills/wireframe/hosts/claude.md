@@ -54,7 +54,7 @@ On `SHARE` event or user request:
 1. Publish `$FILE` with the **Artifact** tool.
 2. `node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "<artifact-url>"`
 
-Live review: publish the capture under `.ui-review/<name>/versions/v<n>.html` and say it is a still.
+Live review: publish the capture under `.vstack/wireframe/<name>/versions/v<n>.html` and say it is a still.
 
 Offline remote comments: `bundle-artifact.mjs` — Send becomes copy (no session).
 

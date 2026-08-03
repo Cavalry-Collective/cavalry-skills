@@ -47,7 +47,7 @@ No state file. Two things to look at, in order:
    Arguing scope? Debugging code? The chat is usually the stronger signal.
 2. **The directory.** Cheap checks, no deep read: is it a git repo with real code? Are there HTML
    wireframes (`design/*.html`, or any standalone page being discussed)? A `specs/` directory? A
-   `story-map.json`? A `.ui-review/` directory from past wireframe rounds?
+   `story-map.json`? A `.vstack/wireframe/` directory from past wireframe rounds?
 
 Map what you find to an entry point:
 

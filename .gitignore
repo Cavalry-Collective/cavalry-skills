@@ -1,11 +1,15 @@
-# wireframe keeps its state beside the page under review — the directory is
-# still named .ui-review/ from before the rename, on purpose: frozen versions,
-# annotations, threads, and a `url` file naming a live localhost port. All of it
-# belongs to one machine mid-review, none of it belongs in the repo.
-.ui-review/
+# Everything a tool writes for one machine mid-flight lives under .vstack/, one
+# directory per tool. The rest of .vstack/ — pipeline.json, specs/, build/ — is
+# the pipeline itself and belongs in the repo, so ignore the tool directories
+# rather than the whole thing. They sit beside the artifact they belong to,
+# hence the leading **/.
+
+# wireframe: frozen versions, annotations, threads, and a `url` file naming a
+# live localhost port.
+**/.vstack/wireframe/
 
 # The JSON-document skills keep theirs the same way: a seq counter, a `url` file
 # naming a live port, and the version history behind the timeline.
-.vstack-bridge/
+**/.vstack/bridge/
 
 .DS_Store

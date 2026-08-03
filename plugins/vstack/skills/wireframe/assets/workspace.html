@@ -1683,7 +1683,7 @@ function loadAnnotations () {
 // status: open (waiting on Claude) · question (Claude asked, waiting on you) ·
 // addressed (Claude changed it). Only Claude moves a comment to addressed.
 const normalise = a => ({ status: 'open', note: '', size: 'desktop', replies: [], ...a });
-const lsKey = () => `ui-review:${S.fileName}:v${S.version}`;
+const lsKey = () => `vstack:review:${S.fileName}:v${S.version}`;
 const lsGet = () => { try { return JSON.parse(localStorage.getItem(lsKey())) } catch { return null } };
 
 let saveTimer = null;

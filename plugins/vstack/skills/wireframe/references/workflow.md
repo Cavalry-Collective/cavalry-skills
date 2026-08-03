@@ -12,24 +12,30 @@ way:
 ```
 wireframes/
   candidate-pipeline.html        ← the page — the ONLY file you edit
-  .ui-review/
-    candidate-pipeline/
-      state.json                 { name, version }
-      versions/v1.html           frozen copy of each published version
-      versions/v1.meta.json      label, date, which ids it answered
-      reviews/v1/
-        annotations.json         live workspace state (autosaved while reviewing)
-        feedback.md              the brief you read
-        feedback.json            the same, structured
-      rounds/r1.json             durable membership, revisions and outcomes
-      pending                    notification — written on send, cleared by claim
-      cancel                     sentinel — the reviewer called this round off
-      approved                   sentinel — signed off; the review is over
-      share                      sentinel — they want a shareable Artifact link
-      url                        the live URL — exists only while serving
+  .vstack/
+    wireframe/
+      candidate-pipeline/
+        state.json               { name, version }
+        versions/v1.html         frozen copy of each published version
+        versions/v1.meta.json    label, date, which ids it answered
+        reviews/v1/
+          annotations.json       live workspace state (autosaved while reviewing)
+          feedback.md            the brief you read
+          feedback.json          the same, structured
+        rounds/r1.json           durable membership, revisions and outcomes
+        pending                  notification — written on send, cleared by claim
+        cancel                   sentinel — the reviewer called this round off
+        approved                 sentinel — signed off; the review is over
+        share                    sentinel — they want a shareable Artifact link
+        url                      the live URL — exists only while serving
 ```
 
-A live review has no file to sit beside, so its store is `.ui-review/<name>/`
+`.vstack/` is where every vstack tool keeps its working files, one directory
+per tool, so a project grows one dot-directory rather than one per engine. The
+review store sits beside the page, so moving the page moves its review with it.
+
+A live review has no file to sit beside, so its store is
+`.vstack/wireframe/<name>/`
 under the directory `serve` was run from, and `state.json` also carries the app's
 origin. `versions/v<n>.html` is then a capture of the screen the reviewer was
 commenting on when they sent round *n* — the timeline scrubs to it, and it is

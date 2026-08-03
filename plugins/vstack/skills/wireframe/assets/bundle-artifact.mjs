@@ -14,6 +14,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { workDir, TOOL } from '../../../lib/workdir.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
@@ -32,7 +33,7 @@ if (!args.file || !fs.existsSync(FILE)) {
 }
 const DIR = path.dirname(FILE)
 const NAME = path.basename(FILE).replace(/\.html?$/i, '')
-const STORE = path.join(DIR, '.ui-review', NAME)
+const STORE = path.join(workDir(DIR, TOOL.wireframe), NAME)
 
 const readJSON = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')) } catch { return d } }
 const html = fs.readFileSync(FILE, 'utf8')

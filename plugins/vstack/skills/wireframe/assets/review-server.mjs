@@ -31,7 +31,7 @@
  * the review is of a running app.
  *
  * State lives in a sibling directory, out of the way of the page:
- *   <dir>/.ui-review/<name>/            (live: <cwd>/.ui-review/<name>/)
+ *   <dir>/.vstack/wireframe/<name>/     (live: <cwd>/.vstack/wireframe/<name>/)
  *     state.json            { name, version, app?, start? }
  *     versions/v<n>.html    frozen copy of each published version
  *                           (live: the DOM as it stood when a review was sent)
@@ -64,6 +64,7 @@ import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { checkForUpdate, withUpdate } from '../../../lib/update-check.mjs'
 import { resolveHostId, loadHost, withHost, AGENT_ROLE } from '../../../lib/host.mjs'
+import { workDir, TOOL } from '../../../lib/workdir.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
@@ -116,7 +117,7 @@ if (LIVE) {
   // Live state has nothing to sit beside, so it sits in the project — which
   // means every command has to be run from the same place. `--store` is the way
   // out when it can't be.
-  STORE = args.store && args.store !== true ? path.resolve(String(args.store)) : path.join(DIR, '.ui-review', NAME)
+  STORE = args.store && args.store !== true ? path.resolve(String(args.store)) : path.join(workDir(DIR, TOOL.wireframe), NAME)
   if (APP && !/^(localhost|127\.0\.0\.1|\[::1\]|::1|0\.0\.0\.0)$/i.test(APP.hostname)) {
     console.error(`Note: ${APP.origin} is a public site, not a local dev server. Its own absolute links`)
     console.error('      are rewritten to stay inside the proxy, but bot protection, a login wall or a')
@@ -125,7 +126,7 @@ if (LIVE) {
 } else if (args._ === 'watch' && (args.all === true || args.all === 'true')) {
   /* `watch --all` names no subject on purpose — it finds the live ones itself,
      so a session with several pages open arms one waiter instead of one each. */
-  DIR = process.cwd(); NAME = 'all'; STORE = path.join(DIR, '.ui-review')
+  DIR = process.cwd(); NAME = 'all'; STORE = workDir(DIR, TOOL.wireframe)
 } else {
   if (!args.file && !args.root) {
     console.error('What is under review? Pass --file <page.html>, or --app <url> for a running app.')
@@ -138,7 +139,7 @@ if (LIVE) {
   }
   DIR = path.dirname(FILE)
   NAME = path.basename(FILE).replace(/\.html?$/i, '')
-  STORE = path.join(DIR, '.ui-review', NAME)
+  STORE = path.join(workDir(DIR, TOOL.wireframe), NAME)
 }
 
 /** Where the workspace lives when the app owns the root path space. */
@@ -652,7 +653,7 @@ function cmdCheck () {
  */
 const storeFor = f => {
   const abs = path.resolve(f)
-  return path.join(path.dirname(abs), '.ui-review', path.basename(abs).replace(/\.html?$/i, ''))
+  return path.join(workDir(path.dirname(abs), TOOL.wireframe), path.basename(abs).replace(/\.html?$/i, ''))
 }
 const inStore = (store, name) => path.join(store, name)
 
@@ -666,10 +667,15 @@ function liveStores (from = process.cwd(), depth = 5) {
     for (const e of entries) {
       if (!e.isDirectory() || skip.has(e.name)) continue
       const here = path.join(dir, e.name)
-      if (e.name === '.ui-review') {
-        for (const sub of fs.readdirSync(here, { withFileTypes: true })) {
-          if (sub.isDirectory() && fs.existsSync(path.join(here, sub.name, 'url'))) {
-            found.push(path.join(here, sub.name))
+      // Reviews hang off `.vstack/wireframe/`; the rest of `.vstack` belongs to
+      // the other tools, so stop here rather than walking their files.
+      if (e.name === '.vstack') {
+        const reviews = path.join(here, TOOL.wireframe)
+        let subs = []
+        try { subs = fs.readdirSync(reviews, { withFileTypes: true }) } catch {}
+        for (const sub of subs) {
+          if (sub.isDirectory() && fs.existsSync(path.join(reviews, sub.name, 'url'))) {
+            found.push(path.join(reviews, sub.name))
           }
         }
         continue
@@ -784,7 +790,7 @@ async function cmdWatch () {
   const all = args.all === true || args.all === 'true'
   let stores = [...(all ? liveStores() : []), ...many.map(storeFor)]
   // Named subjects only. Never fall back to the placeholder STORE from
-  // `watch --all` (cwd/.ui-review) — that path is not a review store, and
+  // `watch --all` (cwd/.vstack/wireframe) — that path is not a review store, and
   // treating it as one exits the stream the moment it sees no `url` file
   // (classic race: watcher armed before serve wrote its url).
   if (!stores.length && !all) stores = [STORE]

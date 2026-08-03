@@ -166,7 +166,7 @@ generated file, and the next round will overwrite them.
   which is the point.
 - The bridge binds `127.0.0.1` and dies when the tab closes (90s grace). Port busy → another spec
   page is up; pass `--port`.
-- **The version timeline is kept on disk**, in `.vstack-bridge/<feature>.history/` beside the JSON —
+- **The version timeline is kept on disk**, in `.vstack/bridge/<feature>.history/` —
   one frozen copy per open, send and rewrite. It survives a reload and carries across rounds, so the
   page opens on the whole trail rather than starting from blank. Nothing to run: the bridge records
   it. If the user wants a version back, the bodies are plain JSON files.

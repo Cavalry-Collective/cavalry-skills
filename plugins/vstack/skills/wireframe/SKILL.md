@@ -288,7 +288,7 @@ Publish **`$FILE` itself** with Host op **`share`** (adapter names the tool), th
 so it appears in the workspace.
 
 **In a live review** there is no `$FILE` — publish the capture the workspace just took,
-`.ui-review/<name>/versions/v<n>.html` for the current round, and say plainly that the link is a
+`.vstack/wireframe/<name>/versions/v<n>.html` for the current round, and say plainly that the link is a
 still of one screen, not the app.
 
 ```bash
@@ -334,7 +334,7 @@ The server reverse-proxies the app, so the workspace and the app share an origin
 coordinate. The workspace moves to **http://localhost:7788/__review/**; every
 other path belongs to the app. Sockets are proxied too, so hot reload keeps
 working. Start it with Host op **`background`**, tell the user the
-`/__review/` URL, and arm **`watch_stream`** (§5) against `.ui-review/<name>/` in the
+`/__review/` URL, and arm **`watch_stream`** (§5) against `.vstack/wireframe/<name>/` in the
 directory you ran it from — **run every later command from that same directory**,
 or pass `--store`. Pass `--host` / `VSTACK_HOST` the same as a file review.
 
@@ -418,8 +418,8 @@ route.
 
 - The workspace's top bar, palette and controls are stamped in from `lib/shell/` — shared with every other vstack page. Change them there and re-stamp, never in the workspace.
 - **Never edit `assets/workspace.html`, `review-server.mjs` or `bundle-artifact.mjs`** to fit a project — they're the engine. Only the page under review is yours. (`harvest-reference.js` is meant to be pasted and run, not edited.)
-- State lives in `<dir>/.ui-review/<name>/` beside the file — versions, reviews, threads, and the sentinels. The page itself stays clean. A live review has nothing to sit beside, so it lands in `.ui-review/<name>/` under the directory you started it from.
-- **`.ui-review/` and the `ui-review:*` `localStorage` keys keep the old name on purpose.** They are the engine's own paths, not the skill's; renaming them would orphan every review already on disk and every comment already in a browser, for no visible gain. Not an oversight.
+- State lives in `<dir>/.vstack/wireframe/<name>/` beside the file — versions, reviews, threads, and the sentinels. The page itself stays clean. A live review has nothing to sit beside, so it lands in `.vstack/wireframe/<name>/` under the directory you started it from.
+- **Every vstack tool writes under `.vstack/<tool>/`**, so a project grows one dot-directory, not one per engine. `lib/workdir.mjs` resolves it — use that rather than joining the path by hand. The gitignore entries are `**/.vstack/wireframe/` and `**/.vstack/bridge/`; the rest of `.vstack/` is the pipeline and belongs in the repo.
 - The server binds to `127.0.0.1` only. Port 7788 busy usually means a review server is already running — pass `--port`.
 - `node "$SKILL/assets/review-server.mjs" status --file "$FILE"` prints the current version, whether a review is waiting, and any stop / sign-off / share request outstanding.
 - `check --file "$FILE"` is the same question reduced to an exit code — 0 carry on, 2 stop. Use it inside a round, where `status` is too much output to read repeatedly.

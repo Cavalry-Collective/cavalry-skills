@@ -33,8 +33,9 @@
  * (the page pressed Send) or `claude` (the session rewrote the file). The page
  * labels them; the server only records what happened.
  *
- * Bookkeeping lives in <json-dir>/.vstack-bridge/<stem>.{seq,url} and
- * <stem>.history/.
+ * Bookkeeping lives in <json-dir>/.vstack/bridge/<stem>.{seq,url} and
+ * <stem>.history/ — or, when the document is already under a `.vstack`
+ * directory (the spec tree writes `.vstack/specs/`), in that one's `bridge/`.
  * Watching, from the skill instructions — one line of stdout per event, run
  * under the Monitor tool so it never has to be restarted:
  *
@@ -47,6 +48,7 @@ import http from 'node:http'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { checkForUpdate, withUpdate } from './update-check.mjs'
+import { workDir, TOOL } from './workdir.mjs'
 
 const argv = process.argv.slice(2)
 const cmd = argv[0] && !argv[0].startsWith('--') ? argv.shift() : 'serve'
@@ -96,7 +98,7 @@ if (cmd === 'patch') {
    so its link dot can tell "this server is up" from "someone will read what I
    send". Exits as soon as there is something to do. */
 if (cmd === 'watch') {
-  const dir = path.join(path.dirname(DOC), '.vstack-bridge')
+  const dir = workDir(path.dirname(DOC), TOOL.bridge)
   const stem = path.basename(DOC, '.json')
   const F = {
     seq: path.join(dir, stem + '.seq'),
@@ -152,7 +154,7 @@ const PORT = Number(arg('--port', 0))
 const IDLE = Number(arg('--idle-timeout', 90))
 const NAME = arg('--name', path.basename(DOC, '.json'))
 
-const BRIDGE_DIR = path.join(path.dirname(DOC), '.vstack-bridge')
+const BRIDGE_DIR = workDir(path.dirname(DOC), TOOL.bridge)
 const STEM = path.basename(DOC, '.json')
 const SEQ_FILE = path.join(BRIDGE_DIR, STEM + '.seq')
 const URL_FILE = path.join(BRIDGE_DIR, STEM + '.url')
