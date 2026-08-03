@@ -19,7 +19,7 @@ export VSTACK_HOST=grok
 | `background(cmd)` | `run_terminal_command` with `background: true` | `serve` must outlive the turn |
 | `watch_stream(cmd)` | **`monitor`** tool, `persistent: true` | `watch --all --stream` — each stdout line is a chat event |
 | `stop(handle)` | `kill_command_or_subagent` with the task id | After approve or when ending the review |
-| `run(cmd)` | `run_terminal_command` (foreground) | `publish`, `reply`, `check`, `status` |
+| `run(cmd)` | `run_terminal_command` (foreground) | `publish`, `claim`, `reply`, `check`, `cancelled`, `status` |
 | `edit` | file edit tools (`search_replace`, `write`, …) | HTML wireframe or app source |
 | `share(file)` | **Not available** as a public Artifact | Profile `capabilities.share: copy` — do not run the share-URL flow; UI hides “Publish a link” |
 | `browser_capture` | Browser MCP / chrome-devtools when connected | Otherwise use user screenshots per skill §2 |
@@ -51,9 +51,9 @@ When `monitor` delivers a line:
 
 | Line prefix | Action (same as [review-loop.md](../../../contracts/review-loop.md)) |
 | --- | --- |
-| `REVIEW` | Delete `pending`, read `feedback.md`, apply, `publish` / `reply` |
+| `REVIEW` | `claim` the round, read `feedback.md`, apply, `publish` / `reply` — never delete protocol files |
 | `REPLIED` | Continue that comment’s thread |
-| `CANCELLED` | Do not publish half-work; clear `cancel`; report |
+| `CANCELLED` | Do not publish half-work; run `cancelled --round <id>`; report |
 | `SHARE` | Host has no artifact share — tell the user to copy/export the HTML, or use `bundle-artifact.mjs` for a file they can send |
 | `APPROVED` | Confirm; offer next pipeline stage if applicable |
 | `CLOSED` | Note the review ended |

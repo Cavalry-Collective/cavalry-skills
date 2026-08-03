@@ -19,7 +19,7 @@ Derive these from whatever context exists — a spec, a plan, a `tasks.md`, a de
 
 ## Build steps
 
-1. Read `assets/story-map-template.html` (next to this file). It is a finished engine + design — **do not edit the CSS or the `<script>` engine.** Its top bar, palette and controls are stamped in from `lib/shell/` and shared with every other vstack page; change them there and re-stamp, never here.
+1. Read `assets/story-map-template.html` (next to this file). It is a finished engine + design — **do not edit the CSS or the `<script>` engine**; the shell chrome is stamped in from `lib/shell/` (see `lib/shell/README.md`).
 2. **Write the map as JSON.** Served (the default), that file *is* the map and the template is used unmodified — the page loads the JSON over the live link. For an Artifact, the page has to carry its own data instead: copy the template and replace **only** two things — the `<title>` at the top and the JSON inside `<script id="data" type="application/json">…</script>`. Schema either way:
    ```json
    {
@@ -32,7 +32,7 @@ Derive these from whatever context exists — a spec, a plan, a `tasks.md`, a de
    }
    ```
    **The title is the product/initiative name only** (e.g. "Cavalry Hiring") — never append "Story Map", "— Story Map" or similar; the page's eyebrow already labels it a user story map. There is **no subtitle/description field** — the phase/activity goal lines carry the context. `lang` is optional and sets the initial UI language (`"en"` default or `"zh"`); the UI has an EN/中文 toggle either way, so set `"zh"` only when the user is clearly working in Chinese. The toggle switches UI chrome only — author titles, goals and story text in the user's language. Every `id` is a unique string; every story's `activity`/`phase` must match an existing id; every story tag should appear in the top-level `tags` list. Array order = display order. Colours are auto-assigned per phase (6 distinct hues, then cycle) — don't specify them.
-3. Write it to a working directory — `.storymap/<slug>.json` under the project, or the scratchpad if the project shouldn't gain files.
+3. Write it to a working directory — `.vstack/maps/<slug>.json` under the project, or the scratchpad if the project shouldn't gain files.
 4. **Serve it with the bridge** (default) so the user's edits come straight back to you — see *Live link* below. Publish as an Artifact **instead** only when the map is meant to be shared with other people, or when no local browser is in play: fill a copy of the template as in step 2, then `Artifact` with favicon `🗺️` and a one-line `description`. Both modes are theme-aware and need no other changes; the page adapts its own export bar to whichever it's in.
 5. Tell the user how to use it: **drag any card into another cell** to re-slice its phase/activity, and drop above/below other cards to rank it; **drag a phase rail or activity header** onto another to reorder rows/columns (the whole column/row slides live while dragging — grab the ⠿ tab protruding from the top of a column or the left of a rail); double-click text to edit; hover a card for ● (status dropdown) / ⌗ (tags) / ×; the **Bulk select** button (top right) shows the bulk bar and lets them click any card to select it, for group status/tag/delete; the dashed **＋ story / ＋ activity / ＋ phase** buttons in the grid grow it; **Import** loads a saved map; the **EN | 中文** toggle at the top right switches the UI language. The primary export button is **Send to Claude** when bridged (Copy to Clipboard and Download JSON move under the ▾) and **Copy to Clipboard** when not.
 
@@ -44,19 +44,17 @@ Derive these from whatever context exists — a spec, a plan, a `tasks.md`, a de
    ```bash
    SKILL=<this skill dir>
    LIB="$SKILL/../../lib"
-   MAP=.storymap/<slug>.json
+   MAP=.vstack/maps/<slug>.json
    node "$LIB/json-bridge.mjs" serve --json "$MAP" --template "$SKILL/assets/story-map-template.html" --port 0 --tool user-story-map
    ```
    It prints the URL (with its token) and the seq path. Give the user the whole URL — the token is required.
 2. **Start the watcher** so their click reaches you with nothing typed — the **Monitor tool**, `persistent: true`:
    ```bash
-   node "$VSTACK/lib/json-bridge.mjs" watch --json .storymap/<slug>.json --stream --tool user-story-map \
+   node "$LIB/json-bridge.mjs" watch --json .vstack/maps/<slug>.json --stream --tool user-story-map \
      --seq <the seq the server printed>
    ```
-   It never exits — each line is one event, so there is nothing to re-arm after a round, which is
-   the step that gets forgotten and leaves a map nobody is reading. While it runs the map says
-   **Linked to Claude**; with no watcher it says **Unlinked**, in amber, so the user can see that a
-   Send would sit there unread.
+   How the loop behaves — it never exits, one event per line, the Linked/Unlinked states, the idle
+   close — is [`contracts/bridge-loop.md`](../../contracts/bridge-loop.md).
    On `SENT`, read the map JSON — that is the new source of truth. On `APPROVED`, the map is signed
    off: carry on with what comes next. On `CLOSED`, the user shut the tab; say the link is closed.
 
@@ -71,11 +69,9 @@ node "$LIB/json-bridge.mjs" patch --json "$MAP" --id s12 --set status=done --too
 
 ### Closing the link
 
-Closing the browser tab closes it. The page holds an SSE connection; when the last one goes away and none returns within the grace period (`--idle-timeout`, default 90s — long enough that a page reload reconnects), the server shuts down, removes the `.url` file, and exits. That exit re-invokes you, and the waiter above ends with `link closed`. Nothing is left listening.
-
-Close it early with TaskStop on the server task. `--idle-timeout 0` keeps it up until then. Either way, **say the link is closed** when it is — the user should never have to guess whether a socket is still open, and after that their **Send to Claude** goes grey (*Link lost*) and only Copy to Clipboard works.
-
-Failure modes to relay honestly: if the server is stopped or the port dies, the page's green **Linked to Claude** dot goes grey (*Link lost*) and Send falls back to showing the JSON to copy. Nothing is lost — the last sent arrangement is on disk in the map JSON.
+Closing the browser tab closes it — the idle-close behaviour, the *Link lost* state and why nothing
+is lost are [`contracts/bridge-loop.md`](../../contracts/bridge-loop.md). Close it early with
+TaskStop on the server task; `--idle-timeout 0` keeps it up until then.
 
 ## Notes
 
@@ -88,7 +84,7 @@ Failure modes to relay honestly: if the server is stopped or the port dies, the 
 
 **No `.vstack/pipeline.json`?** You're standalone — a plan, a `tasks.md` or a conversation is enough.
 Everything above still applies; skip this section, and write the map wherever suits (default
-`.storymap/`). **Never create the state file here.** Only `/vstack:start` and
+`.vstack/maps/`). **Never create the state file here.** Only `/vstack:start` and
 `/vstack:requirements` bring a pipeline into being.
 
 With a state file:

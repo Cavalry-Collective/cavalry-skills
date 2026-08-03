@@ -67,32 +67,11 @@ numbers.
 
 With a **URL**, use Host op **`browser_capture`** when the adapter says it is
 available; otherwise ask the user for screenshots and derive by eye (§2
-screenshots path).
-
-When browser capture is available:
-
-1. Navigate to the URL in a new tab. Dismiss the cookie banner (decline non-essential) so
-   it isn't in the screenshots or the measurements.
-2. Resize and screenshot at each size the wireframe needs — 1440 first, then 390
-   if the design has to work small. Save them beside the wireframe.
-3. Run **`assets/harvest-reference.js`** in the page. It returns JSON —
-   the palette weighted by how much of the page it covers, the type scale actually in
-   use, spacing rhythm, radii, shadows, and the layout skeleton (nav model, content
-   width, grid columns, how many tables and inputs). Read it out of the page rather
-   than off a screenshot: a colour eyeballed from an image is always slightly wrong,
-   and twenty slightly-wrong values is exactly what makes a design look like a knock-off.
-4. If a signed-in view is the real reference, ask the user to navigate there themselves
-   and say when to capture — never enter credentials.
-
-With **screenshots**, derive the same list by eye and mark each value as inferred.
-
-Either way, write the result to `<page-dir>/<name>-reference.md` — the measured tokens,
-the structure notes, the screenshot paths, and which real font each system-font stack is
-standing in for. **Every later round reads that file instead of re-capturing**, which is
-what stops v4 from drifting away from the thing it is supposed to look like.
-
-Copying a *layout* is the point; copying logos, wordmarks, photography or copy is not —
-those stay as placeholders.
+screenshots path). The full procedure — screenshots per size,
+`assets/harvest-reference.js`, writing `<page-dir>/<name>-reference.md` so every
+later round reads it instead of re-capturing, the never-sign-in rule — is
+`references/design-sources.md` §1–2. Copying a *layout* is the point; logos,
+wordmarks, photography and copy stay placeholders.
 
 Default principles, unless the design source overrides them:
 
@@ -105,7 +84,7 @@ Default principles, unless the design source overrides them:
 
 Requirements the workspace places on the file:
 
-- **Self-contained** — tokens inline in `:root`, no external fonts, stylesheets or scripts. The same file has to work served over http *and* inlined into an Artifact bundle.
+- **Self-contained** — tokens inline in `:root`, no external fonts, stylesheets or scripts. The same file has to work served over http *and* inlined into a share bundle.
 - **A real `<title>`** — the review is named after it.
 - **`min-height: 100vh`, never `height: 100vh` or `overflow: hidden` on `body`** — the page lays out at full height inside the workspace's window.
 
@@ -416,8 +395,7 @@ route.
 
 ## Notes
 
-- The workspace's top bar, palette and controls are stamped in from `lib/shell/` — shared with every other vstack page. Change them there and re-stamp, never in the workspace.
-- **Never edit `assets/workspace.html`, `review-server.mjs` or `bundle-artifact.mjs`** to fit a project — they're the engine. Only the page under review is yours. (`harvest-reference.js` is meant to be pasted and run, not edited.)
+- **Never edit `assets/workspace.html`, `review-server.mjs` or `bundle-artifact.mjs`** to fit a project — they're the engine; only the page under review is yours. The shell chrome is stamped in from `lib/shell/` — see `lib/shell/README.md`. (`harvest-reference.js` is meant to be pasted and run, not edited.)
 - State lives in `<dir>/.vstack/local/wireframe/<name>/` beside the file — versions, reviews, threads, and the sentinels. The page itself stays clean. A live review has nothing to sit beside, so it lands in `.vstack/local/wireframe/<name>/` under the directory you started it from.
 - **Every vstack tool writes under `.vstack/local/<tool>/`**, so a project grows one dot-directory, not one per engine. `lib/workdir.mjs` resolves it — use that rather than joining the path by hand. One gitignore line covers the lot (`**/.vstack/local/`); the rest of `.vstack/` is the pipeline and belongs in the repo.
 - The server binds to `127.0.0.1` only. Port 7788 busy usually means a review server is already running — pass `--port`.

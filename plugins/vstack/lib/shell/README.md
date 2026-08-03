@@ -10,7 +10,8 @@ topbar.html   the bar itself — mark, page name, eyebrow, slots, theme, languag
               link dot, primary action
 scrubber.css  the timeline control
 scrubber.html its markup — a page opts in by carrying the marker
-shell.js      window.VSShell (theme, language, link dot, page name)
+shell.js      window.VSShell (theme, language, link dot, live-link client,
+              toast, two-step confirm, page name)
               window.VSScrub (the scrubber)
 ```
 
@@ -47,8 +48,24 @@ Page controls go in a **slot**, and survive every stamp:
 ```js
 VSShell.init({ name: 'Spec', eyebrow: 'checkout', send: true });
 VSShell.onLang(l => { LANG = l; render() });   // the switch is the shell's
-VSShell.setLink(true, { on: t('linked'), off: t('lost') });
 VSShell.name('Phase 2 build');                 // when the page renames itself
+
+// The live link, wired in one line. SSE when the server has an event stream —
+// the shell owns onopen/onerror and the `presence` event; the page only hears
+// its own events. A server that only answers a ping gets the poll form.
+VSShell.connect({ url: `${BRIDGE.events}?t=${BRIDGE.token}`,
+  on: { push: ev => apply(JSON.parse(ev.data)) },
+  onLink: up => { S.linked = up } });
+VSShell.connect({ poll: '/ping' });
+
+// The dot's words are the shell's: bilingual, named after the host that
+// window.__VSTACK_HOST__ says is listening. setLink(up, labels) still takes
+// overrides, for a page with something more specific to say.
+VSShell.setLink(true);
+
+VSShell.toast(t('saved'));                     // one toast, styled once
+VSShell.armConfirm($('#approve'), {            // press twice to mean it
+  arm: paint, disarm: paint, onConfirm: send });
 ```
 
 The scrubber is an ordered set of stops and a handle between them — versions on
@@ -62,6 +79,7 @@ VSScrub.set({
   items: versions.map(v => ({ id: v.n, cap: `v${v.n}`, label: v.label, sub: whenOf(v) })),
   active: viewing,
 });
+VSScrub.step(-1);   // what arrow keys bind to
 ```
 
 `init` returns the API and is safe to call once, late — after the document the

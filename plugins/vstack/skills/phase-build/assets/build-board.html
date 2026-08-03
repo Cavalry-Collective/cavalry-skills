@@ -70,7 +70,6 @@
   :root[data-theme="dark"]{--keep:#2fb89b;--new:#f0685c;--have:#8b8e97;--touch:#d29a3f;--fail:#e05575}
 
   *{box-sizing:border-box}
-  [hidden]{display:none!important}
   body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);font-family:var(--font);
     font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
   button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
@@ -217,6 +216,12 @@
 .banner.dark .btn:hover{background:color-mix(in srgb,var(--surface) 28%,transparent)}
 .banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
 .banner.good .tick{color:var(--ok);font-weight:700}
+
+/* the toast — VSShell.toast(); one element, appended on first use */
+.vs-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  background:var(--ink);color:var(--surface);padding:8px 14px;border-radius:8px;
+  font-size:12.5px;box-shadow:var(--shadow-pop);opacity:0;pointer-events:none;transition:opacity .25s}
+.vs-toast.on{opacity:1}
 
 /* ── "there is a newer one" ──
    One line under the bar, in the workmanlike amber the WIP tag uses: it is
@@ -512,6 +517,7 @@ window.VSShell = (function () {
       b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
     });
     langListeners.forEach(fn => { try { fn(lang) } catch {} });
+    paintLink();
   }
   function setLang (next) {
     lang = next === 'zh' ? 'zh' : 'en';
@@ -524,8 +530,23 @@ window.VSShell = (function () {
      is waiting to read what you send" are different facts, and only the second
      is the one anyone actually wants to know. `watching` undefined means the
      page has no way to tell, and the dot behaves as it always did. Host name
-     comes from window.__VSTACK_HOST__ (contracts/host.md). */
+     comes from window.__VSTACK_HOST__ (contracts/host.md), so no page bakes a
+     product name in; the words live here, in both languages, so no page
+     repeats them either. A page with something more specific to say passes
+     `labels` to setLink and only those keys win. */
   let linked = null, linkLabels = null, watching;
+  function linkWords () {
+    const agent = window.__VSTACK_HOST__?.name || 'agent';
+    return lang === 'zh' ? {
+      on: `已连接 ${agent}`, off: '连接已断开', idle: '未连接',
+      idleTitle: `页面是通的，但没有 ${agent} 会话在等待——发送的内容会一直留在这里，直到有会话接手。`,
+      offTitle: `${agent} 会话已不再提供此页面——你写的内容只保存在这个标签页里。`,
+    } : {
+      on: `LINKED TO ${String(agent).toUpperCase()}`, off: 'LINK LOST', idle: 'UNLINKED',
+      idleTitle: `This page is live, but no ${agent} session is waiting for it — what you send will sit here until one is.`,
+      offTitle: `The ${agent} session is no longer serving this page — anything you write stays in this tab.`,
+    };
+  }
   function paintLink () {
     const el = $('#linkDot');
     if (!el || linked === null) return;
@@ -533,12 +554,12 @@ window.VSShell = (function () {
     const idle = linked && watching === false;
     el.classList.toggle('on', linked && !idle);
     el.classList.toggle('idle', !!idle);
-    const agent = window.__VSTACK_HOST__?.name || 'agent';
-    el.textContent = !linked ? (linkLabels?.off ?? 'LINK LOST')
-      : idle ? (linkLabels?.idle ?? 'UNLINKED')
-      : (linkLabels?.on ?? `LINKED TO ${String(agent).toUpperCase()}`);
-    el.title = !linked ? (linkLabels?.offTitle ?? '')
-      : idle ? (linkLabels?.idleTitle ?? '') : '';
+    const words = linkWords();
+    el.textContent = !linked ? (linkLabels?.off ?? words.off)
+      : idle ? (linkLabels?.idle ?? words.idle)
+      : (linkLabels?.on ?? words.on);
+    el.title = !linked ? (linkLabels?.offTitle ?? words.offTitle)
+      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '';
   }
   function setLink (up, labels, isWatching) {
     linked = !!up;
@@ -553,6 +574,65 @@ window.VSShell = (function () {
     paintLink();
   }
   const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  /* ── one live-link client, instead of one per page ──
+     Wires the dot to a server: SSE when the page has an event stream, a plain
+     poll for a server that only answers /ping. Either way the shell owns the
+     socket-to-dot translation and the page only hears about its own events.
+
+       VSShell.connect({ url, on: { push: ev => apply(ev) }, onLink })
+       VSShell.connect({ poll: '/ping', onLink })
+
+     SSE reconnects on its own, so the dot only ever reports what is true right
+     now. `presence` — who is listening, said by the server rather than guessed
+     from the socket — is handled here; every other event is the page's. */
+  function connect (opts = {}) {
+    const say = up => { setLink(up); try { opts.onLink?.(up) } catch {} };
+    if (opts.poll) {
+      const tick = async () => {
+        try { const r = await fetch(opts.poll, { cache: 'no-store' }); say(r.ok) }
+        catch { say(false) }
+      };
+      tick();
+      const timer = setInterval(tick, opts.interval || 5000);
+      return { stop: () => clearInterval(timer) };
+    }
+    const es = new EventSource(opts.url);
+    es.onopen = () => say(true);
+    es.onerror = () => say(false);
+    es.addEventListener('presence', ev => {
+      try { setWatching(JSON.parse(ev.data).watching) } catch {}
+    });
+    for (const [name, fn] of Object.entries(opts.on || {})) es.addEventListener(name, fn);
+    return { stop: () => es.close(), source: es };
+  }
+
+  /* ── a toast: the page saying "done" without stopping anyone ── */
+  let toastTimer = null;
+  function toast (msg, ms = 2200) {
+    let el = document.querySelector('.vs-toast');
+    if (!el) { el = document.createElement('div'); el.className = 'vs-toast'; document.body.appendChild(el) }
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('on'), ms);
+  }
+
+  /* ── two-step confirm on one button ──
+     First press arms it (class `armed`, plus whatever `arm` repaints); a second
+     press inside the window fires; the window closing quietly disarms. The
+     page styles `armed` and words the button — this owns only the dance. */
+  function armConfirm (btn, { onConfirm, arm, disarm, ms = 4000 } = {}) {
+    let timer = null;
+    const reset = () => { timer = null; btn.classList.remove('armed'); try { disarm?.() } catch {} };
+    btn.addEventListener('click', () => {
+      if (timer) { clearTimeout(timer); reset(); onConfirm(); return }
+      btn.classList.add('armed');
+      try { arm?.() } catch {}
+      timer = setTimeout(reset, ms);
+    });
+    return { armed: () => timer !== null, disarm: () => { if (timer) { clearTimeout(timer); reset() } } };
+  }
 
   function name (pageName, eyebrow) {
     const n = $('#pageName'); const e = $('#pageEyebrow');
@@ -637,6 +717,7 @@ window.VSShell = (function () {
 
   const api = {
     init, setTheme, setLang, setLink, setWatching, hideLink, name, wip,
+    connect, toast, armConfirm, esc,
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
@@ -658,7 +739,7 @@ window.VSShell = (function () {
    remember to. */
 window.VSScrub = (function () {
   const $ = s => document.querySelector(s);
-  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = s => window.VSShell.esc(s ?? '');
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
   let items = [];
@@ -736,6 +817,8 @@ window.VSScrub = (function () {
       paint();
       return api;
     },
+    /** Move one stop back or forward — what arrow keys and the ‹ › buttons do. */
+    step,
     get active () { return active },
     get items () { return items },
   };
@@ -754,10 +837,11 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 let LANG = VSShell.lang;   // the shell owns the choice; every page shares it
+const AGENT = window.__VSTACK_HOST__?.name || 'Claude';   // whoever serves the board
 const STR = {
   title: ['Phase %n build', '第 %n 期构建'],
   api: ['Endpoints', '接口'], ui: ['Components', '组件'], infra: ['Resources', '资源'],
-  send: ['Send to Claude', '发送给 Claude'], sent: ['Sent ✓', '已发送 ✓'],
+  send: [`Send to ${AGENT}`, `发送给 ${AGENT}`], sent: ['Sent ✓', '已发送 ✓'],
   start: ['Start the phase %n build', '开始第 %n 期构建'],
   building: ['Building…', '构建中…'],
   reset: ['Reset changes', '还原修改'],
@@ -768,11 +852,7 @@ const STR = {
   src: ['read from the codebase', '读取自代码库'],
   sum: ['<b>%new</b> new · <b>%touch</b> changed · %have already built', '<b>%new</b> 新增 · <b>%touch</b> 修改 · %have 已存在'],
   progress: ['Building', '构建中'],
-  linked: ['LINKED TO CLAUDE', '已连接 CLAUDE'], lost: ['LINK LOST', '连接断开'],
-  idle: ['UNLINKED', '未连接'],
-  idleTitle: ['This page is live, but no Claude session is waiting for it — what you send will sit here until one is.',
-              '页面是通的，但没有 Claude 会话在等待——发送的内容会一直留在这里，直到有会话接手。'],
-  refreshed: ['Claude updated the plan', 'Claude 更新了计划'],
+  refreshed: [`${AGENT} updated the plan`, `${AGENT} 更新了计划`],
   apply: ['Refresh', '刷新'], dismiss: ['Dismiss', '忽略'],
 };
 const t = k => STR[k][LANG === 'zh' ? 1 : 0];
@@ -969,16 +1049,8 @@ $('#nodes').addEventListener('dragend', () => {
 VSShell.onLang(l => {
   LANG = l;
   if (!doc) return;      // the shell announces the language before boot loads one
-  renderLink(linkUp); render();
+  render();              // the link dot is the shell's; it repaints its own words
 });
-
-/* ── live link ── */
-let linkUp = false;
-function renderLink (up) {
-  linkUp = up;
-  VSShell.setLink(up, { on: t('linked'), off: t('lost'),
-    idle: t('idle'), idleTitle: t('idleTitle') }, BRIDGE ? BRIDGE.watching : undefined);
-}
 
 async function save (extra) {
   if (!BRIDGE) return false;
@@ -1042,19 +1114,15 @@ $('#rbDismiss').addEventListener('click', () => { $('#refreshBar').hidden = true
   // Not field-tested end to end yet — the board says so in the chrome rather
   // than letting someone find out mid-build.
   VSShell.init({ name: 'Phase build', eyebrow: '', send: true, wip: true });
-  if (BRIDGE) renderLink(false); else VSShell.hideLink();
+  if (BRIDGE) VSShell.setLink(false, null, BRIDGE.watching); else VSShell.hideLink();
   if (BRIDGE) {
     try { doc = await (await fetch(`${BRIDGE.doc}?t=${BRIDGE.token}`)).json() }
     catch { doc = JSON.parse($('#fallback').textContent); }
-    const es = new EventSource(`${BRIDGE.events}?t=${BRIDGE.token}`);
-    es.onopen = () => renderLink(true);
-    es.onerror = () => renderLink(false);
-    // Who is listening, said by the server rather than guessed from the socket.
-    es.addEventListener('presence', ev => {
-      try { VSShell.setWatching(JSON.parse(ev.data).watching) } catch {}
-    });
-    es.addEventListener('push', ev => {
-      try { onPush(JSON.parse(ev.data)) } catch {}
+    // The shell owns the socket — link dot, reconnects and `presence` are its
+    // job; the board only hears its own pushes.
+    VSShell.connect({
+      url: `${BRIDGE.events}?t=${BRIDGE.token}`,
+      on: { push: ev => { try { onPush(JSON.parse(ev.data)) } catch {} } },
     });
   } else {
     doc = JSON.parse($('#fallback').textContent);

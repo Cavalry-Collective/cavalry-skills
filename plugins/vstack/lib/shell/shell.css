@@ -137,6 +137,12 @@
 .banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
 .banner.good .tick{color:var(--ok);font-weight:700}
 
+/* the toast — VSShell.toast(); one element, appended on first use */
+.vs-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  background:var(--ink);color:var(--surface);padding:8px 14px;border-radius:8px;
+  font-size:12.5px;box-shadow:var(--shadow-pop);opacity:0;pointer-events:none;transition:opacity .25s}
+.vs-toast.on{opacity:1}
+
 /* ── "there is a newer one" ──
    One line under the bar, in the workmanlike amber the WIP tag uses: it is
    information, not an alarm, and it goes away for good on ×. */

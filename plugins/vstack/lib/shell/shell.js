@@ -41,6 +41,7 @@ window.VSShell = (function () {
       b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
     });
     langListeners.forEach(fn => { try { fn(lang) } catch {} });
+    paintLink();
   }
   function setLang (next) {
     lang = next === 'zh' ? 'zh' : 'en';
@@ -53,8 +54,23 @@ window.VSShell = (function () {
      is waiting to read what you send" are different facts, and only the second
      is the one anyone actually wants to know. `watching` undefined means the
      page has no way to tell, and the dot behaves as it always did. Host name
-     comes from window.__VSTACK_HOST__ (contracts/host.md). */
+     comes from window.__VSTACK_HOST__ (contracts/host.md), so no page bakes a
+     product name in; the words live here, in both languages, so no page
+     repeats them either. A page with something more specific to say passes
+     `labels` to setLink and only those keys win. */
   let linked = null, linkLabels = null, watching;
+  function linkWords () {
+    const agent = window.__VSTACK_HOST__?.name || 'agent';
+    return lang === 'zh' ? {
+      on: `已连接 ${agent}`, off: '连接已断开', idle: '未连接',
+      idleTitle: `页面是通的，但没有 ${agent} 会话在等待——发送的内容会一直留在这里，直到有会话接手。`,
+      offTitle: `${agent} 会话已不再提供此页面——你写的内容只保存在这个标签页里。`,
+    } : {
+      on: `LINKED TO ${String(agent).toUpperCase()}`, off: 'LINK LOST', idle: 'UNLINKED',
+      idleTitle: `This page is live, but no ${agent} session is waiting for it — what you send will sit here until one is.`,
+      offTitle: `The ${agent} session is no longer serving this page — anything you write stays in this tab.`,
+    };
+  }
   function paintLink () {
     const el = $('#linkDot');
     if (!el || linked === null) return;
@@ -62,12 +78,12 @@ window.VSShell = (function () {
     const idle = linked && watching === false;
     el.classList.toggle('on', linked && !idle);
     el.classList.toggle('idle', !!idle);
-    const agent = window.__VSTACK_HOST__?.name || 'agent';
-    el.textContent = !linked ? (linkLabels?.off ?? 'LINK LOST')
-      : idle ? (linkLabels?.idle ?? 'UNLINKED')
-      : (linkLabels?.on ?? `LINKED TO ${String(agent).toUpperCase()}`);
-    el.title = !linked ? (linkLabels?.offTitle ?? '')
-      : idle ? (linkLabels?.idleTitle ?? '') : '';
+    const words = linkWords();
+    el.textContent = !linked ? (linkLabels?.off ?? words.off)
+      : idle ? (linkLabels?.idle ?? words.idle)
+      : (linkLabels?.on ?? words.on);
+    el.title = !linked ? (linkLabels?.offTitle ?? words.offTitle)
+      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '';
   }
   function setLink (up, labels, isWatching) {
     linked = !!up;
@@ -82,6 +98,65 @@ window.VSShell = (function () {
     paintLink();
   }
   const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  /* ── one live-link client, instead of one per page ──
+     Wires the dot to a server: SSE when the page has an event stream, a plain
+     poll for a server that only answers /ping. Either way the shell owns the
+     socket-to-dot translation and the page only hears about its own events.
+
+       VSShell.connect({ url, on: { push: ev => apply(ev) }, onLink })
+       VSShell.connect({ poll: '/ping', onLink })
+
+     SSE reconnects on its own, so the dot only ever reports what is true right
+     now. `presence` — who is listening, said by the server rather than guessed
+     from the socket — is handled here; every other event is the page's. */
+  function connect (opts = {}) {
+    const say = up => { setLink(up); try { opts.onLink?.(up) } catch {} };
+    if (opts.poll) {
+      const tick = async () => {
+        try { const r = await fetch(opts.poll, { cache: 'no-store' }); say(r.ok) }
+        catch { say(false) }
+      };
+      tick();
+      const timer = setInterval(tick, opts.interval || 5000);
+      return { stop: () => clearInterval(timer) };
+    }
+    const es = new EventSource(opts.url);
+    es.onopen = () => say(true);
+    es.onerror = () => say(false);
+    es.addEventListener('presence', ev => {
+      try { setWatching(JSON.parse(ev.data).watching) } catch {}
+    });
+    for (const [name, fn] of Object.entries(opts.on || {})) es.addEventListener(name, fn);
+    return { stop: () => es.close(), source: es };
+  }
+
+  /* ── a toast: the page saying "done" without stopping anyone ── */
+  let toastTimer = null;
+  function toast (msg, ms = 2200) {
+    let el = document.querySelector('.vs-toast');
+    if (!el) { el = document.createElement('div'); el.className = 'vs-toast'; document.body.appendChild(el) }
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('on'), ms);
+  }
+
+  /* ── two-step confirm on one button ──
+     First press arms it (class `armed`, plus whatever `arm` repaints); a second
+     press inside the window fires; the window closing quietly disarms. The
+     page styles `armed` and words the button — this owns only the dance. */
+  function armConfirm (btn, { onConfirm, arm, disarm, ms = 4000 } = {}) {
+    let timer = null;
+    const reset = () => { timer = null; btn.classList.remove('armed'); try { disarm?.() } catch {} };
+    btn.addEventListener('click', () => {
+      if (timer) { clearTimeout(timer); reset(); onConfirm(); return }
+      btn.classList.add('armed');
+      try { arm?.() } catch {}
+      timer = setTimeout(reset, ms);
+    });
+    return { armed: () => timer !== null, disarm: () => { if (timer) { clearTimeout(timer); reset() } } };
+  }
 
   function name (pageName, eyebrow) {
     const n = $('#pageName'); const e = $('#pageEyebrow');
@@ -166,6 +241,7 @@ window.VSShell = (function () {
 
   const api = {
     init, setTheme, setLang, setLink, setWatching, hideLink, name, wip,
+    connect, toast, armConfirm, esc,
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
@@ -187,7 +263,7 @@ window.VSShell = (function () {
    remember to. */
 window.VSScrub = (function () {
   const $ = s => document.querySelector(s);
-  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = s => window.VSShell.esc(s ?? '');
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
   let items = [];
@@ -265,6 +341,8 @@ window.VSScrub = (function () {
       paint();
       return api;
     },
+    /** Move one stop back or forward — what arrow keys and the ‹ › buttons do. */
+    step,
     get active () { return active },
     get items () { return items },
   };

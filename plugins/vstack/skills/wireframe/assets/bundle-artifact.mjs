@@ -85,9 +85,12 @@ const shell = fs.readFileSync(path.join(HERE, 'workspace.html'), 'utf8')
 // stops any `</script>` in the wireframe markup from closing our data island.
 const json = JSON.stringify(bundle).replace(/</g, '\\u003c')
 
+/* Replacer callbacks, not replacement strings — a page containing `$$` or `$&`
+   would otherwise have them interpreted as replacement patterns and the bundle
+   silently corrupted. */
 let out = shell.replace(
   '<script id="bundle" type="application/json">null</script>',
-  `<script id="bundle" type="application/json">${json}</script>`
+  () => `<script id="bundle" type="application/json">${json}</script>`
 )
 if (out === shell) {
   console.error('Could not find the bundle placeholder in workspace.html')
@@ -97,7 +100,7 @@ if (out === shell) {
    Artifact is catalogued by the <title> in the file — so a bundle that ships the
    placeholder gets filed under "Review" alongside every other one. Name it. */
 const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
-const titled = out.replace(/<title>[^<]*<\/title>/i, `<title>${esc(name)} — Review · Visual Stack</title>`)
+const titled = out.replace(/<title>[^<]*<\/title>/i, () => `<title>${esc(name)} — Review · Visual Stack</title>`)
 if (titled === out) console.error('warning: no <title> to name — the Artifact will be filed under the workspace default')
 out = titled
 

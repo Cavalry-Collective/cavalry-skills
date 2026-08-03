@@ -240,6 +240,12 @@
 .banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
 .banner.good .tick{color:var(--ok);font-weight:700}
 
+/* the toast — VSShell.toast(); one element, appended on first use */
+.vs-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  background:var(--ink);color:var(--surface);padding:8px 14px;border-radius:8px;
+  font-size:12.5px;box-shadow:var(--shadow-pop);opacity:0;pointer-events:none;transition:opacity .25s}
+.vs-toast.on{opacity:1}
+
 /* ── "there is a newer one" ──
    One line under the bar, in the workmanlike amber the WIP tag uses: it is
    information, not an alarm, and it goes away for good on ×. */
@@ -404,12 +410,8 @@
   .bulkbar{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);z-index:65;display:flex;align-items:center;gap:.45rem;background:var(--surface);border:1px solid var(--line-2);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.2);padding:.4rem .6rem}
   .bulkbar[hidden]{display:none}
   .bulkbar .cnt{font-size:.74rem;font-weight:600;color:var(--ink);margin-right:.2rem;white-space:nowrap}
-  /* live link to the Claude session (only when served by lib/json-bridge.mjs) */
-  .pushbar{position:fixed;top:1rem;left:50%;transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:.5rem;background:var(--surface);border:1px solid var(--line-2);border-left:3px solid var(--p2);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.2);padding:.45rem .6rem}
-  .pushbar[hidden]{display:none}
-  .pushbar .msg{font-size:.76rem;color:var(--ink);white-space:nowrap}
-  .toast{position:fixed;bottom:4.4rem;left:50%;transform:translateX(-50%) translateY(1rem);background:var(--ink);color:var(--paper);padding:.5rem .9rem;border-radius:8px;font-size:.82rem;opacity:0;pointer-events:none;transition:.18s;z-index:80}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* the shell's toast, lifted clear of the bulk bar that docks at the bottom */
+  .vs-toast{bottom:4.4rem}
   @media (prefers-reduced-motion:no-preference){.card{transition:box-shadow .12s,transform .12s}.card:hover{box-shadow:0 3px 8px rgba(16,17,22,.10)}}
 </style>
 
@@ -496,7 +498,7 @@
     <div>
       <p class="eyebrow"><span id="eyebrow">User story map</span></p>
       <div class="trow">
-        <h1 id="title" contenteditable spellcheck="false"></h1>
+        <h1 id="title" contenteditable="plaintext-only" spellcheck="false"></h1>
         <div class="legend" id="legend"></div>
         <!-- bulk action belongs to the grid, not to the session — so it sits
              at the top right of the map rather than in the product's bar -->
@@ -528,12 +530,11 @@
   <button class="btn" id="bb-del">Delete</button>
   <button class="btn" id="bb-clear" title="Clear selection">✕</button>
 </div>
-<div class="pushbar" id="pushbar" hidden>
-  <span class="msg" id="pb-msg"></span>
+<div class="banner dark" id="pushbar">
+  <span id="pb-msg"></span>
   <button class="btn primary" id="pb-apply">Refresh</button>
   <button class="btn" id="pb-dismiss">Dismiss</button>
 </div>
-<div class="toast" id="toast"></div>
 
 <script id="data" type="application/json">
 {
@@ -632,6 +633,7 @@ window.VSShell = (function () {
       b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
     });
     langListeners.forEach(fn => { try { fn(lang) } catch {} });
+    paintLink();
   }
   function setLang (next) {
     lang = next === 'zh' ? 'zh' : 'en';
@@ -644,8 +646,23 @@ window.VSShell = (function () {
      is waiting to read what you send" are different facts, and only the second
      is the one anyone actually wants to know. `watching` undefined means the
      page has no way to tell, and the dot behaves as it always did. Host name
-     comes from window.__VSTACK_HOST__ (contracts/host.md). */
+     comes from window.__VSTACK_HOST__ (contracts/host.md), so no page bakes a
+     product name in; the words live here, in both languages, so no page
+     repeats them either. A page with something more specific to say passes
+     `labels` to setLink and only those keys win. */
   let linked = null, linkLabels = null, watching;
+  function linkWords () {
+    const agent = window.__VSTACK_HOST__?.name || 'agent';
+    return lang === 'zh' ? {
+      on: `已连接 ${agent}`, off: '连接已断开', idle: '未连接',
+      idleTitle: `页面是通的，但没有 ${agent} 会话在等待——发送的内容会一直留在这里，直到有会话接手。`,
+      offTitle: `${agent} 会话已不再提供此页面——你写的内容只保存在这个标签页里。`,
+    } : {
+      on: `LINKED TO ${String(agent).toUpperCase()}`, off: 'LINK LOST', idle: 'UNLINKED',
+      idleTitle: `This page is live, but no ${agent} session is waiting for it — what you send will sit here until one is.`,
+      offTitle: `The ${agent} session is no longer serving this page — anything you write stays in this tab.`,
+    };
+  }
   function paintLink () {
     const el = $('#linkDot');
     if (!el || linked === null) return;
@@ -653,12 +670,12 @@ window.VSShell = (function () {
     const idle = linked && watching === false;
     el.classList.toggle('on', linked && !idle);
     el.classList.toggle('idle', !!idle);
-    const agent = window.__VSTACK_HOST__?.name || 'agent';
-    el.textContent = !linked ? (linkLabels?.off ?? 'LINK LOST')
-      : idle ? (linkLabels?.idle ?? 'UNLINKED')
-      : (linkLabels?.on ?? `LINKED TO ${String(agent).toUpperCase()}`);
-    el.title = !linked ? (linkLabels?.offTitle ?? '')
-      : idle ? (linkLabels?.idleTitle ?? '') : '';
+    const words = linkWords();
+    el.textContent = !linked ? (linkLabels?.off ?? words.off)
+      : idle ? (linkLabels?.idle ?? words.idle)
+      : (linkLabels?.on ?? words.on);
+    el.title = !linked ? (linkLabels?.offTitle ?? words.offTitle)
+      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '';
   }
   function setLink (up, labels, isWatching) {
     linked = !!up;
@@ -673,6 +690,65 @@ window.VSShell = (function () {
     paintLink();
   }
   const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  /* ── one live-link client, instead of one per page ──
+     Wires the dot to a server: SSE when the page has an event stream, a plain
+     poll for a server that only answers /ping. Either way the shell owns the
+     socket-to-dot translation and the page only hears about its own events.
+
+       VSShell.connect({ url, on: { push: ev => apply(ev) }, onLink })
+       VSShell.connect({ poll: '/ping', onLink })
+
+     SSE reconnects on its own, so the dot only ever reports what is true right
+     now. `presence` — who is listening, said by the server rather than guessed
+     from the socket — is handled here; every other event is the page's. */
+  function connect (opts = {}) {
+    const say = up => { setLink(up); try { opts.onLink?.(up) } catch {} };
+    if (opts.poll) {
+      const tick = async () => {
+        try { const r = await fetch(opts.poll, { cache: 'no-store' }); say(r.ok) }
+        catch { say(false) }
+      };
+      tick();
+      const timer = setInterval(tick, opts.interval || 5000);
+      return { stop: () => clearInterval(timer) };
+    }
+    const es = new EventSource(opts.url);
+    es.onopen = () => say(true);
+    es.onerror = () => say(false);
+    es.addEventListener('presence', ev => {
+      try { setWatching(JSON.parse(ev.data).watching) } catch {}
+    });
+    for (const [name, fn] of Object.entries(opts.on || {})) es.addEventListener(name, fn);
+    return { stop: () => es.close(), source: es };
+  }
+
+  /* ── a toast: the page saying "done" without stopping anyone ── */
+  let toastTimer = null;
+  function toast (msg, ms = 2200) {
+    let el = document.querySelector('.vs-toast');
+    if (!el) { el = document.createElement('div'); el.className = 'vs-toast'; document.body.appendChild(el) }
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('on'), ms);
+  }
+
+  /* ── two-step confirm on one button ──
+     First press arms it (class `armed`, plus whatever `arm` repaints); a second
+     press inside the window fires; the window closing quietly disarms. The
+     page styles `armed` and words the button — this owns only the dance. */
+  function armConfirm (btn, { onConfirm, arm, disarm, ms = 4000 } = {}) {
+    let timer = null;
+    const reset = () => { timer = null; btn.classList.remove('armed'); try { disarm?.() } catch {} };
+    btn.addEventListener('click', () => {
+      if (timer) { clearTimeout(timer); reset(); onConfirm(); return }
+      btn.classList.add('armed');
+      try { arm?.() } catch {}
+      timer = setTimeout(reset, ms);
+    });
+    return { armed: () => timer !== null, disarm: () => { if (timer) { clearTimeout(timer); reset() } } };
+  }
 
   function name (pageName, eyebrow) {
     const n = $('#pageName'); const e = $('#pageEyebrow');
@@ -757,6 +833,7 @@ window.VSShell = (function () {
 
   const api = {
     init, setTheme, setLang, setLink, setWatching, hideLink, name, wip,
+    connect, toast, armConfirm, esc,
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
@@ -778,7 +855,7 @@ window.VSShell = (function () {
    remember to. */
 window.VSScrub = (function () {
   const $ = s => document.querySelector(s);
-  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = s => window.VSShell.esc(s ?? '');
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
   let items = [];
@@ -856,6 +933,8 @@ window.VSScrub = (function () {
       paint();
       return api;
     },
+    /** Move one stop back or forward — what arrow keys and the ‹ › buttons do. */
+    step,
     get active () { return active },
     get items () { return items },
   };
@@ -874,8 +953,10 @@ window.VSScrub = (function () {
   // session: {token, doc, save, events, name}. Null as an Artifact / opened
   // from disk, where the <script id="data"> block below is the whole map.
   const BRIDGE = window.__VSTACK_BRIDGE__ || null;
+  // the agent serving this page — injected by the host; the words below say its name
+  const AGENT = window.__VSTACK_HOST__?.name || 'Claude';
   let linkUp = !!BRIDGE;
-  let approveArmed = null;   // the four seconds between asking and meaning it
+  let approveArmed = false;  // the four seconds between asking and meaning it
   const STATUSES = ["open","progress","review","done"];
   let state = normalize(clone(raw));
 
@@ -885,17 +966,14 @@ window.VSScrub = (function () {
       eyebrow:"User story map", corner:"Phase ↓ / Journey →",
       addPhase:"＋ phase", addPhaseTitle:"Add a release phase (row)",
       addActivity:"＋ activity", addActTitle:"Add a journey activity (column)",
-      copy:"Copy for Claude", moreExport:"More options",
+      copy:`Copy for ${AGENT}`, moreExport:"More options",
       approve:"Approve & finish", approveSure:"Approve & close this map?",
-      tApproved:"Signed off — the map is settled", tApproveFail:"Couldn't reach Claude — the map is not signed off",
+      tApproved:"Signed off — the map is settled", tApproveFail:`Couldn't reach ${AGENT} — the map is not signed off`,
       /* the workspace's words, exactly — it is the same act at the same corner */
-      send:"Send to Claude", sendTitle:"Send this arrangement back to the Claude session",
+      send:`Send to ${AGENT}`, sendTitle:`Send this arrangement back to the ${AGENT} session`,
       kbd:"⌘⏎",
-      linkOn:"Linked to Claude", linkOff:"Link lost",
-      linkIdle:"Unlinked",
-      linkIdleTitle:"This page is live, but no Claude session is waiting for it — what you send will sit here until one is.", linkOffTitle:"The Claude session is no longer serving this map — use Copy to Clipboard instead",
-      tSent:"Sent to Claude", tSendFail:"Couldn't reach Claude — copy the JSON instead",
-      pushMsg:"Claude updated this map", refresh:"Refresh", dismiss:"Dismiss",
+      tSent:`Sent to ${AGENT}`, tSendFail:`Couldn't reach ${AGENT} — copy the JSON instead`,
+      pushMsg:`${AGENT} updated this map`, refresh:"Refresh", dismiss:"Dismiss",
       grip:"Drag to move",
       selModeBtn:"Bulk action", selModeTitle:"Bulk action — click any card to select it",
       bbCount:n=>`${n} selected`, bbStatus:"Status", bbTag:"Tag", bbDelete:"Delete", bbClear:"Clear selection",
@@ -917,16 +995,13 @@ window.VSScrub = (function () {
       eyebrow:"用户故事地图", corner:"阶段 ↓ / 旅程 →",
       addPhase:"＋ 阶段", addPhaseTitle:"添加发布阶段（行）",
       addActivity:"＋ 活动", addActTitle:"添加旅程活动（列）",
-      copy:"复制给 Claude", moreExport:"更多选项",
+      copy:`复制给 ${AGENT}`, moreExport:"更多选项",
       approve:"批准并结束", approveSure:"确定批准并关闭此地图？",
-      tApproved:"已定稿——地图不再修改", tApproveFail:"无法连接 Claude——尚未定稿",
-      send:"发送给 Claude", sendTitle:"将当前排布发送回 Claude 会话",
+      tApproved:"已定稿——地图不再修改", tApproveFail:`无法连接 ${AGENT}——尚未定稿`,
+      send:`发送给 ${AGENT}`, sendTitle:`将当前排布发送回 ${AGENT} 会话`,
       kbd:"⌘⏎",
-      linkOn:"已连接 Claude", linkOff:"连接已断开",
-      linkIdle:"未连接",
-      linkIdleTitle:"页面是通的，但没有 Claude 会话在等待——发送的内容会一直留在这里，直到有会话接手。", linkOffTitle:"Claude 会话不再提供此地图——请改用复制到剪贴板",
-      tSent:"已发送给 Claude", tSendFail:"无法连接 Claude——请改为复制 JSON",
-      pushMsg:"Claude 更新了此地图", refresh:"刷新", dismiss:"忽略",
+      tSent:`已发送给 ${AGENT}`, tSendFail:`无法连接 ${AGENT}——请改为复制 JSON`,
+      pushMsg:`${AGENT} 更新了此地图`, refresh:"刷新", dismiss:"忽略",
       grip:"拖动以移动",
       selModeBtn:"批量操作", selModeTitle:"批量操作——点击任意卡片进行选择",
       bbCount:n=>`已选 ${n} 项`, bbStatus:"状态", bbTag:"标签", bbDelete:"删除", bbClear:"清除选择",
@@ -986,8 +1061,7 @@ window.VSScrub = (function () {
   function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
   function uid(p){ return p + Math.random().toString(36).slice(2,8); }
   const $ = (id)=>document.getElementById(id);
-  let toastT;
-  function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1600); }
+  function toast(m){ VSShell.toast(m); }
 
   // FLIP: snapshot positions before a DOM change, animate the deltas after it.
   // Cells and cards are both tracked; a card riding inside a moving cell only
@@ -1094,7 +1168,7 @@ window.VSScrub = (function () {
         <button data-tag="${s.id}" title="${T("tagTitle")}">⌗</button>
         <button data-del="${s.id}" title="${T("del")}">×</button>
       </div>
-      <p contenteditable spellcheck="false" data-edit="card" data-id="${s.id}">${esc(s.text)}</p>
+      <p contenteditable="plaintext-only" spellcheck="false" data-edit="card" data-id="${s.id}">${esc(s.text)}</p>
       ${pills?`<span class="tags">${pills}</span>`:""}
     </div>`;
   }
@@ -1388,17 +1462,11 @@ window.VSScrub = (function () {
   /* Signing off ends the map for everyone, so it asks once — the same second
      click the workspace asks for, and the same four seconds to change your
      mind. Nothing to sign off to without a session, so it only exists linked. */
-  $("approve").onclick=()=>{
-    if(!approveArmed){
-      approveArmed=setTimeout(()=>{ approveArmed=null; $("approve").classList.remove("armed"); applyChrome(); },4000);
-      $("approve").classList.add("armed"); applyChrome();
-      return;
-    }
-    clearTimeout(approveArmed); approveArmed=null;
-    $("approve").classList.remove("armed");
-    $("export-menu").hidden=true;
-    approveMap();
-  };
+  VSShell.armConfirm($("approve"),{
+    arm:()=>{ approveArmed=true; $("approve").textContent=T("approveSure"); },
+    disarm:()=>{ approveArmed=false; $("approve").textContent=T("approve"); },
+    onConfirm:()=>{ $("export-menu").hidden=true; approveMap(); }
+  });
   document.addEventListener("pointerdown",e=>{ if(!$("export-menu").hidden && !e.target.closest(".split")) $("export-menu").hidden=true; });
   // ⌘⏎ sends, the way it does in the workspace — the chip on the button is
   // only honest if the key works.
@@ -1409,15 +1477,14 @@ window.VSScrub = (function () {
   $("io-cancel").onclick=()=>io.close();
   $("io-ok").onclick=()=>{ try{ const o=JSON.parse($("io-text").value); if(!o.activities||!o.phases||!o.stories) throw 0; state=normalize(o); save(); render(); io.close(); toast(T("tLoaded")); }catch(e){ toast(T("badJson")); } };
 
-  // ---- live link back to the Claude session (only under json-bridge.mjs) ----
+  // ---- live link back to the agent session (only under json-bridge.mjs) ----
   // Send: POST the state; the server writes the JSON and bumps a counter the
-  // session is waiting on. Receive: SSE tells us Claude rewrote the file — we
+  // session is waiting on. Receive: SSE says the agent rewrote the file — we
   // offer it rather than applying it, so an in-progress re-slice isn't clobbered.
-  let pending=null, sending=false, approved=false;
+  let pending=null, sending=false;
   function setLink(up){
     if(!BRIDGE){ VSShell.hideLink(); return; }
-    VSShell.setLink(up,{on:T("linkOn"),off:T("linkOff"),offTitle:T("linkOffTitle"),
-      idle:T("linkIdle"),idleTitle:T("linkIdleTitle")}, BRIDGE ? BRIDGE.watching : undefined);
+    VSShell.setLink(up);   // the shell's own words name the actual host
   }
   function sendToClaude(){
     if(sending) return;
@@ -1437,21 +1504,22 @@ window.VSScrub = (function () {
       .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); });
     post(BRIDGE.save,JSON.stringify(state,null,2))
       .then(()=>post(BRIDGE.approve,JSON.stringify({note:"approved from the story map"})))
-      .then(()=>{ approved=true; linkUp=false; setLink(false); $("export").disabled=true; toast(T("tApproved")); })
+      .then(()=>{ linkUp=false; setLink(false); $("export").disabled=true; toast(T("tApproved")); })
       .catch(()=>toast(T("tApproveFail")));
   }
-  $("pb-apply").onclick=()=>{ if(pending){ state=normalize(pending); pending=null; sel.clear(); save(); render(); toast(T("tLoaded")); } $("pushbar").hidden=true; };
-  $("pb-dismiss").onclick=()=>{ pending=null; $("pushbar").hidden=true; };
+  $("pb-apply").onclick=()=>{ if(pending){ state=normalize(pending); pending=null; sel.clear(); save(); render(); toast(T("tLoaded")); } $("pushbar").classList.remove("on"); };
+  $("pb-dismiss").onclick=()=>{ pending=null; $("pushbar").classList.remove("on"); };
   if(BRIDGE && typeof EventSource!=="undefined"){
-    const es=new EventSource(BRIDGE.events+"?t="+encodeURIComponent(BRIDGE.token));
-    es.onopen=()=>{ linkUp=true; setLink(true); };
-    // Who is listening, said by the server rather than guessed from the socket.
-    es.addEventListener("presence",e=>{ try{ VSShell.setWatching(JSON.parse(e.data).watching); }catch(err){} });
-    es.onerror=()=>{ linkUp=false; setLink(false); };   // EventSource retries on its own
-    es.addEventListener("push",e=>{
-      let o=null; try{ o=JSON.parse(e.data); }catch(err){ return; }
-      if(!o||!o.activities||!o.phases||!o.stories) return;
-      pending=o; $("pushbar").hidden=false;
+    // Seed the idle state from the handle before the first presence event lands.
+    VSShell.setLink(false, null, BRIDGE.watching);
+    VSShell.connect({
+      url:BRIDGE.events+"?t="+encodeURIComponent(BRIDGE.token),
+      onLink:up=>{ linkUp=up; },
+      on:{ push:e=>{
+        let o=null; try{ o=JSON.parse(e.data); }catch(err){ return; }
+        if(!o||!o.activities||!o.phases||!o.stories) return;
+        pending=o; $("pushbar").classList.add("on");
+      } }
     });
   }
   $("copy").hidden = !BRIDGE;   // primary button is Send when linked, Copy when not

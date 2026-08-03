@@ -8,6 +8,7 @@ particular agent product.
 | --- | --- |
 | [`host.md`](host.md) | What a coding-agent host must provide (ops + profile) |
 | [`review-loop.md`](review-loop.md) | Wireframe review protocol: CLI, sentinels, events, on-disk roles |
+| [`bridge-loop.md`](bridge-loop.md) | json-bridge watch loop: events, link states, idle close |
 | [`host.schema.json`](host.schema.json) | JSON Schema for a Host profile (runtime injection) |
 
 ## Layout

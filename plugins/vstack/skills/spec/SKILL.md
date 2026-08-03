@@ -92,19 +92,16 @@ node "$LIB/json-bridge.mjs" serve --json "$DOC" --template "$SKILL/assets/spec-t
 ```
 
 Start it with **`run_in_background: true`**. It prints the URL (with its token) — tell the user to
-open it. Then arm the waiter with **`run_in_background: true`**, carrying the seq the server printed:
+open it. Then arm the waiter, carrying the seq the server printed:
 
 ```bash
-node "$VSTACK/lib/json-bridge.mjs" watch --json .vstack/specs/<feature>.json --stream --tool spec \
+node "$LIB/json-bridge.mjs" watch --json .vstack/specs/<feature>.json --stream --tool spec \
   --seq <the seq printed when the server started>
 ```
 
-Start it with the **Monitor tool, `persistent: true`**. It never exits — each line is one event
-(`SENT`, `APPROVED`, `CLOSED`), so there is nothing to re-arm after a round, which is the step that
-gets forgotten and leaves a page nobody is reading.
-
-While it runs the page says **Linked to Claude**; with no watcher it says **Unlinked**, in amber, so
-the user can see that a Send would sit there unread.
+Start it with the **Monitor tool, `persistent: true`**. How the loop behaves — it never exits, one
+event per line, the Linked/Unlinked states, the idle close — is
+[`contracts/bridge-loop.md`](../../contracts/bridge-loop.md).
 
 `SENT` means an edited tree landed in the JSON; `CLOSED` means the tab went away — say so and
 stop serving. **Pass the seq the server printed** — a send that lands between rounds would be
@@ -119,7 +116,7 @@ On `SENT`, read the JSON back:
 - **Notes are clarifications** — the page presents every note as one kind of thing: a question on
   the spec, with a place to answer. A user-written clarification is the user talking to you: answer
   it by **fixing the spec and removing the note**. When something genuinely needs the user's
-  decision, leave your own clarification (`who: "Claude"` for provenance; the page renders all
+  decision, leave your own clarification (`who: "agent"` for provenance; the page renders all
   clarifications identically).
 - **Prefer multiple choice when asking.** A clarification can carry
   `"options": ["HR owns the list", "Admins only", "Either, behind a permission"]` — the page renders
@@ -161,9 +158,8 @@ generated file, and the next round will overwrite them.
 ## Notes
 
 - **Never edit `assets/spec-tree.html` or `lib/json-bridge.mjs`** to fit a project — they're the
-  engine. Only the JSON document is yours. The top bar, palette and controls are stamped in from
-  `lib/shell/` and marked as such; changing them there and re-stamping changes every page at once,
-  which is the point.
+  engine; only the JSON document is yours. The shell chrome is stamped in from `lib/shell/` — see
+  `lib/shell/README.md`.
 - The bridge binds `127.0.0.1` and dies when the tab closes (90s grace). Port busy → another spec
   page is up; pass `--port`.
 - **The version timeline is kept on disk**, in `.vstack/local/spec/<feature>.history/` —

@@ -73,7 +73,6 @@
 :root[data-theme=light]{--p1:#d23b2e;--p2:#b0761a;--p3:#4a5fce;--note:#8a53c0;--th:#0e7f8a}
 :root[data-theme=dark]{--p1:#f0685c;--p2:#d29a3f;--p3:#7d90ee;--note:#b98cec;--th:#3fb6d6}
 *{box-sizing:border-box}
-[hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0;background:var(--paper);color:var(--ink);font:13px/1.5 var(--font);
   -webkit-font-smoothing:antialiased;overflow:hidden}
@@ -222,6 +221,12 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
 .banner.good .tick{color:var(--ok);font-weight:700}
 
+/* the toast — VSShell.toast(); one element, appended on first use */
+.vs-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  background:var(--ink);color:var(--surface);padding:8px 14px;border-radius:8px;
+  font-size:12.5px;box-shadow:var(--shadow-pop);opacity:0;pointer-events:none;transition:opacity .25s}
+.vs-toast.on{opacity:1}
+
 /* ── "there is a newer one" ──
    One line under the bar, in the workmanlike amber the WIP tag uses: it is
    information, not an alarm, and it goes away for good on ×. */
@@ -356,14 +361,7 @@ h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;fon
 .opt.picked .rad{border-color:var(--ok);background:var(--ok)}
 .srow.hilite .shead{outline:2px solid var(--note);outline-offset:-2px;border-radius:6px}
 
-/* theme toggles + quiet actions */
-.tagrow{display:flex;align-items:center;gap:.35rem;margin:.5rem 0 0;flex-wrap:wrap}
-.tagrow .lbl{font:700 8.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
-.tagtog{font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:999px;color:var(--ink-3);
-  border:1px solid var(--line-2)}
-.tagtog:hover{border-color:var(--th);color:var(--th)}
-.tagtog.on{color:var(--th);background:color-mix(in srgb,var(--th) 9%,var(--surface));
-  border-color:color-mix(in srgb,var(--th) 30%,transparent)}
+/* quiet actions */
 .acts{display:flex;gap:1rem;margin:.45rem 0 0}
 .act{font-size:11.5px;font-weight:600;color:var(--ink-3)}
 .act:hover{color:var(--brand)}
@@ -375,8 +373,8 @@ h1{font-size:clamp(1.3rem,3vw,1.7rem);line-height:1.12;letter-spacing:-.02em;fon
 .eacts{margin:.4rem 0 0}
 #addEpic{margin:1.6rem 0 0}
 /* viewing history: the sheet is a record, not an editor */
-body.history .del,body.history .acts,body.history .eacts,body.history #addEpic,
-body.history .tagrow,body.history .kill{display:none!important}
+body.history .del,body.history .acts,body.history .eacts,
+body.history #addEpic{display:none!important}
 
 /* ── the clarifications panel — the workspace's comment panel ── */
 #panel{width:var(--panelw);flex:none;background:var(--surface);border-left:1px solid var(--line);
@@ -402,7 +400,7 @@ body.history .tagrow,body.history .kill{display:none!important}
 .qans:empty::before{content:attr(data-ph);color:var(--ink-3);font-style:italic}
 
 /* ── narrow: the panel becomes a drawer ──
-   The same move, and the same 820px, as the wireframe tool: below the width
+   The same move, and the same 720px, as the wireframe tool: below the width
    where a column fits beside the spec, the clarifications slide in over it from
    a button in the bar. The badge counts the ones still waiting on an answer, so
    a closed drawer never hides an unanswered question. */
@@ -413,7 +411,7 @@ body.history .tagrow,body.history .kill{display:none!important}
 #panelBtn .badge:empty{display:none}
 #scrim{display:none;position:absolute;inset:0;z-index:24;
   background:color-mix(in srgb,var(--ink) 34%,transparent)}
-@media (max-width:820px){
+@media (max-width:720px){
   #panelBtn{display:inline-flex}
   #panelBtn[hidden]{display:none!important}
   #panel{position:absolute;top:0;right:0;bottom:0;width:min(340px,86vw);z-index:25;
@@ -632,7 +630,7 @@ body.history .tagrow,body.history .kill{display:none!important}
           ],
           "notes": [
             {
-              "who": "Claude",
+              "who": "agent",
               "text": "Rejection reasons come from a fixed list so reporting stays possible. Who should be able to edit that list?",
               "options": [
                 "HR owns the list",
@@ -748,6 +746,7 @@ window.VSShell = (function () {
       b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
     });
     langListeners.forEach(fn => { try { fn(lang) } catch {} });
+    paintLink();
   }
   function setLang (next) {
     lang = next === 'zh' ? 'zh' : 'en';
@@ -760,8 +759,23 @@ window.VSShell = (function () {
      is waiting to read what you send" are different facts, and only the second
      is the one anyone actually wants to know. `watching` undefined means the
      page has no way to tell, and the dot behaves as it always did. Host name
-     comes from window.__VSTACK_HOST__ (contracts/host.md). */
+     comes from window.__VSTACK_HOST__ (contracts/host.md), so no page bakes a
+     product name in; the words live here, in both languages, so no page
+     repeats them either. A page with something more specific to say passes
+     `labels` to setLink and only those keys win. */
   let linked = null, linkLabels = null, watching;
+  function linkWords () {
+    const agent = window.__VSTACK_HOST__?.name || 'agent';
+    return lang === 'zh' ? {
+      on: `已连接 ${agent}`, off: '连接已断开', idle: '未连接',
+      idleTitle: `页面是通的，但没有 ${agent} 会话在等待——发送的内容会一直留在这里，直到有会话接手。`,
+      offTitle: `${agent} 会话已不再提供此页面——你写的内容只保存在这个标签页里。`,
+    } : {
+      on: `LINKED TO ${String(agent).toUpperCase()}`, off: 'LINK LOST', idle: 'UNLINKED',
+      idleTitle: `This page is live, but no ${agent} session is waiting for it — what you send will sit here until one is.`,
+      offTitle: `The ${agent} session is no longer serving this page — anything you write stays in this tab.`,
+    };
+  }
   function paintLink () {
     const el = $('#linkDot');
     if (!el || linked === null) return;
@@ -769,12 +783,12 @@ window.VSShell = (function () {
     const idle = linked && watching === false;
     el.classList.toggle('on', linked && !idle);
     el.classList.toggle('idle', !!idle);
-    const agent = window.__VSTACK_HOST__?.name || 'agent';
-    el.textContent = !linked ? (linkLabels?.off ?? 'LINK LOST')
-      : idle ? (linkLabels?.idle ?? 'UNLINKED')
-      : (linkLabels?.on ?? `LINKED TO ${String(agent).toUpperCase()}`);
-    el.title = !linked ? (linkLabels?.offTitle ?? '')
-      : idle ? (linkLabels?.idleTitle ?? '') : '';
+    const words = linkWords();
+    el.textContent = !linked ? (linkLabels?.off ?? words.off)
+      : idle ? (linkLabels?.idle ?? words.idle)
+      : (linkLabels?.on ?? words.on);
+    el.title = !linked ? (linkLabels?.offTitle ?? words.offTitle)
+      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '';
   }
   function setLink (up, labels, isWatching) {
     linked = !!up;
@@ -789,6 +803,65 @@ window.VSShell = (function () {
     paintLink();
   }
   const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  /* ── one live-link client, instead of one per page ──
+     Wires the dot to a server: SSE when the page has an event stream, a plain
+     poll for a server that only answers /ping. Either way the shell owns the
+     socket-to-dot translation and the page only hears about its own events.
+
+       VSShell.connect({ url, on: { push: ev => apply(ev) }, onLink })
+       VSShell.connect({ poll: '/ping', onLink })
+
+     SSE reconnects on its own, so the dot only ever reports what is true right
+     now. `presence` — who is listening, said by the server rather than guessed
+     from the socket — is handled here; every other event is the page's. */
+  function connect (opts = {}) {
+    const say = up => { setLink(up); try { opts.onLink?.(up) } catch {} };
+    if (opts.poll) {
+      const tick = async () => {
+        try { const r = await fetch(opts.poll, { cache: 'no-store' }); say(r.ok) }
+        catch { say(false) }
+      };
+      tick();
+      const timer = setInterval(tick, opts.interval || 5000);
+      return { stop: () => clearInterval(timer) };
+    }
+    const es = new EventSource(opts.url);
+    es.onopen = () => say(true);
+    es.onerror = () => say(false);
+    es.addEventListener('presence', ev => {
+      try { setWatching(JSON.parse(ev.data).watching) } catch {}
+    });
+    for (const [name, fn] of Object.entries(opts.on || {})) es.addEventListener(name, fn);
+    return { stop: () => es.close(), source: es };
+  }
+
+  /* ── a toast: the page saying "done" without stopping anyone ── */
+  let toastTimer = null;
+  function toast (msg, ms = 2200) {
+    let el = document.querySelector('.vs-toast');
+    if (!el) { el = document.createElement('div'); el.className = 'vs-toast'; document.body.appendChild(el) }
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('on'), ms);
+  }
+
+  /* ── two-step confirm on one button ──
+     First press arms it (class `armed`, plus whatever `arm` repaints); a second
+     press inside the window fires; the window closing quietly disarms. The
+     page styles `armed` and words the button — this owns only the dance. */
+  function armConfirm (btn, { onConfirm, arm, disarm, ms = 4000 } = {}) {
+    let timer = null;
+    const reset = () => { timer = null; btn.classList.remove('armed'); try { disarm?.() } catch {} };
+    btn.addEventListener('click', () => {
+      if (timer) { clearTimeout(timer); reset(); onConfirm(); return }
+      btn.classList.add('armed');
+      try { arm?.() } catch {}
+      timer = setTimeout(reset, ms);
+    });
+    return { armed: () => timer !== null, disarm: () => { if (timer) { clearTimeout(timer); reset() } } };
+  }
 
   function name (pageName, eyebrow) {
     const n = $('#pageName'); const e = $('#pageEyebrow');
@@ -873,6 +946,7 @@ window.VSShell = (function () {
 
   const api = {
     init, setTheme, setLang, setLink, setWatching, hideLink, name, wip,
+    connect, toast, armConfirm, esc,
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
@@ -894,7 +968,7 @@ window.VSShell = (function () {
    remember to. */
 window.VSScrub = (function () {
   const $ = s => document.querySelector(s);
-  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = s => window.VSShell.esc(s ?? '');
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
   let items = [];
@@ -972,6 +1046,8 @@ window.VSScrub = (function () {
       paint();
       return api;
     },
+    /** Move one stop back or forward — what arrow keys and the ‹ › buttons do. */
+    step,
     get active () { return active },
     get items () { return items },
   };
@@ -997,10 +1073,6 @@ const STR = {
   stories: ['stories', '个故事'], scenarios: ['scenarios', '个场景'],
   collapse: ['Collapse all', '全部收起'], expand: ['Expand all', '全部展开'],
   send: ['Send to Claude', '发送给 Claude'], sent: ['Sent ✓', '已发送 ✓'],
-  linked: ['LINKED TO CLAUDE', '已连接 CLAUDE'], lost: ['LINK LOST', '连接断开'],
-  idle: ['UNLINKED', '未连接'],
-  idleTitle: ['This page is live, but no Claude session is waiting for it — what you send will sit here until one is.',
-              '页面是通的，但没有 Claude 会话在等待——发送的内容会一直留在这里，直到有会话接手。'],
   acLbl: ['Acceptance criteria', '验收标准'],
   noteLbl: ['Notes', '备注'],
   notePh: ['Anything worth remembering about this story…', '关于这个故事值得记下的内容…'],
@@ -1019,6 +1091,7 @@ const STR = {
   qpNeed: [n => `${n} waiting on an answer`, n => `${n} 条待回答`],
   qpAnswerPh: ['Type an answer…', '输入回答…'],
   qpOther: ['Something else…', '其他…'],
+  qpDismiss: ['Dismiss', '忽略'],
   vOpened: ['Opened', '打开'],
   vSent: ['Sent to Claude', '发送给 Claude'],
   vClaude: ['Claude’s update', 'Claude 的更新'],
@@ -1071,7 +1144,8 @@ let navSeq = 0;           // scrubbing outruns the fetches; only the last one wi
 const latest = () => versions.length ? versions[versions.length - 1].n : 1;
 const isHistory = () => viewing !== latest();
 const RO = () => isHistory();
-const ORIGIN = { opened: 'vOpened', sent: 'vSent', claude: 'vClaude' };
+// 'agent' is what json-bridge records now; 'claude' is the same thing in older trails.
+const ORIGIN = { opened: 'vOpened', sent: 'vSent', agent: 'vClaude', claude: 'vClaude' };
 
 async function refreshVersions () {
   if (!BRIDGE) return;
@@ -1225,18 +1299,6 @@ $('#tree').addEventListener('click', e => {
   const ei = +epicEl.dataset.e;
   const ep = doc.epics[ei];
 
-  /* theme toggle on a story */
-  const tog = e.target.closest('.tagtog');
-  if (tog) {
-    if (RO()) return;
-    const s = ep.stories[+tog.closest('.srow').dataset.i];
-    const name = doc.themes[+tog.dataset.thi];
-    s.themes ||= [];
-    s.themes = s.themes.includes(name) ? s.themes.filter(x => x !== name) : [...s.themes, name];
-    dirty(); e.stopPropagation(); render();
-    return;
-  }
-
   const btn = e.target.closest('[data-act]');
   if (!btn) return;
   const act = btn.dataset.act;
@@ -1249,7 +1311,7 @@ $('#tree').addEventListener('click', e => {
   const ci = crow ? +crow.dataset.c : null;
 
   /* deleting anything is two-step — the first click only arms */
-  if ((act === 'del' || act === 'delc' || act === 'delr' || act === 'edel') && !btn.classList.contains('armed')) {
+  if ((act === 'del' || act === 'delc' || act === 'edel') && !btn.classList.contains('armed')) {
     btn.classList.add('armed');
     btn.textContent = t('confirmDel');
     setTimeout(() => { btn.classList.remove('armed'); btn.textContent = '×'; }, 2600);
@@ -1367,7 +1429,7 @@ function renderQPanel () {
     return `<div class="item" data-jump="${esc(path)}">
         <div class="ih"><span class="n">?</span>
           <span class="kind">${esc(ctx)}</span>
-          <button class="ikill" title="Dismiss">×</button></div>
+          <button class="ikill" title="${esc(t('qpDismiss'))}">×</button></div>
         <div class="note2">${esc(n.text || '—')}</div>
         ${opts}${freeAns}
       </div>`;
@@ -1475,21 +1537,12 @@ VSScrub.mount({ onPick: gotoVersion });
 
 /* ── language — the switch is the shell's; this is what the spec does about it ── */
 VSShell.onLang(l => {
-  LANG = l;
+  LANG = l;                // the link dot is the shell's; it repaints itself
   if (!doc) return;        // the shell announces the language before boot loads one
-  renderLink(linkUp);
   if (pendingPush) offerRefresh();
   buildTimeline();
   render();
 });
-
-/* ── live link ── */
-let linkUp = false;
-function renderLink (up) {
-  linkUp = up;
-  VSShell.setLink(up, { on: t('linked'), off: t('lost'),
-    idle: t('idle'), idleTitle: t('idleTitle') }, BRIDGE ? BRIDGE.watching : undefined);
-}
 
 function offerRefresh () {
   $('#workText').textContent = t('refreshed');
@@ -1531,21 +1584,21 @@ $('#send').addEventListener('click', async () => {
 /* ── boot ── */
 (async function boot () {
   VSShell.init({ name: 'Spec', eyebrow: BRIDGE ? BRIDGE.name : '', send: true });
-  if (BRIDGE) renderLink(false); else VSShell.hideLink();
+  if (BRIDGE) VSShell.setLink(false, undefined, BRIDGE.watching); else VSShell.hideLink();
   if (BRIDGE) {
     try {
       doc = migrate(await (await fetch(`${BRIDGE.doc}?t=${BRIDGE.token}`)).json());
     } catch { doc = migrate(JSON.parse($('#fallback').textContent)); }
-    const es = new EventSource(`${BRIDGE.events}?t=${BRIDGE.token}`);
-    es.onopen = () => renderLink(true);
-    es.onerror = () => renderLink(false);
-    // Who is listening, said by the server rather than guessed from the socket.
-    es.addEventListener('presence', ev => {
-      try { VSShell.setWatching(JSON.parse(ev.data).watching) } catch {}
-    });
-    es.addEventListener('push', ev => {
-      try { pendingPush = JSON.parse(ev.data) } catch { return }
-      offerRefresh();
+    // The shell owns the socket and the dot — including `presence`; the page
+    // only hears about its own `push`.
+    VSShell.connect({
+      url: `${BRIDGE.events}?t=${BRIDGE.token}`,
+      on: {
+        push: ev => {
+          try { pendingPush = JSON.parse(ev.data) } catch { return }
+          offerRefresh();
+        },
+      },
     });
   } else {
     doc = migrate(JSON.parse($('#fallback').textContent));

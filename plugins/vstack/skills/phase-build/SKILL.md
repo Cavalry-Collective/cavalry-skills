@@ -61,20 +61,16 @@ node "$LIB/json-bridge.mjs" serve --json "$DOC" --template "$SKILL/assets/build-
 ```
 
 `--idle-timeout 0` because the link must survive the whole build. Start with
-**`run_in_background: true`**, hand over the printed URL, then arm the seq waiter
-(the **Monitor tool**, `persistent: true` — carry the printed seq forward):
+**`run_in_background: true`**, hand over the printed URL, then arm the seq waiter:
 
 ```bash
-node "$VSTACK/lib/json-bridge.mjs" watch --json .vstack/build/phase-<n>.json --stream --tool phase-build \
+node "$LIB/json-bridge.mjs" watch --json .vstack/build/phase-<n>.json --stream --tool phase-build \
   --seq <seq printed when the server started>
 ```
 
-Start it with the **Monitor tool, `persistent: true`**. It never exits — each line is one event
-(`SENT`, `APPROVED`, `CLOSED`), so there is nothing to re-arm after a round, which is the step that
-gets forgotten and leaves a page nobody is reading.
-
-While it runs the board says **Linked to Claude**; with no watcher it says **Unlinked**, in amber, so
-the user can see that a Send would sit there unread.
+Start it with the **Monitor tool, `persistent: true`**. How the loop behaves — it never exits, one
+event per line, the Linked/Unlinked states, the idle close — is
+[`contracts/bridge-loop.md`](../../contracts/bridge-loop.md).
 
 On `SENT`, read the JSON. A plain save is a **plan adjustment** — take it as the new plan and carry on.
 A save carrying `"action": "start"` is the user pressing **Start**: remove the `action` key, write
@@ -109,10 +105,9 @@ Leave every node's final `status` in the JSON — it's the build record.
 
 ## Notes
 
-- The top bar, palette and controls are stamped in from `lib/shell/` — shared with every other
-  vstack page. Change them there and re-stamp, never in the board.
 - **Never edit `assets/build-board.html` or `lib/json-bridge.mjs`** to fit a project — they're the
-  engine. Only the plan JSON is yours.
+  engine; only the plan JSON is yours. The shell chrome is stamped in from `lib/shell/` — see
+  `lib/shell/README.md`.
 - The bridge binds `127.0.0.1`. Port busy → another board is up; pass `--port`.
 - **Works beside any other tooling, in any codebase.** This skill scaffolds nothing, installs
   nothing, adds no hooks or config, and touches only the files its plan nodes call for. It never

@@ -3,13 +3,13 @@
  * json-bridge.mjs — the shared live link for vstack's JSON-document pages.
  *
  * One JSON file is the artifact; a self-contained page edits it. This bridge
- * connects the two to a Claude session in both directions:
+ * connects the two to an agent session in both directions:
  *
  *   page → session   POST /save writes the JSON and bumps a seq counter; a
  *                    background waiter in the session watches the counter and
- *                    wakes Claude when it moves.
- *   session → page   Claude rewrites the JSON (directly, or with `patch`); a
- *                    1s stat+hash poll pushes the whole document over SSE.
+ *                    wakes the agent when it moves.
+ *   session → page   the agent rewrites the JSON (directly, or with `patch`);
+ *                    a 1s stat+hash poll pushes the whole document over SSE.
  *                    The page's own save never echoes back (hash guard).
  *
  * Generalized from the story map's bridge.py — same seq/url files, same idle
@@ -17,32 +17,36 @@
  * share one engine instead of growing a third and fourth copy.
  *
  *   node json-bridge.mjs serve --json <doc.json> --template <page.html>
- *        [--port 0] [--idle-timeout 90] [--name <label>] [--tool <skill>]
+ *        [--port 0] [--idle-timeout 90] [--name <label>] [--tool <skill>] [--host <id>]
  *   node json-bridge.mjs patch --json <doc.json> --id <nodeId> --set k=v [--set k=v ...]
- *   node json-bridge.mjs watch --json <doc.json> [--seq <n>]   (blocks; heartbeats presence)
+ *   node json-bridge.mjs watch --json <doc.json> --tool <skill> [--seq <n>] [--stream]
+ *        (blocks; heartbeats presence)
  *
  * `--tool` names the calling skill — `spec`, `user-story-map`, `phase-build` —
  * and picks the working directory. Pass the same one to every command for a
  * document; `watch` will find another tool's files rather than hang, but the
  * skills should not rely on that.
  *
- * serve injects `window.__VSTACK_BRIDGE__ = {token, doc, save, events, history,
- * name}` ahead of the template; opened off disk the template sees no handle and
- * works standalone. Every version the document passes through is kept beside it,
+ * serve injects `window.__VSTACK_BRIDGE__ = {token, name, doc, save, events,
+ * history, approve, watching}` ahead of the template — and the host profile as
+ * `window.__VSTACK_HOST__` (contracts/host.md, selected by --host / VSTACK_HOST)
+ * so the page never hardcodes a product name. Opened off disk the template sees
+ * no handle and works standalone. Every version the document passes through is kept beside it,
  * so a reload doesn't lose the trail:
  *
  *   GET /history      the index — [{n, origin, at}], oldest first
  *   GET /history/<n>  that version's document
  *
  * `origin` is who moved it: `opened` (the state the link started in), `sent`
- * (the page pressed Send) or `claude` (the session rewrote the file). The page
- * labels them; the server only records what happened.
+ * (the page pressed Send) or `agent` (the session rewrote the file; readers
+ * accept legacy `claude`). The page labels them; the server only records what
+ * happened.
  *
  * Bookkeeping lives in <json-dir>/.vstack/local/<tool>/<stem>.{seq,url} and
  * <stem>.history/ — or, when the document is already under a `.vstack`
  * directory (the spec tree writes `.vstack/specs/`), under that one's `local/`.
  * Watching, from the skill instructions — one line of stdout per event, run
- * under the Monitor tool so it never has to be restarted:
+ * under the host's stream watcher so it never has to be restarted:
  *
  *   node json-bridge.mjs watch --json <doc.json> --stream --seq <printed seq>
  */
@@ -53,7 +57,9 @@ import http from 'node:http'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { checkForUpdate, withUpdate } from './update-check.mjs'
+import { loadHost, resolveHostId, withHost } from './host.mjs'
 import { workDir, findWorkDir, TOOL } from './workdir.mjs'
+import { writeAtomic, watchingRecently, startHeartbeat, startPresence } from './live-link.mjs'
 
 const argv = process.argv.slice(2)
 const cmd = argv[0] && !argv[0].startsWith('--') ? argv.shift() : 'serve'
@@ -66,16 +72,17 @@ const DOC = path.resolve(JSON_PATH)
 
 /* Which skill this document belongs to — it names the working directory, so
    `serve` and `watch` on the same document must be told the same thing. Pass
-   one of the TOOL values; a document opened outside a skill gets `documents`. */
+   one of the TOOL values; a document opened outside a skill gets `documents`.
+   A typo here would silently grow a fresh directory and a link that does
+   nothing (workdir.mjs calls that the worst failure this design allows), so an
+   unknown name is refused instead. */
 const TOOL_ID = arg('--tool', TOOL.documents)
+if (!Object.values(TOOL).includes(TOOL_ID)) {
+  console.error(`unknown --tool "${TOOL_ID}" — one of: ${Object.values(TOOL).join(', ')}`)
+  process.exit(2)
+}
 
 const sha = s => crypto.createHash('sha256').update(s).digest('hex')
-
-function writeAtomic (file, text) {
-  const tmp = file + '.tmp-' + process.pid
-  fs.writeFileSync(tmp, text)
-  fs.renameSync(tmp, file)
-}
 
 /* ── patch — set fields on a node found by id, anywhere in the tree ── */
 if (cmd === 'patch') {
@@ -120,15 +127,11 @@ if (cmd === 'watch') {
   }
   const readSeq = () => { try { return fs.readFileSync(F.seq, 'utf8').trim() } catch { return '0' } }
   const from = arg('--seq', null) ?? readSeq()
-  const beat = setInterval(() => {
-    try { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(F.watching, String(Date.now())) } catch {}
-  }, 2000)
-  const stop = () => { clearInterval(beat); fs.rmSync(F.watching, { force: true }) }
+  const { stop } = startHeartbeat(() => [F.watching])
   process.on('SIGINT', () => { stop(); process.exit(130) })
   process.on('SIGTERM', () => { stop(); process.exit(143) })
-  try { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(F.watching, String(Date.now())) } catch {}
   /* --stream never exits: one line of stdout is one event, which is the shape
-     the Monitor tool consumes and the shape every other file watcher has. The
+     a stream watcher consumes and the shape every other file watcher has. The
      one-shot form below has to exit to be heard, which makes re-arming a step
      someone has to remember — and it gets forgotten. */
   const streaming = argv.includes('--stream')
@@ -174,15 +177,10 @@ const URL_FILE = path.join(BRIDGE_DIR, STEM + '.url')
    the link is over. A sentinel rather than a status inside the document,
    because it is a statement about the round, not about the map. */
 const APPROVED_FILE = path.join(BRIDGE_DIR, STEM + '.approved')
-/* Touched every couple of seconds by `watch`, deleted when it stops. A
-   heartbeat rather than a flag, because the waiter can be killed without a
-   chance to tidy up, and a stale marker claiming someone is listening is worse
-   than no marker at all. */
+/* Touched by `watch` while it runs, deleted when it stops — the heartbeat
+   protocol in lib/live-link.mjs. */
 const WATCH_FILE = path.join(BRIDGE_DIR, STEM + '.watching')
-const WATCH_STALE_MS = 15000
-const someoneWatching = () => {
-  try { return Date.now() - fs.statSync(WATCH_FILE).mtimeMs < WATCH_STALE_MS } catch { return false }
-}
+const someoneWatching = () => watchingRecently(WATCH_FILE)
 const HIST_DIR = path.join(BRIDGE_DIR, STEM + '.history')
 const HIST_INDEX = path.join(HIST_DIR, 'index.json')
 fs.mkdirSync(BRIDGE_DIR, { recursive: true })
@@ -218,6 +216,14 @@ const clients = new Set()
 let everConnected = false
 let idleSince = Date.now()
 
+/* Host profile for UI injection — the page's link dot says who is listening,
+   so the name has to come from here, not from the template. */
+let HOST = null
+try { HOST = loadHost(resolveHostId({ host: arg('--host', null) })) } catch (e) {
+  console.error(e.message)
+  process.exit(2)
+}
+
 /* Answered once at startup — see lib/update-check.mjs. */
 let update = null
 
@@ -230,7 +236,7 @@ function page () {
   const doc = /^\s*<!doctype/i.test(body)
     ? body.replace(/(<head[^>]*>)/i, `$1\n${handle}`)
     : `<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n${handle}${body}`
-  return withUpdate(doc, update)
+  return withUpdate(withHost(doc, HOST), update)
 }
 
 const send = (res, code, type, body) => {
@@ -292,7 +298,7 @@ const server = http.createServer((req, res) => {
   /**
    * Sign-off. The document is settled: write the verdict, bump the seq so the
    * session's waiter wakes on it, then close — the same exit that means "tab
-   * closed" now carries a reason, and Claude carries on with the map agreed.
+   * closed" now carries a reason, and the agent carries on with the map agreed.
    */
   if (req.method === 'POST' && url.pathname === '/approve') {
     if (!okToken(url) && !okHeader(req)) return send(res, 403, 'application/json', '{"error":"bad token"}')
@@ -340,23 +346,16 @@ setInterval(() => {
   if (h === lastHash || h === fromPage) { lastHash = h; return }
   lastHash = h
   try { JSON.parse(text) } catch { return }        // mid-write or invalid — next tick catches it
-  const v = record('claude', text)
+  const v = record('agent', text)
   const payload = 'event: push\ndata: ' + text.replace(/\n/g, '\ndata: ') + '\n\n'
   for (const c of clients) c.write(payload)
   console.log(`pushed v${v.n} to ${clients.size} client(s)`)
 }, 1000)
 
 /* keepalive — SSE clients are the only tab-alive signal we have. It carries the
-   presence of a waiting Claude session too: the page's link dot should say who
+   presence of a waiting agent session too: the page's link dot should say who
    is listening, not merely that this server answered. */
-let lastPresence = null
-setInterval(() => {
-  const now = someoneWatching()
-  const line = now === lastPresence ? ': keepalive\n\n'
-    : `event: presence\ndata: ${JSON.stringify({ watching: now })}\n\n`
-  lastPresence = now
-  for (const c of clients) c.write(line)
-}, 3000)
+startPresence(clients, someoneWatching, { keepalive: true })
 
 /* idle watchdog — the tab closing is how a session knows the link ended */
 if (IDLE > 0) {
@@ -381,7 +380,7 @@ server.on('error', e => {
   process.exit(2)
 })
 
-checkForUpdate().then(u => { update = u }).catch(() => {})
+checkForUpdate(HOST).then(u => { update = u }).catch(() => {})
 
 server.listen(PORT, '127.0.0.1', () => {
   const url = `http://127.0.0.1:${server.address().port}/?t=${TOKEN}`

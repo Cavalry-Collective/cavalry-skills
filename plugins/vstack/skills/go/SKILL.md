@@ -77,5 +77,5 @@ and don't run anything until the user picks.
 - A dirty tree, a half-finished stage, or artifacts newer than `history` are worth mentioning in the
   position report — `stage` records the last *completed* stage, and "started and abandoned" is
   invisible to it.
-- For a true bare `/vstack` (no `:go`), the README documents copying this skill to
-  `~/.claude/skills/vstack/` — plugin skills are always namespaced, personal skills aren't.
+- For a true bare `/vstack` (no `:go`), copy this skill's directory to `~/.claude/skills/vstack/` —
+  plugin skills are always namespaced, personal skills aren't.

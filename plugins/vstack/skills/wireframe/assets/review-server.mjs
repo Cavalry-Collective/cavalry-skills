@@ -63,8 +63,9 @@ import path from 'node:path'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { checkForUpdate, withUpdate } from '../../../lib/update-check.mjs'
-import { resolveHostId, loadHost, withHost, AGENT_ROLE } from '../../../lib/host.mjs'
+import { resolveHostId, loadHost, withHost, AGENT_ROLE, REVIEWER_ROLE } from '../../../lib/host.mjs'
 import { workDir, LOCAL, TOOL } from '../../../lib/workdir.mjs'
+import { writeAtomic, watchingRecently, startHeartbeat, startPresence } from '../../../lib/live-link.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
@@ -160,23 +161,16 @@ const P = {
   approved: () => path.join(STORE, 'approved'),
   share: () => path.join(STORE, 'share'),
   url: () => path.join(STORE, 'url'),
-  /* Touched every couple of seconds by `watch`, deleted when it stops. A
-     heartbeat rather than a flag, because the thing that waits can be killed
-     without getting a chance to tidy up — and a stale marker claiming someone
-     is listening is worse than no marker at all. */
+  /* Touched by `watch` while it runs, deleted when it stops — the heartbeat
+     protocol in lib/live-link.mjs. */
   watching: () => path.join(STORE, 'watching'),
 }
-const WATCH_STALE_MS = 15000
-const someoneWatching = () => {
-  try { return Date.now() - fs.statSync(P.watching()).mtimeMs < WATCH_STALE_MS } catch { return false }
-}
+const someoneWatching = () => watchingRecently(P.watching())
 
 const readJSON = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')) } catch { return d } }
 const writeJSON = (f, v) => {
   fs.mkdirSync(path.dirname(f), { recursive: true })
-  const tmp = `${f}.tmp-${process.pid}`
-  fs.writeFileSync(tmp, JSON.stringify(v, null, 2) + '\n')
-  fs.renameSync(tmp, f)
+  writeAtomic(f, JSON.stringify(v, null, 2) + '\n')
 }
 
 let heldLock = null
@@ -774,7 +768,7 @@ function repliesIn (store) {
   try { vs = fs.readdirSync(path.join(store, 'reviews')) } catch { return out }
   for (const v of vs) {
     for (const a of readJSON(path.join(store, 'reviews', v, 'annotations.json'))?.annotations || []) {
-      const mine = (a.replies || []).filter(r => r.by === 'reviewer')
+      const mine = (a.replies || []).filter(r => r.by === REVIEWER_ROLE)
       if (mine.length) out.set(`${v}/${a.id}`, { n: mine.length, last: mine.at(-1)?.text || '' })
     }
   }
@@ -802,19 +796,12 @@ async function cmdWatch () {
   }
 
   const label = store => path.basename(store)
-  const beatAll = () => {
-    for (const store of stores) {
-      try { fs.mkdirSync(store, { recursive: true }); fs.writeFileSync(inStore(store, 'watching'), String(Date.now())) } catch {}
-    }
-  }
-  const stop = () => {
-    clearInterval(beat)
-    for (const store of stores) fs.rmSync(inStore(store, 'watching'), { force: true })
-  }
-  const beat = setInterval(beatAll, 2000)
+  // `stores` shrinks as reviews close; the heartbeat re-reads it every beat.
+  const hb = startHeartbeat(() => stores.map(store => inStore(store, 'watching')))
+  const beatAll = hb.beat
+  const stop = hb.stop
   process.on('SIGINT', () => { stop(); process.exit(130) })
   process.on('SIGTERM', () => { stop(); process.exit(143) })
-  beatAll()
   touch()   // the page hears about it straight away
 
   if (args.stream === true || args.stream === 'true') {
@@ -890,14 +877,7 @@ const clients = new Set()
 let reloadTimer = null
 /* Only when it changes — a heartbeat file ticking every two seconds is not
    worth a message every two seconds. */
-let lastPresence = null
-setInterval(() => {
-  const now = someoneWatching()
-  if (now === lastPresence) return
-  lastPresence = now
-  const line = `event: presence\ndata: ${JSON.stringify({ watching: now })}\n\n`
-  for (const c of clients) { try { c.write(line) } catch {} }
-}, 3000).unref?.()
+startPresence(clients, someoneWatching).unref?.()
 /* Set once the server is listening, so a request handler can end the review. */
 let closeServer = null
 /* Live-page bookkeeping, so the server can close itself when the tab does. */
@@ -1514,7 +1494,7 @@ async function cmdServe () {
 }
 
 switch (args._) {
-  case 'publish': case 'snapshot': withStoreLock(() => cmdPublish()); break
+  case 'publish': withStoreLock(() => cmdPublish()); break
   case 'claim': withStoreLock(cmdClaim); break
   case 'reply': withStoreLock(cmdReply); break
   case 'cancelled': withStoreLock(cmdCancelled); break

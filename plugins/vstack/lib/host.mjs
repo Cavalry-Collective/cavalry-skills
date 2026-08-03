@@ -9,6 +9,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { injectHead } from './live-link.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const HOSTS_DIR = path.join(HERE, '..', 'hosts')
@@ -52,29 +53,18 @@ export function listHosts () {
   }
 }
 
-/** Inline script tag for a served page. Empty string if no profile. */
-export function hostScript (profile) {
-  if (!profile) return ''
-  return `<script>window.__VSTACK_HOST__=${JSON.stringify(profile)}</script>\n`
-}
-
 /**
  * Put the host handle into HTML the same way withUpdate does for updates.
  * @param {string} html
  * @param {object} profile
  */
 export function withHost (html, profile) {
-  const tag = hostScript(profile)
-  if (!tag) return html
-  return /<head[^>]*>/i.test(html)
-    ? html.replace(/<head[^>]*>/i, m => m + '\n' + tag)
-    : tag + html
+  if (!profile) return html
+  return injectHead(html, `<script>window.__VSTACK_HOST__=${JSON.stringify(profile)}</script>\n`)
 }
 
-/** Thread role: writers use "agent"; readers accept legacy "claude". */
-export function isAgentRole (by) {
-  return by === 'agent' || by === 'claude'
-}
-
+/* Thread roles. Writers use these; readers additionally accept legacy "claude"
+   where "agent" is meant — the self-contained pages carry that tolerance
+   themselves, since they cannot import this file. */
 export const AGENT_ROLE = 'agent'
 export const REVIEWER_ROLE = 'reviewer'

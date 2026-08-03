@@ -33,6 +33,7 @@ import { fileURLToPath } from 'node:url'
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const SHELL = path.join(HERE, 'shell')
 const SKILLS = path.join(HERE, '..', 'skills')
+const ROOT = path.join(HERE, '..', '..', '..')
 
 /* Every page that wears the shell. Adding one here is the whole registration. */
 const PAGES = [
@@ -41,7 +42,11 @@ const PAGES = [
   'phase-build/assets/build-board.html',
   'user-story-map/assets/story-map-template.html',
   'start/assets/chooser.html',
-].map(p => path.join(SKILLS, p))
+].map(p => path.join(SKILLS, p)).concat([
+  // The README's worked example carries the shell too — registered, so `check`
+  // catches it drifting instead of letting it rot quietly.
+  path.join(ROOT, 'examples', 'shopping-checkout.html'),
+])
 
 const read = f => fs.readFileSync(f, 'utf8')
 

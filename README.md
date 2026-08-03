@@ -66,6 +66,12 @@ Use the whole sequence or enter at the stage that matches the work in front of y
 for full development setup. It can also create a specs-and-design workspace or connect an existing
 codebase without restructuring it.
 
+### Set up the project
+
+![The setup form: what is being built, with the stack recommended from the answers](docs/screens/start.png)
+
+Answer a short form and the stack recommendation follows. Confirm it and the workspace is created.
+
 ### Review the design
 
 ![A comment opened directly on the page under review](docs/screens/wireframe.png)
@@ -90,7 +96,7 @@ Open at the headlines, inspect what matters, and remove what the product does no
 
 Move a story between phases or activities and Claude replans around the new release boundary.
 
-[Open the story-map example](examples/shopping-checkout.html).
+Download [the story-map example](examples/shopping-checkout.html) and open it locally in a browser.
 
 ### See each phase before building it
 

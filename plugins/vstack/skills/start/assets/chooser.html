@@ -65,7 +65,6 @@
   :root[data-theme="dark"]{--keep:#2fb89b;--cut:#8b8e97}
 
   *{box-sizing:border-box}
-  [hidden]{display:none!important}
   body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);
     font:13px/1.5 var(--font);-webkit-font-smoothing:antialiased}
   button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
@@ -211,6 +210,12 @@
 .banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
 .banner.good .tick{color:var(--ok);font-weight:700}
 
+/* the toast — VSShell.toast(); one element, appended on first use */
+.vs-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  background:var(--ink);color:var(--surface);padding:8px 14px;border-radius:8px;
+  font-size:12.5px;box-shadow:var(--shadow-pop);opacity:0;pointer-events:none;transition:opacity .25s}
+.vs-toast.on{opacity:1}
+
 /* ── "there is a newer one" ──
    One line under the bar, in the workmanlike amber the WIP tag uses: it is
    information, not an alarm, and it goes away for good on ×. */
@@ -324,12 +329,14 @@
   /* ── step panels ── */
   .panel{display:none}
   .panel.on{display:block}
-  .btn{border-radius:8px;padding:.55rem .9rem;font-weight:650;font-size:.85rem;
+  /* Scoped to the page's own containers: a bare .btn here would also restyle
+     the shell's buttons in the bar, which must keep shell metrics. */
+  .wrap .btn,#done .btn{border-radius:8px;padding:.55rem .9rem;font-weight:650;font-size:.85rem;
     display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--line-2);background:var(--surface)}
-  .btn:hover{background:var(--surface-2)}
-  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
-  .btn.primary:hover{background:color-mix(in srgb,var(--brand) 88%,#000)}
-  .btn[disabled]{opacity:.4;pointer-events:none}
+  .wrap .btn:hover,#done .btn:hover{background:var(--surface-2)}
+  .wrap .btn.primary,#done .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .wrap .btn.primary:hover,#done .btn.primary:hover{background:color-mix(in srgb,var(--brand) 88%,#000)}
+  .wrap .btn[disabled],#done .btn[disabled]{opacity:.4;pointer-events:none}
 
   /* ── confirm ── */
   .sum{background:var(--surface);border:1px solid var(--line-2);border-radius:var(--radius);
@@ -607,6 +614,7 @@ window.VSShell = (function () {
       b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
     });
     langListeners.forEach(fn => { try { fn(lang) } catch {} });
+    paintLink();
   }
   function setLang (next) {
     lang = next === 'zh' ? 'zh' : 'en';
@@ -619,8 +627,23 @@ window.VSShell = (function () {
      is waiting to read what you send" are different facts, and only the second
      is the one anyone actually wants to know. `watching` undefined means the
      page has no way to tell, and the dot behaves as it always did. Host name
-     comes from window.__VSTACK_HOST__ (contracts/host.md). */
+     comes from window.__VSTACK_HOST__ (contracts/host.md), so no page bakes a
+     product name in; the words live here, in both languages, so no page
+     repeats them either. A page with something more specific to say passes
+     `labels` to setLink and only those keys win. */
   let linked = null, linkLabels = null, watching;
+  function linkWords () {
+    const agent = window.__VSTACK_HOST__?.name || 'agent';
+    return lang === 'zh' ? {
+      on: `已连接 ${agent}`, off: '连接已断开', idle: '未连接',
+      idleTitle: `页面是通的，但没有 ${agent} 会话在等待——发送的内容会一直留在这里，直到有会话接手。`,
+      offTitle: `${agent} 会话已不再提供此页面——你写的内容只保存在这个标签页里。`,
+    } : {
+      on: `LINKED TO ${String(agent).toUpperCase()}`, off: 'LINK LOST', idle: 'UNLINKED',
+      idleTitle: `This page is live, but no ${agent} session is waiting for it — what you send will sit here until one is.`,
+      offTitle: `The ${agent} session is no longer serving this page — anything you write stays in this tab.`,
+    };
+  }
   function paintLink () {
     const el = $('#linkDot');
     if (!el || linked === null) return;
@@ -628,12 +651,12 @@ window.VSShell = (function () {
     const idle = linked && watching === false;
     el.classList.toggle('on', linked && !idle);
     el.classList.toggle('idle', !!idle);
-    const agent = window.__VSTACK_HOST__?.name || 'agent';
-    el.textContent = !linked ? (linkLabels?.off ?? 'LINK LOST')
-      : idle ? (linkLabels?.idle ?? 'UNLINKED')
-      : (linkLabels?.on ?? `LINKED TO ${String(agent).toUpperCase()}`);
-    el.title = !linked ? (linkLabels?.offTitle ?? '')
-      : idle ? (linkLabels?.idleTitle ?? '') : '';
+    const words = linkWords();
+    el.textContent = !linked ? (linkLabels?.off ?? words.off)
+      : idle ? (linkLabels?.idle ?? words.idle)
+      : (linkLabels?.on ?? words.on);
+    el.title = !linked ? (linkLabels?.offTitle ?? words.offTitle)
+      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '';
   }
   function setLink (up, labels, isWatching) {
     linked = !!up;
@@ -648,6 +671,65 @@ window.VSShell = (function () {
     paintLink();
   }
   const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  /* ── one live-link client, instead of one per page ──
+     Wires the dot to a server: SSE when the page has an event stream, a plain
+     poll for a server that only answers /ping. Either way the shell owns the
+     socket-to-dot translation and the page only hears about its own events.
+
+       VSShell.connect({ url, on: { push: ev => apply(ev) }, onLink })
+       VSShell.connect({ poll: '/ping', onLink })
+
+     SSE reconnects on its own, so the dot only ever reports what is true right
+     now. `presence` — who is listening, said by the server rather than guessed
+     from the socket — is handled here; every other event is the page's. */
+  function connect (opts = {}) {
+    const say = up => { setLink(up); try { opts.onLink?.(up) } catch {} };
+    if (opts.poll) {
+      const tick = async () => {
+        try { const r = await fetch(opts.poll, { cache: 'no-store' }); say(r.ok) }
+        catch { say(false) }
+      };
+      tick();
+      const timer = setInterval(tick, opts.interval || 5000);
+      return { stop: () => clearInterval(timer) };
+    }
+    const es = new EventSource(opts.url);
+    es.onopen = () => say(true);
+    es.onerror = () => say(false);
+    es.addEventListener('presence', ev => {
+      try { setWatching(JSON.parse(ev.data).watching) } catch {}
+    });
+    for (const [name, fn] of Object.entries(opts.on || {})) es.addEventListener(name, fn);
+    return { stop: () => es.close(), source: es };
+  }
+
+  /* ── a toast: the page saying "done" without stopping anyone ── */
+  let toastTimer = null;
+  function toast (msg, ms = 2200) {
+    let el = document.querySelector('.vs-toast');
+    if (!el) { el = document.createElement('div'); el.className = 'vs-toast'; document.body.appendChild(el) }
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('on'), ms);
+  }
+
+  /* ── two-step confirm on one button ──
+     First press arms it (class `armed`, plus whatever `arm` repaints); a second
+     press inside the window fires; the window closing quietly disarms. The
+     page styles `armed` and words the button — this owns only the dance. */
+  function armConfirm (btn, { onConfirm, arm, disarm, ms = 4000 } = {}) {
+    let timer = null;
+    const reset = () => { timer = null; btn.classList.remove('armed'); try { disarm?.() } catch {} };
+    btn.addEventListener('click', () => {
+      if (timer) { clearTimeout(timer); reset(); onConfirm(); return }
+      btn.classList.add('armed');
+      try { arm?.() } catch {}
+      timer = setTimeout(reset, ms);
+    });
+    return { armed: () => timer !== null, disarm: () => { if (timer) { clearTimeout(timer); reset() } } };
+  }
 
   function name (pageName, eyebrow) {
     const n = $('#pageName'); const e = $('#pageEyebrow');
@@ -732,6 +814,7 @@ window.VSShell = (function () {
 
   const api = {
     init, setTheme, setLang, setLink, setWatching, hideLink, name, wip,
+    connect, toast, armConfirm, esc,
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
@@ -753,7 +836,7 @@ window.VSShell = (function () {
    remember to. */
 window.VSScrub = (function () {
   const $ = s => document.querySelector(s);
-  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = s => window.VSShell.esc(s ?? '');
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
   let items = [];
@@ -831,6 +914,8 @@ window.VSScrub = (function () {
       paint();
       return api;
     },
+    /** Move one stop back or forward — what arrow keys and the ‹ › buttons do. */
+    step,
     get active () { return active },
     get items () { return items },
   };
@@ -854,6 +939,10 @@ const EXISTING = DATA.mode === 'existing';
 let LANG = VSShell.lang;   // the shell owns the choice; every page shares it
 const tt = pair => Array.isArray(pair) ? pair[LANG === 'zh' ? 1 : 0] : pair;
 
+/* Whoever is serving this page — Claude, Codex, … — injected by the server
+   (contracts/host.md), so no product name is baked into the strings below. */
+const AGENT = window.__VSTACK_HOST__?.name || 'Claude';
+
 const STR = {
   title:      ['Set up the project', '设置项目'],
   stepWhat:   ['What', '类型'],
@@ -875,7 +964,7 @@ const STR = {
   lDetected:  ['What this project is already built with', '这个项目现在用的技术'],
   lDetectedHint: ['correct anything that’s wrong', '有错请直接改'],
   continue:   ['Continue', '继续'], back: ['Back', '返回'],
-  send:       ['Send to Claude', '发送给 Claude'],
+  send:       [`Send to ${AGENT}`, `发送给 ${AGENT}`],
   skip:       ['Skip (UI & specs only)', '跳过（只要 UI 和规格）'],
   skipTitle:  ['Skip development setup — only UI and specs', '跳过开发配置——只要 UI 和规格'],
   retry:      ['Try again', '重试'],
@@ -899,17 +988,16 @@ const STR = {
   vNever: ['scaffolds or deletes existing code', '改动或删除现有代码'],
   vSkips: ['template clone, stack, toolchain — run /vstack:start again to add them later',
            '模板克隆、技术栈、工具链——以后再跑 /vstack:start 补上'],
-  linked: ['LINKED TO CLAUDE', '已连接 CLAUDE'], linkLost: ['LINK LOST', '连接断开'],
-  sending: ['Sending to Claude…', '正在发送给 Claude…'],
+  sending: [`Sending to ${AGENT}…`, `正在发送给 ${AGENT}…`],
   sendingBody: ['Hold on — handing your answers over.', '稍等——正在提交你的答案。'],
-  sent: ['Sent to Claude', '已发送给 Claude'],
-  sentBody: ['Claude is setting the project up now. You can close this tab.',
-             'Claude 正在设置项目。可以关闭此标签页。'],
-  sentBodySkip: ['Claude is setting up the specs-and-design workspace now. You can close this tab.',
-                 'Claude 正在创建规格与设计工作区。可以关闭此标签页。'],
-  sentBodyExisting: ['Claude is recording the project now — nothing in your code will change. You can close this tab.',
-                     'Claude 正在记录项目——不会改动你的代码。可以关闭此标签页。'],
-  failed: ['Claude isn’t answering', 'Claude 没有回应'],
+  sent: [`Sent to ${AGENT}`, `已发送给 ${AGENT}`],
+  sentBody: [`${AGENT} is setting the project up now. You can close this tab.`,
+             `${AGENT} 正在设置项目。可以关闭此标签页。`],
+  sentBodySkip: [`${AGENT} is setting up the specs-and-design workspace now. You can close this tab.`,
+                 `${AGENT} 正在创建规格与设计工作区。可以关闭此标签页。`],
+  sentBodyExisting: [`${AGENT} is recording the project now — nothing in your code will change. You can close this tab.`,
+                     `${AGENT} 正在记录项目——不会改动你的代码。可以关闭此标签页。`],
+  failed: [`${AGENT} isn’t answering`, `${AGENT} 没有回应`],
   failedBody: ['The setup server didn’t respond. If it’s no longer running, re-run /vstack:start — your answers here are kept until you close the tab.',
                '设置服务没有响应。如果它已停止，请重新运行 /vstack:start——关闭标签页前你的答案会保留。'],
 };
@@ -1186,7 +1274,6 @@ function applyChrome () {
   $('#skipDev').title = t('skipTitle');
   $('#doneRetry').textContent = t('retry');
   $('#cartTitle').textContent = t('cartTitle');
-  renderLink(linkUp);
   if (donePhase) showDone(donePhase);
 }
 
@@ -1203,19 +1290,10 @@ function setLang (l) {
   renderCart();
 }
 
-/* ── the link tell — is Claude still listening? ── */
-let linkUp = false;
-function renderLink (up) {
-  linkUp = up;
-  VSShell.setLink(up, { on: t('linked'), off: t('linkLost') });
-}
-async function pollLink () {
-  try {
-    const r = await fetch('/ping', { cache: 'no-store' });
-    renderLink(r.ok || r.status === 204);
-  } catch { renderLink(false); }
-  if (donePhase !== 'sent') setTimeout(pollLink, 5000);
-}
+/* ── the link tell — is the agent still listening? ── */
+/* The shell polls and paints the dot, labels and all — bilingual, named after
+   the serving host. The page only stops the poll once the answers are sent. */
+const link = VSShell.connect({ poll: '/ping' });
 
 /* ── events ── */
 $('#building').innerHTML = BUILDING.map(b => card(b, 'building')).join('');
@@ -1275,7 +1353,7 @@ document.addEventListener('click', e => {
   }
 });
 
-/* ── submit — always straight to Claude, like the wireframe's Send ── */
+/* ── submit — always straight to the agent, like the wireframe's Send ── */
 function showDone (phase) {
   donePhase = phase;
   const icon = $('#doneIcon'), title = $('#doneTitle'), body = $('#doneBody');
@@ -1285,6 +1363,7 @@ function showDone (phase) {
     title.textContent = t('sending');
     body.textContent = t('sendingBody');
   } else if (phase === 'sent') {
+    link.stop();   // answered — no need to keep asking if anyone is listening
     icon.innerHTML = '<div class="tick">✓</div>';
     title.textContent = t('sent');
     body.textContent = EXISTING ? t('sentBodyExisting') : state.skipDev ? t('sentBodySkip') : t('sentBody');
@@ -1329,10 +1408,9 @@ async function submit () {
 
 $('#doneRetry').addEventListener('click', () => submit());
 
-/* ── boot: chrome text, link poll, prefill ── */
+/* ── boot: chrome text, prefill ── */
 VSShell.init({ name: 'Start' });
 applyChrome();
-pollLink();
 
 (function applyPrefill () {
   const p = DATA.prefill;

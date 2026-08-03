@@ -35,6 +35,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { injectHead } from './live-link.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const MANIFEST = path.join(HERE, '..', '.claude-plugin', 'plugin.json')
@@ -51,13 +52,13 @@ const readJSON = f => { try { return JSON.parse(fs.readFileSync(f, 'utf8')) } ca
 const short = sha => String(sha || '').slice(0, 7)
 
 /** Whatever plugin.json still declares — normally nothing, by design. */
-export const manifestVersion = () => readJSON(MANIFEST)?.version || null
+const manifestVersion = () => readJSON(MANIFEST)?.version || null
 
 /**
  * The installed copy this file belongs to, as Claude Code recorded it: the
  * entry whose installPath contains us. Null when running from a clone.
  */
-export function installedCopy () {
+function installedCopy () {
   const all = readJSON(INSTALLS)?.plugins
   if (!all) return null
   for (const [id, entries] of Object.entries(all)) {
@@ -72,7 +73,7 @@ export function installedCopy () {
 }
 
 /** 4.10.0 is newer than 4.9.3 — compare numbers, not strings. */
-export function isNewer (a, b) {
+function isNewer (a, b) {
   const parts = v => String(v).split('-')[0].split('.').map(n => parseInt(n, 10) || 0)
   const [x, y] = [parts(a), parts(b)]
   for (let i = 0; i < Math.max(x.length, y.length); i++) {
@@ -174,22 +175,9 @@ export async function checkForUpdate (hostProfile = null) {
   }
 }
 
-/** The one-line handle a served page reads. Empty string when there is nothing
-    to say, so callers can drop it into a template unconditionally. */
-export function updateScript (info) {
-  return info ? `<script>window.__VSTACK_UPDATE__=${JSON.stringify(info)}</script>\n` : ''
-}
-
-/**
- * Put the handle into a page, whatever shape the page is. Some of these files
- * are whole documents and some are fragments that start with <title> — a
- * `.replace(/<head>/)` on the second kind silently does nothing, which is a
- * lousy way to find out a feature is off.
- */
+/** Put the handle into a served page. No-op when there is nothing to say, so
+    callers can apply it unconditionally. */
 export function withUpdate (html, info) {
-  const tag = updateScript(info)
-  if (!tag) return html
-  return /<head[^>]*>/i.test(html)
-    ? html.replace(/<head[^>]*>/i, m => m + '\n' + tag)
-    : tag + html
+  if (!info) return html
+  return injectHead(html, `<script>window.__VSTACK_UPDATE__=${JSON.stringify(info)}</script>\n`)
 }

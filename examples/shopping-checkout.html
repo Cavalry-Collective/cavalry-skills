@@ -110,9 +110,13 @@
    `display` outranks the browser's default [hidden] rule, and .btn/.linkdot
    both do, so state this here rather than trusting each page's reset. */
 [hidden]{display:none!important}
+/* Above anything the page floats at its edges. The bar makes a stacking context,
+   so a menu opening out of it can never rise past a sibling with a higher
+   z-index — which is how the comments handle came to sit on top of the settings
+   menu. Raising the bar raises everything it opens. */
 .vs-topbar{display:flex;align-items:center;gap:10px;padding:0 12px;height:46px;
   background:var(--surface);border-bottom:1px solid var(--line);
-  position:sticky;top:0;z-index:40}
+  position:sticky;top:0;z-index:50}
 .vs-topbar .brand{display:flex;align-items:center;gap:8px;min-width:0}
 .vslink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:inherit}
 .vsmark{width:15px;height:15px;flex:none;color:var(--ink)}
@@ -148,8 +152,13 @@
   position:relative;flex:none;transition:background .14s}
 .switch .knob{position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;
   background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .14s}
-.switch[aria-checked=true]{color:var(--ink);border-color:var(--brand-line)}
-.switch[aria-checked=true] .track{background:var(--brand)}
+/* On is the same "this one is selected" the segmented control uses. The brand
+   red is the primary action — a view option wearing it read as the thing to
+   press; solid black read like one too. */
+.switch[aria-checked=true]{color:var(--ink);border-color:var(--line-2)}
+/* The same near-black the segmented controls use when selected — on is on,
+   whichever control is saying it. */
+.switch[aria-checked=true] .track{background:var(--ink-2)}
 .switch[aria-checked=true] .knob{transform:translateX(11px)}
 
 /* buttons — one shape, three sizes of intent */
@@ -178,11 +187,28 @@
   cursor:pointer;font:inherit;font-weight:550}
 .seg button:last-child{border-right:0}
 .seg button:hover{background:var(--surface-2)}
-.seg button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+/* Selected is near-black rather than black: dark enough to find at a glance,
+   one step off the ink the page's own words are set in, so the bar never
+   out-blacks the content. --ink-2 flips with the theme, so in dark mode this is
+   the same step down from white. */
+.seg button[aria-pressed=true]{background:var(--ink-2);color:var(--surface);font-weight:650}
 .seg.sm button{height:25px;padding:0 9px;font-size:11.5px}
 #langSwitch button,#themeSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
 #themeSwitch button{padding:0 8px}
 #themeSwitch svg{width:13px;height:13px;display:block}
+
+/* ── settings: how you like the page, out of the way ── */
+.cogwrap{position:relative;flex:none}
+.cog{width:30px;height:30px;border:1px solid var(--line-2);border-radius:7px;background:var(--surface);
+  color:var(--ink-2);display:grid;place-items:center;cursor:pointer}
+.cog:hover,.cog[aria-expanded=true]{background:var(--surface-2);color:var(--ink)}
+.cog svg{width:15px;height:15px;display:block}
+.cogmenu{position:absolute;top:36px;right:0;z-index:60;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:10px;box-shadow:var(--shadow-pop);padding:9px;
+  display:grid;gap:9px;min-width:210px}
+.cogmenu[hidden]{display:none}
+.cogmenu .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.cogmenu .lbl{font-size:12px;color:var(--ink-2);white-space:nowrap}
 
 /* the live link, stated rather than implied */
 .linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
@@ -191,6 +217,16 @@
   box-shadow:0 0 0 3px color-mix(in srgb,var(--ink-3) 18%,transparent)}
 .linkdot.on{color:var(--ok)}
 .linkdot.on::before{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+/* Up, but nobody is waiting to read what you send. Amber rather than green,
+   because the page works and the round will not — the same distinction the
+   WIP tag makes. */
+.linkdot.idle{color:#b0761a}
+.linkdot.idle::before{background:#b0761a;box-shadow:0 0 0 3px color-mix(in srgb,#b0761a 22%,transparent)}
+@media (prefers-color-scheme:dark){.linkdot.idle{color:#d29a3f}
+  .linkdot.idle::before{background:#d29a3f;box-shadow:0 0 0 3px color-mix(in srgb,#d29a3f 22%,transparent)}}
+:root[data-theme=dark] .linkdot.idle{color:#d29a3f}
+:root[data-theme=dark] .linkdot.idle::before{background:#d29a3f;
+  box-shadow:0 0 0 3px color-mix(in srgb,#d29a3f 22%,transparent)}
 
 /* floating banners — the page talking back, never blocking the work */
 .banner{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:38;display:none;
@@ -203,6 +239,36 @@
 .banner.dark .btn:hover{background:color-mix(in srgb,var(--surface) 28%,transparent)}
 .banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
 .banner.good .tick{color:var(--ok);font-weight:700}
+
+/* the toast — VSShell.toast(); one element, appended on first use */
+.vs-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  background:var(--ink);color:var(--surface);padding:8px 14px;border-radius:8px;
+  font-size:12.5px;box-shadow:var(--shadow-pop);opacity:0;pointer-events:none;transition:opacity .25s}
+.vs-toast.on{opacity:1}
+
+/* ── "there is a newer one" ──
+   One line under the bar, in the workmanlike amber the WIP tag uses: it is
+   information, not an alarm, and it goes away for good on ×. */
+.vs-update{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:7px 12px;font-size:12px;color:var(--ink-2);
+  background:color-mix(in srgb,#b0761a 8%,var(--surface));
+  border-bottom:1px solid color-mix(in srgb,#b0761a 26%,transparent)}
+.vs-update .v{font:700 9.5px/1 var(--mono);letter-spacing:.06em;color:#8a5c06;
+  background:color-mix(in srgb,#b0761a 16%,transparent);border-radius:999px;padding:4px 7px;flex:none}
+.vs-update .t{flex:1;min-width:0}
+.vs-update button{font:inherit;font-size:11.5px;font-weight:600;color:var(--ink-2);
+  border:1px solid var(--line-2);background:var(--surface);border-radius:6px;padding:3px 8px;flex:none}
+.vs-update button:hover{color:var(--ink);background:var(--surface-2)}
+.vs-update .no{width:24px;padding:0;font-size:14px;line-height:1}
+.vs-update-how{flex-basis:100%;margin:2px 0 0;font-size:11.5px;color:var(--ink-3)}
+.vs-update-how[hidden]{display:none}
+.vs-update-how p{margin:0 0 4px}
+.vs-update-how pre{margin:0 0 4px;padding:7px 9px;border-radius:7px;overflow-x:auto;
+  font:500 11px/1.6 var(--mono);color:var(--ink);background:var(--surface);border:1px solid var(--line)}
+.vs-update-how .auto{margin:0 0 4px}
+.vs-update-how a{color:var(--ink-2)}
+@media (prefers-color-scheme:dark){.vs-update .v{color:#e2b567}}
+:root[data-theme=dark] .vs-update .v{color:#e2b567}
 
 @media (max-width:720px){
   .brand .eyebrow,.wip{display:none}
@@ -358,22 +424,43 @@
        `actions` after them, where the primary action belongs. -->
   <!-- vstack:slot tools -->
 <!-- /vstack:slot tools -->
-  <div class="seg" id="themeSwitch">
-    <button data-theme-set="auto" aria-pressed="true" title="Match the system">A</button>
-    <button data-theme-set="light" aria-pressed="false" title="Light">
-      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
-        <circle cx="8" cy="8" r="3.1"/><path d="M8 .9v2M8 13.1v2M.9 8h2M13.1 8h2M3 3l1.4 1.4M11.6 11.6 13 13M13 3l-1.4 1.4M4.4 11.6 3 13" stroke-linecap="round"/>
+  <!-- How you like the page, rather than anything about the work: two segmented
+       controls sat in the bar all day for a choice made once. They live behind
+       the cog now, and the bar keeps only what the tool is doing. -->
+  <div class="cogwrap">
+    <button class="cog" id="settingsBtn" aria-haspopup="true" aria-expanded="false" aria-label="Settings">
+      <!-- A real gear: a toothed rim with a hole. Spokes radiating from a circle
+           is a brightness dial, which is what the first attempt drew. -->
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"
+              d="M13.15 9.45 L14.64 10.22 L14.26 11.13 L12.67 10.61 L10.61 12.67 L11.13 14.26 L10.22 14.64 L9.45 13.15 L6.55 13.15 L5.78 14.64 L4.87 14.26 L5.39 12.67 L3.33 10.61 L1.74 11.13 L1.36 10.22 L2.85 9.45 L2.85 6.55 L1.36 5.78 L1.74 4.87 L3.33 5.39 L5.39 3.33 L4.87 1.74 L5.78 1.36 L6.55 2.85 L9.45 2.85 L10.22 1.36 L11.13 1.74 L10.61 3.33 L12.67 5.39 L14.26 4.87 L14.64 5.78 L13.15 6.55 Z M8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8Z"/>
       </svg>
     </button>
-    <button data-theme-set="dark" aria-pressed="false" title="Dark">
-      <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.8 5.8 0 1 0 7 7Z" stroke-linejoin="round"/>
-      </svg>
-    </button>
-  </div>
-  <div class="seg" id="langSwitch">
-    <button data-lang="en" aria-pressed="true">EN</button>
-    <button data-lang="zh" aria-pressed="false">中文</button>
+    <div class="cogmenu" id="settingsMenu" hidden>
+      <div class="row">
+        <span class="lbl" id="cogTheme">Theme</span>
+        <div class="seg" id="themeSwitch">
+          <button data-theme-set="auto" aria-pressed="true" title="Match the system">A</button>
+          <button data-theme-set="light" aria-pressed="false" title="Light">
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="8" r="3.1"/><path d="M8 .9v2M8 13.1v2M.9 8h2M13.1 8h2M3 3l1.4 1.4M11.6 11.6 13 13M13 3l-1.4 1.4M4.4 11.6 3 13" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button data-theme-set="dark" aria-pressed="false" title="Dark">
+            <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.8 5.8 0 1 0 7 7Z" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="row">
+        <span class="lbl" id="cogLang">Language</span>
+        <div class="seg" id="langSwitch">
+          <button data-lang="en" aria-pressed="true">EN</button>
+          <button data-lang="zh" aria-pressed="false">中文</button>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="sep"></div>
   <span class="linkdot" id="linkDot" hidden></span>
@@ -663,7 +750,7 @@
    works identically served, opened off disk, or published as an Artifact. */
 window.VSShell = (function () {
   const $ = s => document.querySelector(s);
-  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang' };
+  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang', seen: 'vstack:update-seen' };
   const store = {
     get (k, d) { try { return localStorage.getItem(k) ?? d } catch { return d } },
     set (k, v) { try { localStorage.setItem(k, v) } catch {} },
@@ -699,6 +786,7 @@ window.VSShell = (function () {
       b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
     });
     langListeners.forEach(fn => { try { fn(lang) } catch {} });
+    paintLink();
   }
   function setLang (next) {
     lang = next === 'zh' ? 'zh' : 'en';
@@ -707,15 +795,113 @@ window.VSShell = (function () {
   }
 
   /* ── the live link, said out loud ── */
-  function setLink (up, labels) {
+  /* Three states, not two. "The page reached its server" and "an agent session
+     is waiting to read what you send" are different facts, and only the second
+     is the one anyone actually wants to know. `watching` undefined means the
+     page has no way to tell, and the dot behaves as it always did. Host name
+     comes from window.__VSTACK_HOST__ (contracts/host.md), so no page bakes a
+     product name in; the words live here, in both languages, so no page
+     repeats them either. A page with something more specific to say passes
+     `labels` to setLink and only those keys win. */
+  let linked = null, linkLabels = null, watching;
+  function linkWords () {
+    const agent = window.__VSTACK_HOST__?.name || 'agent';
+    return lang === 'zh' ? {
+      on: `已连接 ${agent}`, off: '连接已断开', idle: '未连接',
+      idleTitle: `页面是通的，但没有 ${agent} 会话在等待——发送的内容会一直留在这里，直到有会话接手。`,
+      offTitle: `${agent} 会话已不再提供此页面——你写的内容只保存在这个标签页里。`,
+    } : {
+      on: `LINKED TO ${String(agent).toUpperCase()}`, off: 'LINK LOST', idle: 'UNLINKED',
+      idleTitle: `This page is live, but no ${agent} session is waiting for it — what you send will sit here until one is.`,
+      offTitle: `The ${agent} session is no longer serving this page — anything you write stays in this tab.`,
+    };
+  }
+  function paintLink () {
     const el = $('#linkDot');
-    if (!el) return;
+    if (!el || linked === null) return;
     el.hidden = false;
-    el.classList.toggle('on', !!up);
-    el.textContent = up ? (labels?.on ?? 'LINKED TO CLAUDE') : (labels?.off ?? 'LINK LOST');
-    el.title = up ? '' : (labels?.offTitle ?? '');
+    const idle = linked && watching === false;
+    el.classList.toggle('on', linked && !idle);
+    el.classList.toggle('idle', !!idle);
+    const words = linkWords();
+    el.textContent = !linked ? (linkLabels?.off ?? words.off)
+      : idle ? (linkLabels?.idle ?? words.idle)
+      : (linkLabels?.on ?? words.on);
+    el.title = !linked ? (linkLabels?.offTitle ?? words.offTitle)
+      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '';
+  }
+  function setLink (up, labels, isWatching) {
+    linked = !!up;
+    if (labels) linkLabels = labels;
+    if (isWatching !== undefined) watching = isWatching;
+    paintLink();
+  }
+  /** The server saying who is listening now, without the page repeating itself. */
+  function setWatching (isWatching) {
+    if (watching === isWatching) return;
+    watching = isWatching;
+    paintLink();
   }
   const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  /* ── one live-link client, instead of one per page ──
+     Wires the dot to a server: SSE when the page has an event stream, a plain
+     poll for a server that only answers /ping. Either way the shell owns the
+     socket-to-dot translation and the page only hears about its own events.
+
+       VSShell.connect({ url, on: { push: ev => apply(ev) }, onLink })
+       VSShell.connect({ poll: '/ping', onLink })
+
+     SSE reconnects on its own, so the dot only ever reports what is true right
+     now. `presence` — who is listening, said by the server rather than guessed
+     from the socket — is handled here; every other event is the page's. */
+  function connect (opts = {}) {
+    const say = up => { setLink(up); try { opts.onLink?.(up) } catch {} };
+    if (opts.poll) {
+      const tick = async () => {
+        try { const r = await fetch(opts.poll, { cache: 'no-store' }); say(r.ok) }
+        catch { say(false) }
+      };
+      tick();
+      const timer = setInterval(tick, opts.interval || 5000);
+      return { stop: () => clearInterval(timer) };
+    }
+    const es = new EventSource(opts.url);
+    es.onopen = () => say(true);
+    es.onerror = () => say(false);
+    es.addEventListener('presence', ev => {
+      try { setWatching(JSON.parse(ev.data).watching) } catch {}
+    });
+    for (const [name, fn] of Object.entries(opts.on || {})) es.addEventListener(name, fn);
+    return { stop: () => es.close(), source: es };
+  }
+
+  /* ── a toast: the page saying "done" without stopping anyone ── */
+  let toastTimer = null;
+  function toast (msg, ms = 2200) {
+    let el = document.querySelector('.vs-toast');
+    if (!el) { el = document.createElement('div'); el.className = 'vs-toast'; document.body.appendChild(el) }
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('on'), ms);
+  }
+
+  /* ── two-step confirm on one button ──
+     First press arms it (class `armed`, plus whatever `arm` repaints); a second
+     press inside the window fires; the window closing quietly disarms. The
+     page styles `armed` and words the button — this owns only the dance. */
+  function armConfirm (btn, { onConfirm, arm, disarm, ms = 4000 } = {}) {
+    let timer = null;
+    const reset = () => { timer = null; btn.classList.remove('armed'); try { disarm?.() } catch {} };
+    btn.addEventListener('click', () => {
+      if (timer) { clearTimeout(timer); reset(); onConfirm(); return }
+      btn.classList.add('armed');
+      try { arm?.() } catch {}
+      timer = setTimeout(reset, ms);
+    });
+    return { armed: () => timer !== null, disarm: () => { if (timer) { clearTimeout(timer); reset() } } };
+  }
 
   function name (pageName, eyebrow) {
     const n = $('#pageName'); const e = $('#pageEyebrow');
@@ -729,6 +915,48 @@ window.VSShell = (function () {
     if (!el) return;
     el.hidden = !on;
     el.textContent = label || 'Work in progress';
+  }
+
+  /* ── a newer Visual Stack than this one ──
+     The server looked it up before serving this page and left the answer on
+     `window.__VSTACK_UPDATE__`; nothing here reaches the network. Dismissal is
+     remembered per version, so saying "not now" to 4.2 stays said, and 4.3
+     asks once. */
+  function updateNotice () {
+    const info = window.__VSTACK_UPDATE__;
+    // Dismissal is per release: saying "not now" to this one stays said, and
+    // the next one asks once.
+    if (!info?.title || store.get(KEY.seen, '') === info.title) return;
+    const bar = document.createElement('div');
+    bar.className = 'vs-update';
+    bar.innerHTML =
+      `<span class="v">${esc(info.pill || 'new')}</span>` +
+      `<span class="t">${esc(info.title)}</span>` +
+      `<button class="how">How</button><button class="no" aria-label="Dismiss">×</button>`;
+    const how = document.createElement('div');
+    how.className = 'vs-update-how';
+    how.hidden = true;
+    const lead = info.howLead || 'To update:';
+    how.innerHTML = `<p>${esc(lead)}</p><pre>${esc((info.install || []).join('\n'))}</pre>` +
+      (info.auto ? `<p class="auto">${esc(info.auto)}</p>` : '') +
+      (info.url ? `<a href="${esc(info.url)}" target="_blank" rel="noopener">What changed</a>` : '');
+    bar.appendChild(how);
+    bar.querySelector('.how').onclick = () => { how.hidden = !how.hidden };
+    bar.querySelector('.no').onclick = () => { store.set(KEY.seen, info.title); bar.remove() };
+    const top = $('.vs-topbar');
+    if (top) top.insertAdjacentElement('afterend', bar);
+  }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  /* The cog: one button for the two choices nobody makes twice. */
+  function wireSettings () {
+    const btn = $('#settingsBtn'), menu = $('#settingsMenu');
+    if (!btn || !menu) return;
+    const open = on => { menu.hidden = !on; btn.setAttribute('aria-expanded', String(on)) };
+    btn.addEventListener('click', e => { e.stopPropagation(); open(menu.hidden) });
+    menu.addEventListener('click', e => e.stopPropagation());
+    document.addEventListener('click', () => open(false));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !menu.hidden) open(false) });
   }
 
   function init (opts = {}) {
@@ -749,13 +977,16 @@ window.VSShell = (function () {
     if (send && opts.send) send.hidden = false;
     if (opts.wip) wip(true, typeof opts.wip === 'string' ? opts.wip : undefined);
     name(opts.name, opts.eyebrow);
+    wireSettings();
     applyTheme();
     applyLang();
+    updateNotice();
     return api;
   }
 
   const api = {
-    init, setTheme, setLang, setLink, hideLink, name, wip,
+    init, setTheme, setLang, setLink, setWatching, hideLink, name, wip,
+    connect, toast, armConfirm, esc,
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
@@ -777,7 +1008,7 @@ window.VSShell = (function () {
    remember to. */
 window.VSScrub = (function () {
   const $ = s => document.querySelector(s);
-  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = s => window.VSShell.esc(s ?? '');
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
   let items = [];
@@ -855,6 +1086,8 @@ window.VSScrub = (function () {
       paint();
       return api;
     },
+    /** Move one stop back or forward — what arrow keys and the ‹ › buttons do. */
+    step,
     get active () { return active },
     get items () { return items },
   };

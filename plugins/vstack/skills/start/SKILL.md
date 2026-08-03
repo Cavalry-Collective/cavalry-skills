@@ -64,14 +64,9 @@ Where the inventory comes from:
 
 It asks **once**: on send it writes `<repo>/.vstack/choice.json` and exits. Nothing stays listening.
 That makes this the one place in the stack that waits rather than watches — there is a single answer
-coming, so wait for it with **`run_in_background: true`** and let the exit re-invoke you. (The review
-and bridge tools stream instead, because their pages keep talking.)
-
-```bash
-CHOICE=<repo>/.vstack/choice.json
-until [ -f "$CHOICE" ]; do sleep 1; done
-cat "$CHOICE"
-```
+coming, so the **`run_in_background: true`** start above is also the wait: the server's exit
+re-invokes you, and that is the moment to read `<repo>/.vstack/choice.json`. (The review and bridge
+tools stream instead, because their pages keep talking.)
 
 If the user would rather answer in chat, that's fine — ask the same questions in prose and write the
 same JSON yourself. **Ask in product terms when you do** — *"will several organisations share one
@@ -185,8 +180,7 @@ Delete the template's own root `README.md` once instantiation is done — its Da
 
 ## Notes
 
-- The form's top bar, palette and controls are stamped in from `lib/shell/` — shared with every other vstack page. Change them there and re-stamp, never in the form.
-- **Never edit `assets/chooser.html` or `chooser-server.mjs`** to fit a project — they're the engine.
+- **Never edit `assets/chooser.html` or `chooser-server.mjs`** to fit a project — they're the engine. The shell chrome is stamped in from `lib/shell/` — see `lib/shell/README.md`.
 - The form is a **one-shot** by design: it asks once, so it doesn't use the live-link machinery behind
   `wireframe` and `user-story-map`. Don't wire it into them.
 - Unknown directories still work. A pack or add-on with no built-in blurb renders from its own README,

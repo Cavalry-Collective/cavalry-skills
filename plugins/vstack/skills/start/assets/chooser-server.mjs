@@ -9,7 +9,7 @@
  *
  *   node chooser-server.mjs [--repo <dir>] [--port 7799] [--out <file>]
  *                           [--mode template|existing] [--prefill <json file>]
- *                           [--project <name>]
+ *                           [--project <name>] [--host <id>]
  *
  * Inventory source, in order:
  *   - template mode with stacks/ + add-ons/ under --repo → scanned from disk,
@@ -37,11 +37,20 @@ import http from 'node:http'
 import { execFile } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { checkForUpdate, withUpdate } from '../../../lib/update-check.mjs'
+import { loadHost, resolveHostId, withHost } from '../../../lib/host.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
 const argv = process.argv.slice(2)
 const arg = (n, d) => { const i = argv.indexOf(n); return i === -1 ? d : argv[i + 1] }
+
+/* Host profile for UI injection (contracts/host.md) — the page says who is
+   listening, and the name has to come from here. */
+let HOST = null
+try { HOST = loadHost(resolveHostId({ host: arg('--host', null) })) } catch (e) {
+  console.error(e.message)
+  process.exit(2)
+}
 
 const REPO = path.resolve(arg('--repo', process.cwd()))
 const PORT = Number(arg('--port', 7799))
@@ -207,8 +216,8 @@ const template = fs.readFileSync(path.join(HERE, 'chooser.html'), 'utf8').replac
 )
 /* Answered once at startup — see lib/update-check.mjs. */
 let update = null
-checkForUpdate().then(u => { update = u }).catch(() => {})
-const page = () => withUpdate(template, update)
+checkForUpdate(HOST).then(u => { update = u }).catch(() => {})
+const page = () => withUpdate(withHost(template, HOST), update)
 
 const send = (res, code, type, body) => {
   res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' })
@@ -224,7 +233,7 @@ const server = http.createServer((req, res) => {
     return send(res, 200, 'text/html; charset=utf-8', page())
   }
 
-  /* the page's link indicator polls this — alive means "Claude is listening" */
+  /* the page's link indicator polls this — alive means "the agent is listening" */
   if (url.pathname === '/ping') {
     res.writeHead(204, { 'Cache-Control': 'no-store' })
     return res.end()

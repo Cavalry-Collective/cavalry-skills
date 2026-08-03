@@ -278,6 +278,12 @@ body.phase #panelHandle{display:none!important}
 .banner.good{background:var(--ok-soft);border:1px solid var(--ok);color:var(--ink)}
 .banner.good .tick{color:var(--ok);font-weight:700}
 
+/* the toast — VSShell.toast(); one element, appended on first use */
+.vs-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+  background:var(--ink);color:var(--surface);padding:8px 14px;border-radius:8px;
+  font-size:12.5px;box-shadow:var(--shadow-pop);opacity:0;pointer-events:none;transition:opacity .25s}
+.vs-toast.on{opacity:1}
+
 /* ── "there is a newer one" ──
    One line under the bar, in the workmanlike amber the WIP tag uses: it is
    information, not an alarm, and it goes away for good on ×. */
@@ -378,7 +384,6 @@ body.phase #hiNew{display:inline-flex}
   display:grid;place-items:center;font-size:20px;font-weight:700;margin:0 auto 12px}
 #doneScreen h2{margin:0 0 6px;font-size:16px}
 #doneScreen p{margin:0;font-size:12.5px;color:var(--ink-2);line-height:1.55}
-#langSwitch button{padding:0 9px;font-size:11.5px;font-weight:600}
 .seg svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6;
   stroke-linecap:round;stroke-linejoin:round}
 
@@ -579,7 +584,6 @@ body.phase #hiNew{display:inline-flex}
 .item.asked .thread.asked::before{content:"";width:6px;height:6px;border-radius:50%;
   background:var(--brand);flex:none;
   box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 22%,transparent)}
-.grouphd.awaiting{color:var(--brand)}
 /* The conversation lives where the comment is listed, not only on the mark —
    answering Claude should not mean hunting for a pin on the page. */
 .item .thread.tog{width:100%;text-align:left}
@@ -669,7 +673,6 @@ body.phase #hiNew{display:inline-flex}
   letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
 .grouphd.tog:hover{color:var(--ink)}
 .grouphd .caret{font-size:9px;opacity:.7}
-.groupnote{margin:-3px 2px 7px;font-size:11px;line-height:1.4;color:var(--ink-3)}
 .grouphd::after{content:"";flex:1;height:1px;background:var(--line)}
 
 /* vstack:shell scrubber-css */
@@ -710,26 +713,13 @@ body.phase #hiNew{display:inline-flex}
 #btnClearHistory[hidden],body.phase #btnClearHistory{display:none}
 @media(max-width:720px){#btnClearHistory{width:28px;padding:0;font-size:0}#btnClearHistory::before{content:"⌫";font-size:15px}}
 
-/* ── floating banners ── */
-.banner{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:28;display:none;
-  align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow-pop);
-  font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
-.banner.on{display:flex}
+/* ── floating banners — the shell's .banner/.dark/.good; only what this page
+   adds on top lives here ── */
 /* Two pieces of news can land at once — a version and a link. Stack them
    rather than let the later one hide the earlier. */
-.banner.on ~ .banner.on{top:58px}
-.banner.on ~ .banner.on ~ .banner.on{top:104px}
+.banner.on ~ .banner.on{top:104px}
+.banner.on ~ .banner.on ~ .banner.on{top:150px}
 .banner .btn{height:25px;font-size:11.5px}
-#histBanner{background:var(--ink);color:#fff}
-#histBanner .btn{background:rgba(255,255,255,.14);border-color:transparent;color:#fff}
-#histBanner .btn:hover{background:rgba(255,255,255,.26)}
-#workBanner{background:var(--surface);border:1px solid var(--line-2)}
-#workBanner .spin{width:13px;height:13px;border-radius:50%;border:2px solid var(--line-2);
-  border-top-color:var(--brand);animation:spin .7s linear infinite;flex:none}
-@keyframes spin{to{transform:rotate(360deg)}}
-#workBanner.ready,#shareBanner{border-color:var(--ok);background:var(--ok-soft)}
-#shareBanner{border:1px solid var(--ok)}
-#workBanner .tick,#shareBanner .tick{color:var(--ok);font-weight:700}
 #workBanner .txt,#shareBanner .txt{min-width:0;overflow:hidden;text-overflow:ellipsis}
 
 #zoombar{position:absolute;left:12px;bottom:12px;display:flex;gap:2px;align-items:center;background:var(--surface);
@@ -738,7 +728,7 @@ body.phase #hiNew{display:inline-flex}
 #zoombar button:hover{background:var(--surface-2);color:var(--ink)}
 #zoombar .z{min-width:44px;text-align:center;font:600 11px/1 var(--mono);color:var(--ink-2)}
 
-/* ── modal / toast ── */
+/* ── modal ── */
 .confirmDialog{width:min(440px,calc(100% - 32px));padding:0;border:1px solid var(--line-2);border-radius:12px;
   background:var(--surface);color:var(--ink);box-shadow:var(--shadow-pop)}
 .confirmDialog::backdrop{background:rgba(10,11,15,.48);backdrop-filter:blur(2px)}
@@ -752,9 +742,6 @@ body.phase #hiNew{display:inline-flex}
 .confirmDialog .danger{background:var(--brand);border-color:var(--brand);color:#fff}
 .confirmDialog .danger:hover{filter:brightness(1.08)}
 .confirmDialog .danger:disabled{opacity:.45;filter:none}
-#toast{position:fixed;bottom:18px;left:50%;transform:translate(-50%,20px);background:var(--ink);color:#fff;
-  padding:9px 14px;border-radius:8px;font-weight:550;opacity:0;pointer-events:none;transition:.2s;z-index:120}
-#toast.on{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
@@ -874,20 +861,20 @@ body.phase #hiNew{display:inline-flex}
           </div>
         </div>
 
-        <div class="banner" id="histBanner">
+        <div class="banner dark" id="histBanner">
           <span id="histText">Viewing an earlier version — read only</span>
           <button class="btn sm" id="btnNow">Back to current</button>
         </div>
         <!-- Only ever announces a version that has landed. Work in flight is
              shown on the comments it belongs to, in the panel. -->
-        <div class="banner" id="workBanner">
+        <div class="banner good" id="workBanner">
           <span class="txt" id="workText"></span>
           <button class="btn sm primary" id="btnRefresh">Review changes</button>
           <button class="btn sm" id="btnDismissWork">Later</button>
         </div>
         <!-- The link is asked for here and lands minutes later, long after the
              reviewer stopped watching the ▾. Say so where the news goes. -->
-        <div class="banner" id="shareBanner">
+        <div class="banner good" id="shareBanner">
           <span class="txt" id="shareBannerText"></span>
           <button class="btn sm primary" id="btnCopyShare">Copy link</button>
           <button class="btn sm" id="btnDismissShare">Later</button>
@@ -986,7 +973,6 @@ body.phase #hiNew{display:inline-flex}
   </div>
 </div>
 
-<div id="toast"></div>
 
 <script id="bundle" type="application/json">null</script>
 <script>
@@ -1034,6 +1020,7 @@ window.VSShell = (function () {
       b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
     });
     langListeners.forEach(fn => { try { fn(lang) } catch {} });
+    paintLink();
   }
   function setLang (next) {
     lang = next === 'zh' ? 'zh' : 'en';
@@ -1046,8 +1033,23 @@ window.VSShell = (function () {
      is waiting to read what you send" are different facts, and only the second
      is the one anyone actually wants to know. `watching` undefined means the
      page has no way to tell, and the dot behaves as it always did. Host name
-     comes from window.__VSTACK_HOST__ (contracts/host.md). */
+     comes from window.__VSTACK_HOST__ (contracts/host.md), so no page bakes a
+     product name in; the words live here, in both languages, so no page
+     repeats them either. A page with something more specific to say passes
+     `labels` to setLink and only those keys win. */
   let linked = null, linkLabels = null, watching;
+  function linkWords () {
+    const agent = window.__VSTACK_HOST__?.name || 'agent';
+    return lang === 'zh' ? {
+      on: `已连接 ${agent}`, off: '连接已断开', idle: '未连接',
+      idleTitle: `页面是通的，但没有 ${agent} 会话在等待——发送的内容会一直留在这里，直到有会话接手。`,
+      offTitle: `${agent} 会话已不再提供此页面——你写的内容只保存在这个标签页里。`,
+    } : {
+      on: `LINKED TO ${String(agent).toUpperCase()}`, off: 'LINK LOST', idle: 'UNLINKED',
+      idleTitle: `This page is live, but no ${agent} session is waiting for it — what you send will sit here until one is.`,
+      offTitle: `The ${agent} session is no longer serving this page — anything you write stays in this tab.`,
+    };
+  }
   function paintLink () {
     const el = $('#linkDot');
     if (!el || linked === null) return;
@@ -1055,12 +1057,12 @@ window.VSShell = (function () {
     const idle = linked && watching === false;
     el.classList.toggle('on', linked && !idle);
     el.classList.toggle('idle', !!idle);
-    const agent = window.__VSTACK_HOST__?.name || 'agent';
-    el.textContent = !linked ? (linkLabels?.off ?? 'LINK LOST')
-      : idle ? (linkLabels?.idle ?? 'UNLINKED')
-      : (linkLabels?.on ?? `LINKED TO ${String(agent).toUpperCase()}`);
-    el.title = !linked ? (linkLabels?.offTitle ?? '')
-      : idle ? (linkLabels?.idleTitle ?? '') : '';
+    const words = linkWords();
+    el.textContent = !linked ? (linkLabels?.off ?? words.off)
+      : idle ? (linkLabels?.idle ?? words.idle)
+      : (linkLabels?.on ?? words.on);
+    el.title = !linked ? (linkLabels?.offTitle ?? words.offTitle)
+      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '';
   }
   function setLink (up, labels, isWatching) {
     linked = !!up;
@@ -1075,6 +1077,65 @@ window.VSShell = (function () {
     paintLink();
   }
   const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  /* ── one live-link client, instead of one per page ──
+     Wires the dot to a server: SSE when the page has an event stream, a plain
+     poll for a server that only answers /ping. Either way the shell owns the
+     socket-to-dot translation and the page only hears about its own events.
+
+       VSShell.connect({ url, on: { push: ev => apply(ev) }, onLink })
+       VSShell.connect({ poll: '/ping', onLink })
+
+     SSE reconnects on its own, so the dot only ever reports what is true right
+     now. `presence` — who is listening, said by the server rather than guessed
+     from the socket — is handled here; every other event is the page's. */
+  function connect (opts = {}) {
+    const say = up => { setLink(up); try { opts.onLink?.(up) } catch {} };
+    if (opts.poll) {
+      const tick = async () => {
+        try { const r = await fetch(opts.poll, { cache: 'no-store' }); say(r.ok) }
+        catch { say(false) }
+      };
+      tick();
+      const timer = setInterval(tick, opts.interval || 5000);
+      return { stop: () => clearInterval(timer) };
+    }
+    const es = new EventSource(opts.url);
+    es.onopen = () => say(true);
+    es.onerror = () => say(false);
+    es.addEventListener('presence', ev => {
+      try { setWatching(JSON.parse(ev.data).watching) } catch {}
+    });
+    for (const [name, fn] of Object.entries(opts.on || {})) es.addEventListener(name, fn);
+    return { stop: () => es.close(), source: es };
+  }
+
+  /* ── a toast: the page saying "done" without stopping anyone ── */
+  let toastTimer = null;
+  function toast (msg, ms = 2200) {
+    let el = document.querySelector('.vs-toast');
+    if (!el) { el = document.createElement('div'); el.className = 'vs-toast'; document.body.appendChild(el) }
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('on'), ms);
+  }
+
+  /* ── two-step confirm on one button ──
+     First press arms it (class `armed`, plus whatever `arm` repaints); a second
+     press inside the window fires; the window closing quietly disarms. The
+     page styles `armed` and words the button — this owns only the dance. */
+  function armConfirm (btn, { onConfirm, arm, disarm, ms = 4000 } = {}) {
+    let timer = null;
+    const reset = () => { timer = null; btn.classList.remove('armed'); try { disarm?.() } catch {} };
+    btn.addEventListener('click', () => {
+      if (timer) { clearTimeout(timer); reset(); onConfirm(); return }
+      btn.classList.add('armed');
+      try { arm?.() } catch {}
+      timer = setTimeout(reset, ms);
+    });
+    return { armed: () => timer !== null, disarm: () => { if (timer) { clearTimeout(timer); reset() } } };
+  }
 
   function name (pageName, eyebrow) {
     const n = $('#pageName'); const e = $('#pageEyebrow');
@@ -1159,6 +1220,7 @@ window.VSShell = (function () {
 
   const api = {
     init, setTheme, setLang, setLink, setWatching, hideLink, name, wip,
+    connect, toast, armConfirm, esc,
     get theme () { return theme },
     get lang () { return lang },
     onLang (fn) { langListeners.push(fn) },
@@ -1180,7 +1242,7 @@ window.VSShell = (function () {
    remember to. */
 window.VSScrub = (function () {
   const $ = s => document.querySelector(s);
-  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const esc = s => window.VSShell.esc(s ?? '');
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
   let items = [];
@@ -1258,6 +1320,8 @@ window.VSScrub = (function () {
       paint();
       return api;
     },
+    /** Move one stop back or forward — what arrow keys and the ‹ › buttons do. */
+    step,
     get active () { return active },
     get items () { return items },
   };
@@ -1352,10 +1416,6 @@ const STR = {
     ultrawide: 'Ultrawide', desktop: 'Desktop', tablet: 'Tablet', phone: 'Phone',
     noServer: 'Could not reach the review server.',
     save: 'Save', newlineHint: 'Shift+Enter for a new line',
-    linkOn: 'Linked', linkOff: 'Link lost',
-    linkIdle: 'Unlinked',
-    linkIdleTitle: 'This page is live, but no {agent} session is waiting for it — what you send will sit here until one is.',
-    linkOffTitle: 'The {agent} session is no longer serving this review — anything you write is kept in this tab only.',
     workingOn: n => `{agent} is working on ${n} comment${n > 1 ? 's' : ''}`,
     queuedOn: n => `${n} comment${n > 1 ? 's' : ''} waiting to be picked up`,
     workingAndQueued: (w, q) => `{agent} is working on ${w} · ${q} waiting`,
@@ -1457,10 +1517,6 @@ const STR = {
     ultrawide: '超宽屏', desktop: '桌面', tablet: '平板', phone: '手机',
     noServer: '无法连接评审服务器。',
     save: '保存', newlineHint: 'Shift+Enter 换行',
-    linkOn: '已连接', linkOff: '连接已断开',
-    linkIdle: '未连接',
-    linkIdleTitle: '页面是通的，但没有 {agent} 会话在等待——发送的内容会一直留在这里，直到有会话接手。',
-    linkOffTitle: '{agent} 会话不再提供此评审——你写的内容只保存在这个标签页里。',
     workingOn: n => `{agent} 正在处理 ${n} 条批注`,
     queuedOn: n => `${n} 条批注等待接收`,
     workingAndQueued: (w, q) => `{agent} 正在处理 ${w} 条 · ${q} 条等待中`,
@@ -1482,7 +1538,7 @@ const STR = {
     landedTitle: '{agent} 改过这处。加载新版本即可看到。',
     dismissed: '已移除',
     undoReply: '撤回这条回复',
-    revertNote: 'Revert this change — put it back the way it was before.',
+    revertNote: '撤销这处改动——恢复成修改之前的样子。',
     wantsRevert: '要求撤回',
     approve: '批准并结束', approveSure: '确定批准并关闭评审？',
     approvedTitle: '已批准 — 评审已关闭',
@@ -1559,9 +1615,8 @@ const S = {
   offscreen: new Set(),
   // Threads opened in the panel, and which reply box the cursor is in.
   threadOpen: new Set(), focusReply: null,
-  awaiting: false, pendingUpdate: null, sentSig: null, sentAt: 0,
+  awaiting: false, pendingUpdate: null, sentSig: null,
   activeRoundId: null,
-  watching: undefined,    // is a Claude session actually waiting on this review?
   queued: new Set(),      // sent, but the brief has not been collected yet
   collected: new Set(),   // ids Claude has taken delivery of
   landed: new Set(),      // dealt with by a version this page has not adopted yet
@@ -1614,7 +1669,7 @@ async function boot () {
   S.startPath = data.startPath || '/';
   if (live()) S.route = S.startPath;
   adoptShare(data);
-  S.watching = data.watching;
+  VSShell.setWatching(data.watching);
 
   const phase = S.runtime === 'phase';
   loadAnnotations();
@@ -1627,7 +1682,6 @@ async function boot () {
   if (out?.length) {
     S.awaiting = true;
     const sentAt = data.pendingReview?.sentAt || data.activeReview?.createdAt;
-    S.sentAt = Date.parse(sentAt) || Date.now();
     const at = sentAt || new Date().toISOString();
     for (const id of out) { const a = annById(id); if (a && !a.sentAt) a.sentAt = at }
     setWorking(out);
@@ -1706,72 +1760,68 @@ function save () {
 /** Claude edits the file while it is open here. Never swap the page out from
     under the reviewer — announce it, let them pick the moment. */
 function liveReload () {
-  const es = new EventSource(API + '/events');
-  // The same tell the story map carries: whether the session on the other end
-  // is still there. EventSource reconnects on its own, so this only ever
-  // reports what is true right now.
-  es.onopen = () => setLink(true);
-  es.onerror = () => setLink(false);
-  // Who is listening, said by the server rather than guessed from the socket.
-  es.addEventListener('presence', e => {
-    try { S.watching = JSON.parse(e.data).watching } catch { return }
-    setLink(S.linked);
-  });
-  es.addEventListener('reload', async () => {
-    let data;
-    try { data = await (await fetch(API + '/project')).json() } catch { return }
-    // The link can land on its own, without the page or the review moving.
-    adoptShare(data, true);
-    if (data.watching !== S.watching) { S.watching = data.watching; setLink(S.linked) }
-    if (data.historyClearedAt && data.historyClearedAt !== S.historyClearedAt) {
-      applyHistoryClear(data);
-      toast(T('historyCleared'));
-      return;
-    }
-    /* A stop that has been taken: the server drops the brief when it records the
-       request, so a brief that is gone while we are stopping means the round is
-       over whether or not anyone is still listening — which is the whole reason
-       Stop used to hang forever.
-
-       ONLY while stopping. A missing brief otherwise means Claude picked it up
-       and deleted it, which is the *start* of the work, not the end of it —
-       reading that as "round over" is what took the progress bars off comments
-       the moment anything else touched the store. */
-    const finishedRound = readFlight(data);   // collected, active, or complete?
-    const bumped = (data.currentVersion || 1) !== S.version;
-    if (!bumped && data.html === S.html) {
-      // Only the conversation moved — fold it in without touching the page.
-      const latest = new Map();
-      for (const version of Object.keys(data.reviews || {}).map(Number).sort((a, b) => a - b)) {
-        for (const comment of data.reviews?.[version]?.annotations || []) latest.set(comment.id, comment);
-      }
-      const conversationChanged = mergeThreads([...latest.values()]);
-      if (finishedRound) {
-        const stopped = S.stopping;
-        roundEnded();
-        if (stopped) toast(T('stopped'));
-      }
-      if (conversationChanged) {
-        render();
-        if (S.sel) openComposer(S.sel, false);
-        toast(T('replied'));
-      }
-      return;
-    }
-    S.pendingUpdate = data;
-    // Mid-edit saves are not news — the comments being worked on already say so.
-    // Only a version that has actually landed is worth interrupting for.
-    if (bumped) {
-      closeAddressed(data);
-      const meta = (data.versions || []).find(v => v.n === data.currentVersion);
-      showWork((live() ? T('roundReady')(data.currentVersion) : T('ready')(data.currentVersion))
-        + (meta?.label ? ' — ' + esc(meta.label) : ''));
-    } else if (!S.awaiting) showWork(live() ? T('appChanged') : T('changed'));
+  // The shell owns the socket-to-dot translation, `presence` included; this
+  // page only hears about its own `reload` events and remembers the link
+  // state for its own logic.
+  VSShell.connect({
+    url: API + '/events',
+    onLink: up => { S.linked = up },
+    on: { reload: onReloadEvent },
   });
 }
+async function onReloadEvent () {
+  let data;
+  try { data = await (await fetch(API + '/project')).json() } catch { return }
+  // The link can land on its own, without the page or the review moving.
+  adoptShare(data, true);
+  VSShell.setWatching(data.watching);
+  if (data.historyClearedAt && data.historyClearedAt !== S.historyClearedAt) {
+    applyHistoryClear(data);
+    toast(T('historyCleared'));
+    return;
+  }
+  /* A stop that has been taken: the server drops the brief when it records the
+     request, so a brief that is gone while we are stopping means the round is
+     over whether or not anyone is still listening — which is the whole reason
+     Stop used to hang forever.
+
+     ONLY while stopping. A missing brief otherwise means Claude picked it up
+     and deleted it, which is the *start* of the work, not the end of it —
+     reading that as "round over" is what took the progress bars off comments
+     the moment anything else touched the store. */
+  const finishedRound = readFlight(data);   // collected, active, or complete?
+  const bumped = (data.currentVersion || 1) !== S.version;
+  if (!bumped && data.html === S.html) {
+    // Only the conversation moved — fold it in without touching the page.
+    const latest = new Map();
+    for (const version of Object.keys(data.reviews || {}).map(Number).sort((a, b) => a - b)) {
+      for (const comment of data.reviews?.[version]?.annotations || []) latest.set(comment.id, comment);
+    }
+    const conversationChanged = mergeThreads([...latest.values()]);
+    if (finishedRound) {
+      const stopped = S.stopping;
+      roundEnded();
+      if (stopped) toast(T('stopped'));
+    }
+    if (conversationChanged) {
+      render();
+      if (S.sel) openComposer(S.sel, false);
+      toast(T('replied'));
+    }
+    return;
+  }
+  S.pendingUpdate = data;
+  // Mid-edit saves are not news — the comments being worked on already say so.
+  // Only a version that has actually landed is worth interrupting for.
+  if (bumped) {
+    closeAddressed(data);
+    const meta = (data.versions || []).find(v => v.n === data.currentVersion);
+    showWork((live() ? T('roundReady')(data.currentVersion) : T('ready')(data.currentVersion))
+      + (meta?.label ? ' — ' + esc(meta.label) : ''));
+  } else if (!S.awaiting) showWork(live() ? T('appChanged') : T('changed'));
+}
 function showWork (html) {
-  const b = $('#workBanner');
-  b.classList.add('on', 'ready');
+  $('#workBanner').classList.add('on');
   $('#workText').innerHTML = '<span class="tick">✓</span> ' + html;
 }
 const hideWork = () => $('#workBanner').classList.remove('on');
@@ -1781,10 +1831,7 @@ const hideWork = () => $('#workBanner').classList.remove('on');
 function setLink (up) {
   S.linked = up;
   if (!served() || up === null) { VSShell.hideLink(); return }
-  VSShell.setLink(up, {
-    on: T('linkOn'), off: T('linkOff'), offTitle: T('linkOffTitle'),
-    idle: T('linkIdle'), idleTitle: T('linkIdleTitle'),
-  }, S.watching);
+  VSShell.setLink(up);
 }
 
 /* ─────────────── work in flight ───────────────
@@ -2411,8 +2458,8 @@ function onKey (e) {
     return;
   }
   if (typing) return;
-  if (e.key === 'ArrowLeft') stepVersion(-1);
-  if (e.key === 'ArrowRight') stepVersion(1);
+  if (e.key === 'ArrowLeft') VSScrub.step(-1);
+  if (e.key === 'ArrowRight') VSScrub.step(1);
 }
 addEventListener('keydown', onKey);
 /** In View mode the reviewer is clicking inside the page, so keystrokes land
@@ -2994,7 +3041,7 @@ function reopen (a, mode) {
   a.reopenedAt = new Date().toISOString();
   if (mode === 'revert') {
     a.revert = true;
-    postReply(a, STR.en.revertNote);
+    postReply(a, T('revertNote'));
   } else {
     delete a.revert;
     save();
@@ -3280,12 +3327,6 @@ function group (text) {
   h.className = 'grouphd'; h.textContent = text;
   return h;
 }
-/** A line under a heading, for a group whose name cannot carry the whole story. */
-function groupNote (text) {
-  const p = document.createElement('p');
-  p.className = 'groupnote'; p.textContent = text;
-  return p;
-}
 function groupToggle (text, open, onclick) {
   const b = document.createElement('button');
   b.className = 'grouphd tog' + (open ? ' open' : '');
@@ -3307,7 +3348,7 @@ function itemNode (a, { ghost, otherSize, done, asked } = {}) {
   const open = S.threadOpen.has(a.id) && !isHistory();
   const el = document.createElement('div');
   el.className = 'item' + (S.sel === a.id ? ' sel' : '') + (done ? ' done' : '') +
-    (working ? ' working' : '') + (queued ? ' queued' : '') +
+    (working ? ' working' : '') +
     (off ? ' off' : '') + (asked ? ' asked' : '');
   el.dataset.id = a.id;
   el.style.setProperty('--mk', MARK);
@@ -3958,7 +3999,6 @@ async function openSend (only) {
     S.activeRoundId = receipt.roundId || S.activeRoundId;
     S.awaiting = true;
     S.sentSig = reviewSignature();
-    S.sentAt = Date.now();
     /* Everything that just went out is queued by definition: the brief is on
        disk and nobody has opened it. Waiting for the server to tell us that on
        the next tick left the bars sweeping for a second first — saying work had
@@ -3990,11 +4030,10 @@ $('#btnSend').onclick = () => openSend();
    review, which ends the server and hands Claude back the thread. It sits under
    the same button because it is the same decision, answered the other way. */
 const sendMenu = $('#sendMenu');
-let approveArmed = null;
 function closeSendMenu () {
   sendMenu.classList.remove('on');
   $('#btnSendMore').setAttribute('aria-expanded', 'false');
-  clearTimeout(approveArmed); approveArmed = null;
+  approveConfirm.disarm();
   renderApprove();
 }
 // Opening the menu is seeing the link — the flag has done its job.
@@ -4003,8 +4042,8 @@ const clearShareFlag = () => $('#btnSendMore').classList.remove('flag');
    leave behind, and both were explaining a two-word button to someone who has
    been reviewing this design all afternoon. The second click still asks. */
 function renderApprove () {
-  const armed = !!approveArmed;
-  $('#btnApprove').classList.toggle('armed', armed);
+  // The shell's armConfirm owns the `armed` class; the words follow it.
+  const armed = $('#btnApprove').classList.contains('armed');
   $('#btnApprove .t').textContent = armed ? T('approveSure') : T('approve');
   $('#btnApprove .d').textContent = '';
 }
@@ -4030,15 +4069,10 @@ $('#btnSendMore').onclick = e => {
   renderApprove(); renderShare(); renderSendNow();
 };
 // Signing off ends the review for everyone, so it asks once before acting.
-$('#btnApprove').onclick = () => {
-  if (!approveArmed) {
-    approveArmed = setTimeout(() => { approveArmed = null; renderApprove() }, 4000);
-    renderApprove();
-    return;
-  }
-  clearTimeout(approveArmed); approveArmed = null;
-  approve();
-};
+const approveConfirm = VSShell.armConfirm($('#btnApprove'), {
+  onConfirm: () => approve(),
+  arm: renderApprove, disarm: renderApprove,
+});
 document.addEventListener('pointerdown', e => {
   if (sendMenu.classList.contains('on') && !e.target.closest('#sendMenu, #btnSendMore')) closeSendMenu();
 });
@@ -4134,11 +4168,7 @@ async function copy (t) {
     document.execCommand('copy'); ta.remove(); toast(T('copied'));
   }
 }
-let tt = null;
-function toast (m) {
-  const t = $('#toast'); t.textContent = m; t.classList.add('on');
-  clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2200);
-}
+function toast (m) { VSShell.toast(m) }
 
 boot();
 </script>

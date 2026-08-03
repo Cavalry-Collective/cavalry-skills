@@ -6,9 +6,10 @@ below as `next`), `start` (stage 0, né `init`), `wireframe`, `spec` (stage 3), 
 `requirements` (stage 1) and the visual layers noted below remain. This document records the chain's
 design and the decisions already made so they don't have to be re-argued.
 
-**Wireframes for the unbuilt stages live in [`wireframes/`](wireframes/)** — `requirements`, `spec`, the phase
-slider and the build maps. They are reviewed designs, not implementations; `start`'s chooser was one of
-them until it became `plugins/vstack/skills/start/assets/chooser.html`.
+**Reviewed wireframes live in [`wireframes/`](wireframes/)** — `requirements`, the one still-unbuilt
+stage, alongside the designs that `spec`, the phase slider and the build maps were built from. They are
+reviewed designs, not implementations; `start`'s chooser was one of them until it became
+`plugins/vstack/skills/start/assets/chooser.html`.
 
 ## The problem
 
@@ -38,7 +39,7 @@ what you change is what gets built. Prose is the *export*, never the interface.
 
 Three already work this way, which is why they're the ones that get used: the story map is a grid you
 drag cards around, the wireframe is a page you comment on directly, and `start` is a form you tick.
-`phase-preview` is built but not yet visual. This section is the plan for the rest.
+`phase-preview` joined them when the phase slider shipped. This section is the plan for the rest.
 
 Three rules fall out of it:
 
@@ -139,8 +140,8 @@ Three things settled while building it, worth carrying into the rest of the chai
 When the pipeline exists, the only change is where it reads its inputs from and that it writes
 `artifacts.wireframes[].phases`.
 
-**It is not yet visual.** It writes one file per phase and hands each to `wireframe` separately —
-correct output, wrong shape for the question people ask. The phase slider is the fix; see
+**It started out non-visual** — one file per phase, each handed to `wireframe` separately: correct
+output, wrong shape for the question people ask. The phase slider fixed that; see
 *What each stage looks like* below.
 
 ## What each stage looks like
@@ -152,7 +153,7 @@ correct output, wrong shape for the question people ask. The phase slider is the
 | 2 | `wireframe` ✓ | the page itself, in a review workspace | comment straight on it |
 | 3 | `spec` ✓ | a **drill-down tree**, collapsed to headlines | expand, annotate, delete, add — no approve/reject |
 | 4 | `user-story-map` ✓ | the grid of activities × phases | drag cards to re-slice |
-| 5 | `phase-preview` | the page, with a **phase slider** under it | drag the slider to watch phases appear |
+| 5 | `phase-preview` ✓ | the page, with a **phase slider** under it | drag the slider to watch phases appear |
 | 6–8 | `phase-build` ✓ | **one board, three tabs** — endpoints, atomic-design tree, resources | adjust before the build starts, then watch nodes light up as they're built |
 
 ✓ = already built and already visual.
@@ -544,7 +545,7 @@ Items 1–3 shipped on 2026-07-29 with plugin 4.0.0.
 2. ~~**`/vstack` bare, in any chat.**~~ — **built**, as `/vstack:go`, absorbing the planned `next`
    (one skill: pipeline mode when `.vstack/pipeline.json` exists, chat + directory inference when it
    doesn't). A truly bare `/vstack` turned out to be **impossible from a plugin** — plugin skills are
-   always namespaced — so the README documents a one-line copy to `~/.claude/skills/vstack/` for
+   always namespaced — so `go`'s SKILL.md documents a one-line copy to `~/.claude/skills/vstack/` for
    anyone who wants it.
 
 3. ~~**Drop the `/cavalry` prefix.**~~ — **done.** The repo was already clean; the prefix came from a
@@ -569,7 +570,7 @@ Items 1–3 shipped on 2026-07-29 with plugin 4.0.0.
    People will arrive already using another skill stack, and the README should answer whether these
    compose, conflict, or overlap. **The principle landed** with `spec`/`phase-build`: vstack is
    tool-agnostic — plain files in and out, only `.vstack/` owned, no hooks, no interception — and
-   the README now says so ("Plays well with other tools"). That also answers the *Spec Kit* bullet:
+   the README now says so ("Works with the tools you already use"). That also answers the *Spec Kit* bullet:
    nobody owns `specs/`; vstack owns only the files it wrote. **Still open**: the per-tool
    comparison (what overlaps with speckit's flow, what Superpowers changes) deserves the deep think
    before it becomes a detailed README section.
