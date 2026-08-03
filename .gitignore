@@ -7,7 +7,7 @@
 # belongs to, hence the leading **/.
 **/.vstack/local/
 
-# The brand workflow installs sharp/playwright at the repo root.
+# Recording the README demo installs playwright-core at the repo root.
 node_modules/
 
 .DS_Store
