@@ -1,0 +1,18 @@
+{
+  "id": "codex",
+  "name": "Codex",
+  "capabilities": {
+    "share": "copy",
+    "watch": "stream",
+    "browser": true,
+    "updateDetect": "none"
+  },
+  "install": {
+    "howLead": "Update Visual Stack from its Codex marketplace:",
+    "commands": [
+      "codex plugin marketplace upgrade cavalry-collective",
+      "codex plugin add vstack@cavalry-collective"
+    ],
+    "auto": null
+  }
+}

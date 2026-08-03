@@ -1,6 +1,6 @@
 # Contract: Host
 
-A **Host** is the coding-agent product that runs the skill (Claude Code, Grok
+A **Host** is the coding-agent product that runs the skill (Claude Code, Codex, Grok
 Build, …). The review engine does not call into a host. The *agent session*
 running under a host fulfills these operations by using that host’s tools.
 
@@ -14,8 +14,8 @@ Every Host is described by a **profile** (`hosts/<id>.json`, schema
 
 | Field | Meaning |
 | --- | --- |
-| `id` | Stable key: `claude`, `grok`, … — used as `VSTACK_HOST` / `--host` |
-| `name` | Human label in UI (“Claude”, “Grok”) |
+| `id` | Stable key: `claude`, `codex`, `grok`, … — used as `VSTACK_HOST` / `--host` |
+| `name` | Human label in UI (“Claude”, “Codex”, “Grok”) |
 
 ---
 

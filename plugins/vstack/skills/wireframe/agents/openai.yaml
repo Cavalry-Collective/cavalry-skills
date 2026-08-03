@@ -1,0 +1,7 @@
+interface:
+  display_name: "Visual Stack Wireframe"
+  short_description: "Build and review interactive UI wireframes"
+  default_prompt: "Use $wireframe to build or review a UI in an interactive annotation workspace."
+
+policy:
+  allow_implicit_invocation: true

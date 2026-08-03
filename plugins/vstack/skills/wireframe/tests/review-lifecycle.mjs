@@ -37,11 +37,15 @@ async function waitForServer () {
 }
 
 async function startServer () {
-  const child = spawn(process.execPath, [SERVER, 'serve', '--file', page, '--port', String(port), '--idle-timeout', '0'], {
+  const child = spawn(process.execPath, [SERVER, 'serve', '--file', page, '--port', String(port), '--idle-timeout', '0', '--host', 'codex'], {
     cwd: temp, stdio: ['ignore', 'pipe', 'pipe'],
   })
   server = child
   await waitForServer()
+
+  const workspace = await fetch(origin + '/')
+  assert.equal(workspace.status, 200)
+  assert.match(await workspace.text(), /window\.__VSTACK_HOST__=\{"id":"codex","name":"Codex"/)
 }
 
 const comment = (id, note, extra = {}) => ({

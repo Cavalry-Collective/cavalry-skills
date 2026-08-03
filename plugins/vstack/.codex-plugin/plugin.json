@@ -1,0 +1,28 @@
+{
+  "name": "vstack",
+  "version": "0.1.0",
+  "description": "Build and review UI wireframes in an interactive annotation workspace with Codex.",
+  "author": {
+    "name": "Cavalry Collective",
+    "email": "adam@cavalry.sg",
+    "url": "https://cavalry.sg"
+  },
+  "homepage": "https://github.com/Cavalry-Collective/visual-stack",
+  "repository": "https://github.com/Cavalry-Collective/visual-stack",
+  "license": "MIT",
+  "keywords": ["wireframe", "ui", "design", "review", "prototype"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Visual Stack",
+    "shortDescription": "Interactive wireframing and UI review",
+    "longDescription": "Build a wireframe or review a running UI, comment directly on the page, and iterate with Codex in one linked workspace.",
+    "developerName": "Cavalry Collective",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://github.com/Cavalry-Collective/visual-stack",
+    "defaultPrompt": [
+      "Build a wireframe for this screen and open it for review.",
+      "Open the running app in an interactive UI review workspace."
+    ]
+  }
+}

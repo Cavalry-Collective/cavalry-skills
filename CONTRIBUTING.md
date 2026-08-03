@@ -1,6 +1,6 @@
 # Contributing
 
-Visual Stack is a Claude Code plugin: skills, prompts, and the HTML workspaces they open. A change here changes what runs on an installer's machine, so scope and permissions matter more than line count.
+Visual Stack is a Claude Code and Codex plugin: skills, prompts, and the HTML workspaces they open. A change here changes what runs on an installer's machine, so scope and permissions matter more than line count.
 
 ## Before you open a PR
 
@@ -12,7 +12,7 @@ Visual Stack is a Claude Code plugin: skills, prompts, and the HTML workspaces t
 
 ## Testing a change
 
-Install the plugin from your branch and drive the skill end to end in a real project. A skill that has only been read is untested.
+Install the plugin from your branch and drive the skill end to end in a real project. A skill that has only been read is untested. For Codex changes, validate the plugin manifest and wireframe skill, then run `node plugins/vstack/skills/wireframe/tests/host-profiles.mjs`.
 
 ## Reporting problems
 

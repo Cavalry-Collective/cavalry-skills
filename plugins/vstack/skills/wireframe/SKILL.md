@@ -1,6 +1,6 @@
 ---
 name: wireframe
-description: Build a UI wireframe and open it in an interactive review workspace where the user comments directly on the page, turning those comments into the next iteration — or point the same workspace at an app that is already running and review the real thing. Use when the user wants a wireframe, UI mockup, screen design or prototype built; wants to review, annotate, mark up or comment on a page, a design, an existing UI, a running app or a website; wants to iterate on a UI; or wants to compare versions of a screen. Use when the user runs /wireframe or /vstack:wireframe.
+description: Build a UI wireframe and open it in an interactive review workspace where the user comments directly on the page, turning those comments into the next iteration — or point the same workspace at an app that is already running and review the real thing. Use when the user wants a wireframe, UI mockup, screen design or prototype built; wants to review, annotate, mark up or comment on a page, a design, an existing UI, a running app or a website; wants to iterate on a UI; or wants to compare versions of a screen. Use when the user invokes $wireframe, /wireframe, or /vstack:wireframe.
 ---
 
 ## 0 · Host (do this first)
@@ -12,6 +12,7 @@ this file** — they live only in the Host adapter.
 
 | You are running under… | Load adapter | Set |
 | --- | --- | --- |
+| **Codex** | `hosts/codex.md` | `VSTACK_HOST=codex` (or `--host codex` on `serve`) |
 | **Grok** Build / Grok CLI | `hosts/grok.md` | `VSTACK_HOST=grok` (or `--host grok` on `serve`) |
 | **Claude Code** | `hosts/claude.md` | `VSTACK_HOST=claude` (default if unset) |
 
@@ -425,7 +426,7 @@ route.
 - **Every command takes `--name <slug>` in place of `--file` for a live review** — `publish`, `reply`, `share`, `status`, `check`. The brief tells you which name to use.
 - Full command reference and troubleshooting: `references/workflow.md`.
 - Contracts: `plugins/vstack/contracts/` — Host ops and review-loop protocol.
-- Host adapters: `hosts/claude.md`, `hosts/grok.md`.
+- Host adapters: `hosts/claude.md`, `hosts/codex.md`, `hosts/grok.md`.
 
 ## State & handoff
 

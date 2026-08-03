@@ -1,6 +1,6 @@
 # Contracts
 
-Tool-agnostic interfaces for Visual Stack. Hosts (Claude Code, Grok Build, …)
+Tool-agnostic interfaces for Visual Stack. Hosts (Claude Code, Codex, Grok Build, …)
 implement these; the engine and skills depend only on the contracts, never on a
 particular agent product.
 
@@ -15,11 +15,12 @@ particular agent product.
 ```
 plugins/vstack/
   contracts/           ← this directory (the specs)
-  hosts/               ← profiles that implement Host (claude.json, grok.json)
+  hosts/               ← profiles that implement Host (claude.json, codex.json, grok.json)
   lib/host.mjs         ← loads a profile; used by servers
   skills/wireframe/
     SKILL.md           ← loop in contract terms (no host-specific tools)
     hosts/claude.md    ← Claude Code adapter: maps Host ops → tools
+    hosts/codex.md     ← Codex adapter: same
     hosts/grok.md      ← Grok Build adapter: same
 ```
 

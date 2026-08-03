@@ -20,6 +20,8 @@ Built by [Cavalry Collective](https://cavalry.sg).
 
 ## Install
 
+### Claude Code
+
 Run these commands in Claude Code:
 
 ```text
@@ -28,6 +30,20 @@ Run these commands in Claude Code:
 ```
 
 The plugin installs the complete workflow.
+
+### Codex
+
+Codex support currently covers the interactive wireframe and live UI review
+workflow. Add the repository marketplace and install Visual Stack:
+
+```text
+codex plugin marketplace add Cavalry-Collective/visual-stack
+codex plugin add vstack@cavalry-collective
+```
+
+Start a new Codex thread, then invoke `$wireframe` or ask Codex to build or
+review a UI wireframe. Wireframe is the currently supported Codex workflow;
+the remaining Visual Stack stages have not yet received Codex host adapters.
 
 ---
 
@@ -147,7 +163,7 @@ or nothing ships.
 
 ## Requirements
 
-- A current version of Claude Code
+- A current version of Claude Code, or Codex for the wireframe workflow
 - A supported Node.js LTS release available as `node`
 - A local web browser
 - Git, and optionally the GitHub CLI when `/vstack:start` creates a GitHub repository
