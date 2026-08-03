@@ -1,10 +1,14 @@
 # Wishlist — the Visual Stack pipeline
 
-**Status: mostly built.** This repo ships seven skills today — `go` (the "what now?" entry, planned
-below as `next`), `start` (stage 0, né `init`), `wireframe`, `spec` (stage 3), `user-story-map`,
-`phase-preview` (stage 5) and `phase-build` (stages 6–8, merged into one skill). Only
-`requirements` (stage 1) and the visual layers noted below remain. This document records the chain's
-design and the decisions already made so they don't have to be re-argued.
+> **Archived direction.** Visual Stack is now positioned as the wireframe and UI review tool. The
+> broader pipeline remains in the repository as a set of earlier experiments; this document records
+> that work and is not the current product roadmap.
+
+**Historical status: mostly built.** The pipeline included seven skills — `go` (the former "what
+now?" entry, planned below as `next`), `start` (stage 0, né `init`), `wireframe`, `spec` (stage 3),
+`user-story-map`, `phase-preview` (stage 5) and `phase-build` (stages 6–8, merged into one skill).
+Only `requirements` (stage 1) and the visual layers noted below remained when this direction was
+archived.
 
 **Reviewed wireframes live in [`wireframes/`](wireframes/)** — `requirements`, the one still-unbuilt
 stage, alongside the designs that `spec`, the phase slider and the build maps were built from. They are
@@ -55,7 +59,7 @@ Three rules fall out of it:
 ## The stages
 
 ```
-  ◆ /vstack:go  ←  always answers "what now?"  (planned here as `next`)
+  ◆ /vstack:go  ←  former "what now?" router (planned here as `next`; now a wireframe alias)
 
   ◆ 0  start              multi-step form: what you're building → stack → confirm
                           (or skip development, or record an existing app untouched)
@@ -542,11 +546,9 @@ Items 1–3 shipped on 2026-07-29 with plugin 4.0.0.
    pre-filled confirm step, recording the project without touching code. See
    [Stage 0](#0--start--the-setup-form--built).
 
-2. ~~**`/vstack` bare, in any chat.**~~ — **built**, as `/vstack:go`, absorbing the planned `next`
-   (one skill: pipeline mode when `.vstack/pipeline.json` exists, chat + directory inference when it
-   doesn't). A truly bare `/vstack` turned out to be **impossible from a plugin** — plugin skills are
-   always namespaced — so `go`'s SKILL.md documents a one-line copy to `~/.claude/skills/vstack/` for
-   anyone who wants it.
+2. ~~**`/vstack` bare, in any chat.**~~ — originally built as the `/vstack:go` pipeline router. That
+   behavior was retired when Visual Stack became the wireframe product. `/vstack:go` remains a
+   compatibility alias to `/vstack:wireframe`.
 
 3. ~~**Drop the `/cavalry` prefix.**~~ — **done.** The repo was already clean; the prefix came from a
    stale `cavalry@cavalry-collective` 1.1.0 plugin installed before the vstack rename. Fixed by
@@ -676,8 +678,8 @@ Rough order, each step independently useful:
    (`/history`, `/history/<n>`) behind the spec page's timeline. `spec`, `phase-build` and
    `user-story-map` run on it; `bridge.py` is gone. `wireframe` keeps `review-server.mjs` — see
    *One engine, not eight* for why that one is not a duplicate.
-4. ~~**`next`**~~ — **built**, as `/vstack:go`, with inference mode on top of the planned
-   state-file reading. It proves the `pipeline.json` schema everything after depends on.
+4. ~~**`next`**~~ — was built as `/vstack:go`, with inference mode on top of the planned state-file
+   reading. The router was later retired; `/vstack:go` now delegates to wireframing for compatibility.
 5. **`requirements`**, from another round of design — the v6 wireframe was parked, not approved. It is
    also the first mind map, so the graph-layout question gets settled here.
 6. ~~**The `ui-review` → `wireframe` rename**~~ — **done**. Footers still to come, once the state file has stopped moving.

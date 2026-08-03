@@ -210,5 +210,6 @@ Delete the template's own root `README.md` once instantiation is done — its Da
 - **Next** — `/vstack:requirements` writes `specs/requirements.md`. **That stage isn't built yet**;
   until it is, say so and offer to write `specs/requirements.md` by hand together, or go straight to
   a first screen with `/vstack:wireframe`. Don't invent a requirements stage to fill the gap. From
-  there the built chain runs `wireframe → spec → user-story-map → phase-preview → phase-build`,
-  and `/vstack:go` answers "what now?" from anywhere.
+  there the built chain runs `wireframe → spec → user-story-map → phase-preview → phase-build`.
+  The former `/vstack:go` router is no longer part of the pipeline; it is a compatibility alias for
+  the wireframe tool.

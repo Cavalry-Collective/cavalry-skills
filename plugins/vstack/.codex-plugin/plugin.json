@@ -1,6 +1,6 @@
 {
   "name": "vstack",
-  "description": "Build and review UI wireframes in an interactive annotation workspace with Codex.",
+  "description": "Visual Stack is the interactive wireframe and UI review tool for Codex.",
   "author": {
     "name": "Cavalry Collective",
     "email": "adam@cavalry.sg",
@@ -13,8 +13,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Visual Stack",
-    "shortDescription": "Interactive wireframing and UI review",
-    "longDescription": "Build a wireframe or review a running UI, comment directly on the page, and iterate with Codex in one linked workspace.",
+    "shortDescription": "Wireframe directly with Codex",
+    "longDescription": "Build a wireframe or review a running UI, comment directly on the screen, and receive each Codex revision in one linked workspace.",
     "developerName": "Cavalry Collective",
     "category": "Productivity",
     "capabilities": ["Interactive", "Write"],

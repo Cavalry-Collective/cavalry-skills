@@ -198,8 +198,11 @@
 :root[data-theme=dark] .linkdot.idle::before{background:#d29a3f;
   box-shadow:0 0 0 3px color-mix(in srgb,#d29a3f 22%,transparent)}
 
-/* floating banners — the page talking back, never blocking the work */
-.banner{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:38;display:none;
+/* floating banners — the page talking back, never blocking the work.
+   z-index above every panel and menu (comments panel 40–46, dropdowns 60–70):
+   a snackbar that slides under other chrome reads as clipped. Full-screen
+   overlays (z 200+) still cover it. */
+.banner{position:fixed;left:50%;top:58px;transform:translateX(-50%);z-index:80;display:none;
   align-items:center;gap:10px;padding:8px 10px 8px 14px;border-radius:10px;box-shadow:var(--shadow-pop);
   font-size:12.5px;white-space:nowrap;max-width:calc(100% - 24px)}
 .banner.on{display:flex}
@@ -211,7 +214,7 @@
 .banner.good .tick{color:var(--ok);font-weight:700}
 
 /* the toast — VSShell.toast(); one element, appended on first use */
-.vs-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;
+.vs-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:80;
   background:var(--ink);color:var(--surface);padding:8px 14px;border-radius:8px;
   font-size:12.5px;box-shadow:var(--shadow-pop);opacity:0;pointer-events:none;transition:opacity .25s}
 .vs-toast.on{opacity:1}

@@ -75,7 +75,7 @@ codex plugin marketplace add Cavalry-Collective/visual-stack
 codex plugin add vstack@cavalry-collective
 ```
 
-Start a new Codex thread and invoke **`$wireframe`**, or describe a wireframe or
+Start a new Codex thread and invoke **`$vstack:wireframe`**, or describe a wireframe or
 UI-review task and let the skill trigger implicitly.
 
 Update detection is disabled for Codex (`updateDetect: none`); use

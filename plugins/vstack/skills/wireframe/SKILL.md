@@ -1,6 +1,6 @@
 ---
 name: wireframe
-description: Build a UI wireframe and open it in an interactive review workspace where the user comments directly on the page, turning those comments into the next iteration — or point the same workspace at an app that is already running and review the real thing. Use when the user wants a wireframe, UI mockup, screen design or prototype built; wants to review, annotate, mark up or comment on a page, a design, an existing UI, a running app or a website; wants to iterate on a UI; or wants to compare versions of a screen. Use when the user invokes $wireframe, /wireframe, or /vstack:wireframe.
+description: Visual Stack's primary tool. Build a UI wireframe and open it in an interactive review workspace where the user comments directly on the page, turning those comments into the next iteration — or point the same workspace at an app that is already running and review the real thing. Use when the user wants a wireframe, UI mockup, screen design or prototype built; wants to review, annotate, mark up or comment on a page, a design, an existing UI, a running app or a website; wants to iterate on a UI; asks to use Visual Stack; or invokes $vstack:wireframe or /vstack:wireframe.
 ---
 
 ## 0 · Host (do this first)
@@ -415,7 +415,7 @@ half-written one is worse than none, because the next stage would trust it.
 
 Standalone, the design source is §2's priority order (reference site → screenshots → the project's
 own system → ask), the page goes where the user wants (default `wireframes/`), and you end with the
-result. **One** closing line may mention the chain exists; it never proposes the next stage.
+result. Do not propose another Visual Stack tool; wireframing is the complete product workflow.
 
 With a state file:
 
@@ -432,5 +432,5 @@ With a state file:
 - **A live review produces no wireframe artifact.** What it changes is the code, which the repo already
   records — so do not append to `artifacts.wireframes[]` for one. Say what you changed and leave the
   pipeline alone; the design stage is about designs that do not exist yet.
-- **Next** — `/vstack:spec` turns the signed-off design into acceptance criteria. Offer to run it;
-  don't ask whether to continue.
+- On sign-off, report the approved wireframe and end the workflow. Do not hand off to another Visual
+  Stack tool unless the user explicitly asks for one by name.
