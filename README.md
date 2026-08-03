@@ -1,4 +1,4 @@
-<img src="docs/brand/vstack-lockup-tile-1120.png" alt="Visual Stack" width="420">
+<img src="docs/assets/vstack-lockup-tile-1120.png" alt="Visual Stack" width="420">
 
 # Visual Stack
 
@@ -26,7 +26,7 @@ Your agent applies the feedback and updates the design in the same place, hopefu
 
 Just point. Comment. Iterate. Question your career choices slightly less.
 
-![Leave feedback on a wireframe and review the next version on the same canvas](docs/screens/wireframe-demo.gif)
+![Leave feedback on a wireframe and review the next version on the same canvas](docs/assets/wireframe-demo.gif)
 
 ## Get started
 

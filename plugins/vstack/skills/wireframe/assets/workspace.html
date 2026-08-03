@@ -107,16 +107,25 @@ body.panelshut #main{--pw:0px}
    it read as floating, and the thing it belongs to starts here. */
 #panelHandle{display:flex;grid-column:2;grid-row:1;align-self:start;justify-self:start;
   position:relative;z-index:43;margin-top:18px;transform:translateX(-100%);
-  flex-direction:column;align-items:center;gap:7px;width:27px;padding:13px 0;
-  border:1px solid var(--line);border-right:0;border-radius:9px 0 0 9px;
-  background:var(--surface);color:var(--ink-2);box-shadow:var(--shadow-pop)}
+  flex-direction:column;align-items:center;gap:6px;width:20px;padding:9px 0;
+  border:1px solid var(--line);border-right:0;border-radius:7px 0 0 7px;
+  background:var(--surface);color:var(--ink-2);box-shadow:var(--shadow-pop);
+  transition:background .16s,border-color .16s,color .16s}
 /* The handle shares the panel's grid line, so it follows the real edge even
    when browser zoom or a constrained viewport changes the rendered track. */
 body.panelopen #handleBadge{display:none}
 body.panelopen #panelHandle svg{transform:rotate(180deg)}
 body.phase #panelHandle{display:none!important}
 #panelHandle:hover{color:var(--ink);background:var(--surface-2)}
-#panelHandle svg{width:15px;height:15px;display:block;transition:transform .16s ease-out}
+#panelHandle svg{width:13px;height:13px;display:block;transition:transform .16s ease-out}
+/* Shut, the handle is the only way back to the comments, so it wears the brand
+   — at this size a neutral chevron on the edge went unnoticed. */
+body.panelshut #panelHandle{color:var(--brand);
+  border-color:var(--brand-line);background:var(--brand-soft)}
+body.panelshut #panelHandle:hover{background:var(--brand);border-color:var(--brand);color:#fff}
+body.panelshut #panelHandle:hover .pbadge{background:#fff;color:var(--brand)}
+/* The handle is narrower than a default badge, so its own count runs tighter. */
+#handleBadge{min-width:14px;height:14px;padding:0 2px;font-size:9px}
 /* Keep comments beside the canvas for every width that still uses the desktop
    chrome. The old intermediate breakpoint made a partial drawer cover the
    reviewed page. At the compact breakpoint comments become their own view, so
@@ -132,7 +141,7 @@ body.phase #panelHandle{display:none!important}
   #panel > *{width:100%}
   #panelHandle{grid-column:1;position:fixed;right:0;top:64px;margin-top:0;
     transform:none;justify-self:auto}
-  body.panelopen #panelHandle{right:calc(100vw - 27px);z-index:46}
+  body.panelopen #panelHandle{right:calc(100vw - 20px);z-index:46}
 }
 @media (prefers-reduced-motion:reduce){
   #main,#panel,#panelHandle,#panelHandle svg{transition:none}
@@ -561,7 +570,11 @@ body.phase #hiNew{display:inline-flex}
 .item:hover{border-color:var(--line-2)}
 .item.sel{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-soft)}
 .item .ih{display:flex;align-items:center;gap:6px}
-.item .n{font:700 10px/1 var(--mono);color:#fff;background:var(--mk,var(--brand));padding:3px 5px;border-radius:4px}
+/* The same bubble the mark wears on the page, so the number in the list and the
+   number on the canvas read as one thing. */
+.item .n{flex:none;width:20px;height:20px;display:grid;place-items:center;
+  font:700 10px/1 var(--font);color:#fff;background:var(--mk,var(--brand));
+  border-radius:50% 50% 50% 3px}
 .item .kind{font-size:11px;color:var(--ink-3);flex:1}
 .item .note{font-size:12.5px;line-height:1.4;margin-top:4px;overflow:hidden;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
@@ -709,12 +722,14 @@ body.phase #hiNew{display:inline-flex}
 #tlMeta .row{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* /vstack:shell scrubber-css */
 
-#btnClearHistory{flex:none;min-height:28px;padding:0 9px;border:1px solid var(--line-2);border-radius:7px;
-  color:var(--ink-3);font-size:11px;white-space:nowrap;background:var(--surface)}
-#btnClearHistory:hover:not(:disabled){border-color:var(--brand-line);color:var(--brand);background:var(--surface-2)}
-#btnClearHistory:disabled{opacity:.35;cursor:default}
+#btnClearHistory{flex:none;font-size:11.5px;color:var(--ink-3);text-decoration:underline;white-space:nowrap;
+  background:none;border:0;padding:0}
+#btnClearHistory:hover:not(:disabled){color:var(--brand)}
+#btnClearHistory:disabled{opacity:.35;cursor:default;text-decoration:none}
+#btnClearHistory:disabled:hover{color:var(--ink-3)}
 #btnClearHistory[hidden],body.phase #btnClearHistory{display:none}
-@media(max-width:720px){#btnClearHistory{width:28px;padding:0;font-size:0}#btnClearHistory::before{content:"⌫";font-size:15px}}
+@media(max-width:720px){#btnClearHistory{width:28px;font-size:0;text-decoration:none;text-align:center}
+  #btnClearHistory::before{content:"⌫";font-size:15px}}
 
 /* ── floating banners — the shell's .banner/.dark/.good; only what this page
    adds on top lives here ── */
