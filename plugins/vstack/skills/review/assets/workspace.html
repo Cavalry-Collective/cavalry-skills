@@ -1550,7 +1550,7 @@ const STR = {
     viewingOld: v => `Viewing v${v} — read only`, readOnly: v => `read-only · v${v}`,
     reloadTitle: 'Reload the page', current: 'current', replied: '{agent} replied',
     nowReviewing: v => `Now reviewing v${v}`, historyBlocked: 'Viewing an earlier version — return to current to comment',
-    raised: v => `Raised on v${v} — still unanswered`, onlyOne: 'Only one version so far',
+    raised: cap => `Raised on ${cap} — still unanswered`, onlyOne: 'Only one version so far',
     ultrawide: 'Ultrawide', desktop: 'Desktop', tablet: 'Tablet', phone: 'Phone',
     noServer: 'Could not reach the review server.',
     save: 'Save', newlineHint: 'Shift+Enter for a new line',
@@ -1592,6 +1592,7 @@ const STR = {
     sendReply: 'Reply', addReply: 'Reply',
     coversN: n => `${n} element${n > 1 ? 's' : ''} inside`,
     offscreen: 'not on screen', offscreenToast: 'Not on the page right now',
+    fromEarlier: cap => `from ${cap}`,
     anchorGone: 'not on screen', anchorLoose: 'moved since this version',
     inRegion: (k, l) => k === 'region' ? (l ? `in “${l}”` : '') : (l ? `in ${k} “${l}”` : `in ${k}`),
     /* live review */
@@ -1652,7 +1653,7 @@ const STR = {
     viewingOld: v => `正在查看 v${v} — 只读`, readOnly: v => `只读 · v${v}`,
     reloadTitle: '重新加载页面', current: '当前', replied: '{agent} 回复了',
     nowReviewing: v => `正在评审 v${v}`, historyBlocked: '正在查看历史版本 — 回到最新版本才能批注',
-    raised: v => `在 v${v} 提出 — 仍未解决`, onlyOne: '目前只有一个版本',
+    raised: cap => `在 ${cap} 提出 — 仍未解决`, onlyOne: '目前只有一个版本',
     ultrawide: '超宽屏', desktop: '桌面', tablet: '平板', phone: '手机',
     noServer: '无法连接评审服务器。',
     save: '保存', newlineHint: 'Shift+Enter 换行',
@@ -1694,6 +1695,7 @@ const STR = {
     sendReply: '发送', addReply: '回复',
     coversN: n => `框内 ${n} 个元素`,
     offscreen: '当前不可见', offscreenToast: '页面上当前看不到这个元素',
+    fromEarlier: cap => `来自 ${cap}`,
     anchorGone: '当前不可见', anchorLoose: '页面已改动，位置为大致位置',
     inRegion: (k, l) => k === 'region' ? (l ? `位于「${l}」` : '') : (l ? `位于 ${k}「${l}」` : `位于 ${k}`),
     /* 实时评审 */
@@ -1856,27 +1858,31 @@ const awaitsReply = a => a.status === 'question' ||
 function loadAnnotations () {
   const local = S.runtime === 'artifact' ? lsGet() : null;
   S.ann = (local ?? S.reviews[S.version]?.annotations ?? []).map(normalise);
-  // Anything Claude has said back is waiting on you, whether or not it was
-  // filed as a question — open the thread so the words are visible and the box
-  // to answer in is already there.
-  for (const a of S.ann) if (awaitsReply(a)) S.threadOpen.add(a.id);
   /* What earlier versions still have to say. Open comments ride along because
      they are unfinished, addressed ones because "Claude changed it" is not the
      same as "that was the change I wanted", and questions because they are the
      one thing waiting on the reviewer — leaving those behind took Claude's
      question off the screen at the next version and left nobody to answer it.
      A comment leaves the screen when the reviewer dismisses it, and not before.
-     Versions iterate in order, so a later copy overwrites an earlier one. */
+     A later copy overwrites an earlier one, so walk the versions in order. */
   const ghosts = new Map();
-  for (const [v, rev] of Object.entries(S.reviews)) {
-    if (Number(v) >= S.version) continue;
+  const earlier = Object.entries(S.reviews)
+    .map(([v, rev]) => [Number(v), rev])
+    .filter(([v]) => v < S.version)
+    .sort(([a], [b]) => a - b);
+  for (const [v, rev] of earlier) {
     for (const a of rev.annotations || []) {
       if (!['open', 'addressed', 'question'].includes(a.status)) continue;
-      ghosts.set(a.id, { ...normalise(a), fromVersion: Number(v) });
+      ghosts.set(a.id, { ...normalise(a), fromVersion: v });
     }
   }
   for (const a of S.ann) ghosts.delete(a.id);   // this version's copy is the live one
   S.carried = [...ghosts.values()].filter(a => !a.dismissed);
+  // Anything Claude has said back is waiting on you, whether or not it was
+  // filed as a question — open the thread so the words are visible and the box
+  // to answer in is already there. A question asked several versions ago is
+  // still a question, so the carried ones count too.
+  for (const a of S.ann.concat(S.carried)) if (awaitsReply(a)) S.threadOpen.add(a.id);
 }
 // status: open (waiting on Claude) · question (Claude asked, waiting on you) ·
 // addressed (Claude changed it). Only Claude moves a comment to addressed.
@@ -3450,10 +3456,16 @@ function renderPanel () {
      another size, one carried in from an earlier round — is still ordered and
      still labelled on the card itself, but a panel with five headings and one
      comment under each was mostly headings. */
-  const asked = S.ann.filter(a => match(a) && isAsked(a));
+  /* A question asked in an earlier version is still waiting on you in this one,
+     so it belongs with the other questions rather than in the carried group.
+     Every group here tests "still live" the same way: requiring a carried
+     comment to be status `open` left carried questions out of the list while
+     the count below went on counting them, and nothing on screen could dismiss
+     what was never drawn. */
+  const asked = S.ann.concat(S.carried).filter(a => match(a) && isAsked(a));
   const here = S.ann.filter(a => match(a) && !isAsked(a) && (a.size || 'desktop') === S.size.id);
   const elsewhere = S.ann.filter(a => match(a) && !isAsked(a) && (a.size || 'desktop') !== S.size.id);
-  const carried = S.carried.filter(a => a.status === 'open' && hasSubstance(a));
+  const carried = S.carried.filter(a => match(a) && !isAsked(a));
   // Addressed in this round or in one before it — same group, same actions.
   const done = S.ann.concat(S.carried).filter(a =>
     hasSubstance(a) && a.status === 'addressed' && !a.dismissed);
@@ -3468,7 +3480,7 @@ function renderPanel () {
   const live = asked.length + here.length + elsewhere.length + carried.length;
   if (live) body.appendChild(group(T('openGroup')(live)));
   // Waiting on you first — it is the one thing here that stalls the round.
-  for (const a of asked) body.appendChild(itemNode(a, { asked: true }));
+  for (const a of asked) body.appendChild(itemNode(a, { asked: true, ghost: !!a.fromVersion }));
   for (const a of here) body.appendChild(itemNode(a));
   for (const a of elsewhere) body.appendChild(itemNode(a, { otherSize: true }));
   for (const a of carried) body.appendChild(itemNode(a, { ghost: true }));
@@ -3539,10 +3551,17 @@ function itemNode (a, { ghost, otherSize, done, asked } = {}) {
     (off ? ' off' : '') + (asked ? ' asked' : '');
   el.dataset.id = a.id;
   el.style.setProperty('--mk', markColour(a));
+  /* A comment carried in from an earlier version says which one on the card.
+     A question asked ten rounds ago otherwise looks exactly like one asked a
+     minute ago, and how old it is changes what you do about it. The addressed
+     group is already a record of earlier rounds, so it says nothing extra. */
+  const raised = ghost && !done
+    ? ` · <span class="offtag" title="${esc(T('raised')(capFor(a.fromVersion)))}">${esc(T('fromEarlier')(capFor(a.fromVersion)))}</span>`
+    : '';
   el.innerHTML = `
     <div class="ih">
       <span class="n">${num(a)}</span>
-      <span class="kind">${T(a.kind === 'area' ? 'areaComment' : a.kind === 'general' ? 'generalComment' : 'comment')}${otherSize ? ' · ' + sizeLabel(a.size) : ''}${off ? ` · <span class="offtag">${esc(elsewhere ? T('otherScreen') : T('offscreen'))}</span>` : ''}${queued ? ` · <span class="offtag">${esc(T('queuedTag'))}</span>` : ''}</span>
+      <span class="kind">${T(a.kind === 'area' ? 'areaComment' : a.kind === 'general' ? 'generalComment' : 'comment')}${otherSize ? ' · ' + sizeLabel(a.size) : ''}${raised}${off ? ` · <span class="offtag">${esc(elsewhere ? T('otherScreen') : T('offscreen'))}</span>` : ''}${queued ? ` · <span class="offtag">${esc(T('queuedTag'))}</span>` : ''}</span>
       ${!isHistory() && !sent(a) && !S.held.has(a.id) && hasSubstance(a) && a.status !== 'addressed' && !ghost
         ? `<button class="isend" title="${esc(T('sendOne'))}" aria-label="${esc(T('sendOne'))}">
              <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"
@@ -3643,7 +3662,7 @@ function itemNode (a, { ghost, otherSize, done, asked } = {}) {
     if (a.kind === 'general') { $('.gnote', el)?.focus(); return }
     // Carried and still open: say where it came from, because the version it was
     // made on is not the one on screen. Carried and addressed: nothing to say.
-    if (ghost && a.status === 'open') { toast(T('raised')(a.fromVersion)); return }
+    if (ghost && a.status === 'open') { toast(T('raised')(capFor(a.fromVersion))); return }
     if ((a.size || 'desktop') !== S.size.id) { setSize(a.size); setTimeout(() => reveal(a), 320); return }
     // Made on a screen that isn't up: go there first, then show the mark.
     if (elsewhere) { toast(T('goingTo')(a.route)); navigate(a.route, () => reveal(a)); return }
