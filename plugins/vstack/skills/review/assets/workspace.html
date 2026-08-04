@@ -2635,9 +2635,20 @@ function bindFrameKeys () {
 /* ─────────────── click = comment · drag = area comment ─────────────── */
 
 let overlayRect = null;
+/* The overlay covers the frame's box, so a pointer on it is somewhere in the
+   page's *window*. A comment is stored against the page's *document*. The two
+   spaces differ by whatever the page has scrolled inside the frame — nothing at
+   all while the frame is as tall as its document, and the page's scroll
+   position the moment it is not. Convert at the two edges, here and where marks
+   are drawn, and everything between them stays in document coordinates. */
 const pt = e => {
-  const r = overlayRect || overlay.getBoundingClientRect();
-  return { x: (e.clientX - r.left) / S.zoom, y: (e.clientY - r.top) / S.zoom };
+  const r = overlayRect || overlay.getBoundingClientRect(), s = frameScroll();
+  return { x: (e.clientX - r.left) / S.zoom + s.x, y: (e.clientY - r.top) / S.zoom + s.y };
+};
+/** A document box in the overlay's own space, ready to draw. */
+const onOverlay = r => {
+  const s = frameScroll();
+  return { ...r, x: r.x - s.x, y: r.y - s.y };
 };
 /* ════════════════════ what a comment is attached to ════════════════════
    A comment is a place *on something*. Recording only x,y makes the mark a
@@ -2943,11 +2954,15 @@ overlay.addEventListener('pointermove', e => {
   if (Math.abs(p.x - drag.start.x) > 4 || Math.abs(p.y - drag.start.y) > 4) drag.moved = true;
   if (!drag.moved) return;
   const d = $('#drag');
+  const box = onOverlay({
+    x: Math.min(drag.start.x, p.x), y: Math.min(drag.start.y, p.y),
+    w: Math.abs(p.x - drag.start.x), h: Math.abs(p.y - drag.start.y),
+  });
   d.style.display = 'block';
-  d.style.left = Math.min(drag.start.x, p.x) + 'px';
-  d.style.top = Math.min(drag.start.y, p.y) + 'px';
-  d.style.width = Math.abs(p.x - drag.start.x) + 'px';
-  d.style.height = Math.abs(p.y - drag.start.y) + 'px';
+  d.style.left = box.x + 'px';
+  d.style.top = box.y + 'px';
+  d.style.width = box.w + 'px';
+  d.style.height = box.h + 'px';
 });
 overlay.addEventListener('pointerup', e => {
   if (!drag) return;
@@ -3042,7 +3057,7 @@ function placeComposer () {
     composer.style.top = Math.max(8, (ar.height - 240) / 2) + 'px';
     return;
   }
-  const r = st.rect, or = overlay.getBoundingClientRect();
+  const r = onOverlay(st.rect), or = overlay.getBoundingClientRect();
   composer.style.left = clamp(or.left - ar.left + r.x * S.zoom, 8, Math.max(8, ar.width - 294)) + 'px';
   composer.style.top = clamp(or.top - ar.top + (r.y + r.h) * S.zoom + 8, 8, Math.max(8, ar.height - 250)) + 'px';
 }
@@ -3389,7 +3404,7 @@ function positionMarks () {
     node.classList.toggle('gone', !st.show);
     node.classList.toggle('loose', !!st.loose);
     if (!st.show) { off.add(a.id); continue }
-    const r = st.rect;
+    const r = onOverlay(st.rect);
     node.style.left = r.x + 'px';
     node.style.top = r.y + 'px';
     if (node.classList.contains('area')) {
@@ -3646,10 +3661,20 @@ function reveal (a, focus = false) {
     try { st.el.scrollIntoView({ block: 'center', inline: 'nearest' }) } catch {}
   }
   requestAnimationFrame(() => {
-    const r = anchorState(a).rect;
-    vpBox.scrollTo({ top: Math.max(0, r.y - 120), behavior: 'smooth' });
+    showDocY(Math.max(0, anchorState(a).rect.y - 120));
     setTimeout(() => openComposer(a.id, focus), 220);
   });
+}
+/** Bring a document position to the top of the window box. The page is behind
+    two boxes that can scroll: its own, when it keeps a scrollbar inside the
+    frame, and the window box around the frame. Let the page take what it can
+    and the window box take the rest, so one call works either way. */
+function showDocY (top) {
+  const w = fwin();
+  const inner = Math.min(top, w
+    ? Math.max(0, w.document.documentElement.scrollHeight - w.innerHeight) : 0);
+  try { w?.scrollTo({ top: inner, behavior: 'smooth' }) } catch {}
+  vpBox.scrollTo({ top: top - inner, behavior: 'smooth' });
 }
 /** Does anything between here and the page scroll by itself? */
 function innerScrolls (el) {
