@@ -87,7 +87,7 @@ mkdir -p <dir>/specs <dir>/design
 ```
 
 Write `specs/product.md` (§4) and `.vstack/pipeline.json` (§6) with `"specsOnly": true`. Done — say
-that `/vstack:wireframe` and the spec stages now have a home, and that running `/vstack:start` again
+that `/vstack:review` and the spec stages now have a home, and that running `/vstack:start` again
 later adds real development setup.
 
 ### 3b · Existing app → record only
@@ -209,7 +209,7 @@ Delete the template's own root `README.md` once instantiation is done — its Da
   Keep `.vstack/choice.json` beside it as the raw answer.
 - **Next** — `/vstack:requirements` writes `specs/requirements.md`. **That stage isn't built yet**;
   until it is, say so and offer to write `specs/requirements.md` by hand together, or go straight to
-  a first screen with `/vstack:wireframe`. Don't invent a requirements stage to fill the gap. From
+  a first screen with `/vstack:review`. Don't invent a requirements stage to fill the gap. From
   there the built chain runs `wireframe → spec → user-story-map → phase-preview → phase-build`.
   The former `/vstack:go` router is no longer part of the pipeline; it is a compatibility alias for
   the wireframe tool.

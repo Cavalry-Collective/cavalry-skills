@@ -31,7 +31,7 @@ Default when unset is `claude`, so existing installs keep working without this.
 ## Concrete start sequence
 
 ```bash
-SKILL=<this skill dir>   # …/skills/wireframe
+SKILL=<this skill dir>   # …/skills/review
 FILE=wireframes/example.html
 
 node "$SKILL/assets/review-server.mjs" publish --file "$FILE" --label "Initial version" --host claude
@@ -63,4 +63,4 @@ Offline remote comments: `bundle-artifact.mjs` — Send becomes copy (no session
 ## Notes
 
 - Update detection uses Claude’s install record (`capabilities.updateDetect: claude-install`).
-- Skill invocation in the marketplace: `/vstack:wireframe`.
+- Skill invocation in the marketplace: `/vstack:review`.

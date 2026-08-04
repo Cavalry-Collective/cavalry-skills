@@ -9,8 +9,13 @@ The user comments directly on a wireframe (or a running app) in a browser
 workspace; the agent applies the feedback and publishes the next version into
 the same workspace. The repo is a Claude Code plugin marketplace
 (`.claude-plugin/marketplace.json`) with one plugin, `plugins/vstack/`, which
-also ships manifests for Codex (`.codex-plugin/`) and a Grok skill mirror at
-`.grok/skills/`.
+also ships a Codex manifest (`.codex-plugin/`) and a Grok host adapter
+(`skills/review/hosts/grok.md`).
+
+**This repo is the thing people install; nothing is installed into it.** No
+`.grok/skills/`, no `.claude/skills/`, no vendored copy of our own plugin — a
+host that discovers skills from a project directory gets instructions in its
+host adapter, not a checked-in skill directory that then has to be kept in sync.
 
 Plain Node ≥ 18 ES modules, standard library only. There is no package.json,
 build step, bundler, or linter. (`node_modules/` at the root appears only when
@@ -21,9 +26,9 @@ recording the README demo, which installs playwright-core.)
 Tests are standalone Node scripts — run them directly, one file per suite:
 
 ```bash
-node plugins/vstack/skills/wireframe/tests/review-lifecycle.mjs   # end-to-end review server round-trip
-node plugins/vstack/skills/wireframe/tests/host-profiles.mjs      # host profiles conform to host.schema.json
-node plugins/vstack/skills/wireframe/tests/workdir.mjs            # .vstack/local working-dir resolution
+node plugins/vstack/skills/review/tests/review-lifecycle.mjs   # end-to-end review server round-trip
+node plugins/vstack/skills/review/tests/host-profiles.mjs      # host profiles conform to host.schema.json
+node plugins/vstack/skills/review/tests/workdir.mjs            # .vstack/local working-dir resolution
 ```
 
 The shared UI shell is stamped into pages, not linked (see below):
@@ -45,7 +50,7 @@ The layering rule that everything else follows (`plugins/vstack/contracts/README
 - **The engine speaks contracts.** `review-server.mjs`, the workspace pages, and
   the shared shell never name a product (Claude, Codex, Grok) except as data
   from a Host profile.
-- **Adapters speak hosts.** Only `skills/wireframe/hosts/*.md` may mention
+- **Adapters speak hosts.** Only `skills/review/hosts/*.md` may mention
   host-specific tools (Monitor, Artifact, etc.). A SKILL.md references Host ops
   (`background`, `watch_stream`, `share`, …); the adapter maps them to tools.
 - **Profiles are data.** `hosts/<id>.json` carries UI labels, install steps, and
@@ -56,7 +61,7 @@ The layering rule that everything else follows (`plugins/vstack/contracts/README
 
 ### Two engines, one live-link protocol
 
-- `skills/wireframe/assets/review-server.mjs` — the wireframe review loop. Serves
+- `skills/review/assets/review-server.mjs` — the wireframe review loop. Serves
   a self-contained HTML page inside the workspace, or reverse-proxies a running
   app (`--app`) so the workspace shares an origin with what it annotates (that
   origin-sharing is why comments can attach to elements, not coordinates). CLI
@@ -94,8 +99,11 @@ resolves the directory — use it rather than joining paths by hand.
 ### Skills
 
 Each skill is `plugins/vstack/skills/<name>/SKILL.md` plus `assets/` (the pages
-and servers it runs). `wireframe` is the primary tool; `go` is a compatibility
-entry for the former `/vstack:go`. Engine assets (`workspace.html`,
+and servers it runs). `review` is the primary tool; `wireframe` and `go` are
+compatibility entries that read `review/SKILL.md` and nothing else — the former
+is what `review` used to be called, the latter the old `/vstack:go`. The on-disk
+tool directory stays `.vstack/local/wireframe/` so existing reviews keep
+resolving. Engine assets (`workspace.html`,
 `review-server.mjs`, `bundle-artifact.mjs`) are never edited to fit a project —
 only the page under review is.
 

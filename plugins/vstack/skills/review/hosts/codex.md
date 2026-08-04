@@ -25,7 +25,7 @@ node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788 --host c
 ## Concrete start sequence
 
 ```bash
-SKILL=<path to plugins/vstack/skills/wireframe>
+SKILL=<path to plugins/vstack/skills/review>
 FILE=wireframes/example.html
 
 node "$SKILL/assets/review-server.mjs" publish --file "$FILE" --label "Initial version"
@@ -75,7 +75,7 @@ codex plugin marketplace add Cavalry-Collective/visual-stack
 codex plugin add vstack@cavalry-collective
 ```
 
-Start a new Codex thread and invoke **`$vstack:wireframe`**, or describe a wireframe or
+Start a new Codex thread and invoke **`$vstack:review`**, or describe a wireframe or
 UI-review task and let the skill trigger implicitly.
 
 Update detection is disabled for Codex (`updateDetect: none`); use

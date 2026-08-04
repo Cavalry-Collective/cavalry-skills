@@ -118,12 +118,15 @@ async function ask (kind) {
   }
 }
 
-/** The words for the banner, composed here because only this end knows which
-    question it asked. */
-const say = (pill, title) => ({ pill, title })
+/** The words for the banner. The sentence says the same thing whichever
+    question was asked — which release it is belongs in `key`, not in the words,
+    because the reader can't act on a sha and doesn't want to read one. `key` is
+    what dismissal is remembered against, so saying "not now" to one release
+    still leaves the next one free to ask. */
+const say = (key, title) => ({ pill: 'update', key, title })
 
 /**
- * `{ pill, title, install, howLead, auto, url }` when there is something newer,
+ * `{ pill, key, title, install, howLead, auto }` when there is something newer,
  * otherwise null. Never throws, never blocks longer than the timeout.
  *
  * @param {object} [hostProfile] Host profile (contracts/host.md). When
@@ -142,13 +145,12 @@ export async function checkForUpdate (hostProfile = null) {
   if (version && installed.version) {
     const latest = await ask('version')
     if (latest && isNewer(latest, installed.version)) {
-      words = say(latest, `Visual Stack ${latest} is out — you have ${installed.version}.`)
+      words = say(latest, 'A new version is available.')
     }
   } else if (installed.sha) {
     const latest = await ask('sha')
     if (latest && latest !== installed.sha) {
-      words = say('new', `Visual Stack has moved on since you installed it — ` +
-        `you are on ${short(installed.sha)}, ${BRANCH} is ${short(latest)}.`)
+      words = say(short(latest), 'A new version is available.')
     }
   }
   if (!words) return null
@@ -168,7 +170,6 @@ export async function checkForUpdate (hostProfile = null) {
 
   return {
     ...words,
-    url: `https://github.com/${REPO}/commits/${BRANCH}`,
     howLead,
     install,
     auto: auto || null,

@@ -548,7 +548,7 @@ Items 1–3 shipped on 2026-07-29 with plugin 4.0.0.
 
 2. ~~**`/vstack` bare, in any chat.**~~ — originally built as the `/vstack:go` pipeline router. That
    behavior was retired when Visual Stack became the wireframe product. `/vstack:go` remains a
-   compatibility alias to `/vstack:wireframe`.
+   compatibility alias to `/vstack:review`.
 
 3. ~~**Drop the `/cavalry` prefix.**~~ — **done.** The repo was already clean; the prefix came from a
    stale `cavalry@cavalry-collective` 1.1.0 plugin installed before the vstack rename. Fixed by

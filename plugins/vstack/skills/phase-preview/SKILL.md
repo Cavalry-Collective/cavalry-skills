@@ -77,7 +77,7 @@ checked and shown:
    placeholder apart from an invented element.
 6. **Do not invent new elements or redesign anything. Only subtract.**
 
-Write each to `<dir>/phase-<n>/<name>.html` — the sibling layout `/vstack:wireframe` and the
+Write each to `<dir>/phase-<n>/<name>.html` — the sibling layout `/vstack:review` and the
 Cavalry `design/` convention both expect — and suffix the `<title>` with ` — Phase <n>` so the file
 names itself wherever it's opened.
 
@@ -108,7 +108,7 @@ doesn't read copy or data, so still diff the file yourself for changed text.
 ## 5 · Review each phase
 
 A phase file is a design the user should be able to argue with. Hand each one to
-**`/vstack:wireframe`** — it opens the page in the review workspace, takes comments straight on it,
+**`/vstack:review`** — it opens the page in the review workspace, takes comments straight on it,
 and publishes the next version. Review phase N and settle it before generating phase N+1; a comment
 on phase 1 usually changes the plan for every later phase.
 

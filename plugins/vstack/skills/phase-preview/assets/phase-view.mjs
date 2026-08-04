@@ -25,7 +25,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
-const WORKSPACE = path.resolve(HERE, '../../wireframe/assets/workspace.html')
+const WORKSPACE = path.resolve(HERE, '../../review/assets/workspace.html')
 
 const args = process.argv.slice(2).reduce((o, a, i, arr) => {
   if (a.startsWith('--')) {

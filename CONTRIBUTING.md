@@ -12,7 +12,7 @@ Visual Stack is a Claude Code and Codex plugin: skills, prompts, and the HTML wo
 
 ## Testing a change
 
-Install the plugin from your branch and drive the skill end to end in a real project. A skill that has only been read is untested. For Codex changes, validate the plugin manifest and wireframe skill, then run `node plugins/vstack/skills/wireframe/tests/host-profiles.mjs`.
+Install the plugin from your branch and drive the skill end to end in a real project. A skill that has only been read is untested. For Codex changes, validate the plugin manifest and review skill, then run `node plugins/vstack/skills/review/tests/host-profiles.mjs`.
 
 ## Reporting problems
 

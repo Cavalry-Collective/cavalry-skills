@@ -4,9 +4,9 @@
 
 ## Stop prompting. Start pointing.
 
-Visual Stack adds a Figma-like feedback layer to AI coding agents, because typing “the button on the left, no, the other left” was not a sustainable workflow.
+Visual Stack adds a Figma-like feedback layer to AI coding agents.
 
-Create a wireframe or open an existing UI in Visual Stack. Click anywhere and leave highly professional feedback such as:
+Create a new screen, or open an existing one. Click anywhere and leave highly professional feedback such as:
 
 > "claude its 3am just align the buttons"
 >
@@ -14,66 +14,53 @@ Create a wireframe or open an existing UI in Visual Stack. Click anywhere and le
 >
 > "pls undo the series b dashboard energy we have 4 users"
 >
-> "this modal has the emotional weight of a tax audit"
->
-> "make it pop but not like that"
->
 > "the padding is now between you and god"
 
 Your agent applies the feedback and updates the design in the same place, hopefully without adding another gradient.
 
-**No more switching back and forth between chat and the UI like a hamster on coke.**
+*Point. Comment. Iterate. No more jumping between chat and the UI.*
 
-Just point. Comment. Iterate. Question your career choices slightly less.
-
-![Leave feedback on a wireframe and review the next version on the same canvas](docs/assets/wireframe-demo.gif)
+![Leave feedback on a wireframe and review the next version in the same workspace](docs/assets/wireframe-demo.gif)
 
 ## Get started
 
 ### Claude Code
 
-Run these commands in Claude Code:
+Install, in Claude Code:
 
 ```text
 /plugin marketplace add Cavalry-Collective/visual-stack
 /plugin install vstack@cavalry-collective
 ```
 
-Then create your first wireframe:
+Then run:
 
 ```text
-/vstack:wireframe Build a mobile checkout screen with Apple Pay.
+/vstack:review Build a mobile checkout screen.
 ```
-
-Claude will build something. You will have opinions. Visual Stack handles the rest.
 
 ### Codex
 
-Run these commands in your terminal:
+Install, in your terminal:
 
 ```text
 codex plugin marketplace add Cavalry-Collective/visual-stack
 codex plugin add vstack@cavalry-collective
 ```
 
-Start a new Codex thread, then run:
+Then run:
 
 ```text
-$vstack:wireframe
+$vstack:review Build a mobile checkout screen.
 ```
-
-Try not to begin with “make it like Stripe, but different.”
 
 ## What you can do
 
-- Generate wireframes from plain English.
-- Click any element and leave feedback exactly where the problem is hiding.
-- Stay on the canvas as your agent publishes each update.
 - Work in a familiar, Figma-like interface.
+- Click any element and leave feedback exactly where the problem is hiding.
+- Stay in the workspace as your agent publishes each update.
 - Preview desktop, tablet, and mobile layouts before production does it for you.
 - Compare revisions and identify the exact moment things went wrong.
-- Open an existing app or website and comment directly on the interface.
-- Save and reopen wireframes as project files.
 - Replace “you know what I mean” with actual context.
 
 ## Why Visual Stack?

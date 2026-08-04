@@ -29,7 +29,7 @@ export VSTACK_HOST=grok
 ## Concrete start sequence
 
 ```bash
-SKILL=<path to plugins/vstack/skills/wireframe>
+SKILL=<path to plugins/vstack/skills/review>
 FILE=wireframes/example.html
 
 node "$SKILL/assets/review-server.mjs" publish --file "$FILE" --label "Initial version" --host grok
@@ -70,12 +70,33 @@ Exit 2 means stop.
 
 ## Install / discovery
 
-This repo ships a project skill at `.grok/skills/wireframe/` that points here.
-Elsewhere: symlink or copy `plugins/vstack/skills/wireframe` into
-`<grok-home>/skills/wireframe` or `<project>/.grok/skills/wireframe`, keeping
-`hosts/`, `assets/`, and relative paths to `lib/` intact (prefer a clone of the
-visual-stack repo and a thin entry skill that sets `VSTACK_HOST=grok` and reads
-this tree).
+Grok has no plugin marketplace, so it discovers this the way it discovers any
+skill: a directory under `<grok-home>/skills/` or `<project>/.grok/skills/`.
+Clone the visual-stack repo somewhere stable, then write a thin entry skill in
+the project you want to review — it sets the host and reads this tree, so there
+is only one copy of the engine:
+
+```markdown
+---
+name: review
+description: >
+  Build a UI wireframe and review it — or an app that is already running —
+  in an interactive workspace, commenting directly on the screen.
+---
+
+1. `export VSTACK_HOST=grok` for every review-server process this session, and
+   pass `--host grok` on `serve` so the workspace UI says Grok.
+2. Read `<visual-stack>/plugins/vstack/skills/review/hosts/grok.md` — the op map.
+3. Read `<visual-stack>/plugins/vstack/skills/review/SKILL.md` and follow it.
+4. `$SKILL` for CLI commands is `<visual-stack>/plugins/vstack/skills/review`.
+
+Do not use Claude Code tool names (Monitor, Artifact, TaskStop,
+run_in_background). Use only the ops mapped in `hosts/grok.md`.
+```
+
+Copying `plugins/vstack/skills/review` outright works too, but only if `hosts/`,
+`assets/`, and the relative paths up into `lib/` come with it — and then updates
+have to be copied again.
 
 Update banners are off for Grok (`updateDetect: none`); pull the repo to update.
 

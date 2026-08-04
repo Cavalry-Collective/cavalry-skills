@@ -180,24 +180,33 @@ window.VSShell = (function () {
   function updateNotice () {
     const info = window.__VSTACK_UPDATE__;
     // Dismissal is per release: saying "not now" to this one stays said, and
-    // the next one asks once.
-    if (!info?.title || store.get(KEY.seen, '') === info.title) return;
+    // the next one asks once. `key` is the release — the sentence reads the
+    // same every time, so remembering the sentence would silence every future
+    // release too.
+    const seen = info?.key || info?.title;
+    if (!info?.title || store.get(KEY.seen, '') === seen) return;
     const bar = document.createElement('div');
     bar.className = 'vs-update';
     bar.innerHTML =
       `<span class="v">${esc(info.pill || 'new')}</span>` +
       `<span class="t">${esc(info.title)}</span>` +
-      `<button class="how">How</button><button class="no" aria-label="Dismiss">×</button>`;
+      `<button class="how">Update instructions</button>` +
+      // Drawn, not typed: the × glyph hangs off the maths axis, so no amount of
+      // centring the line box centres the mark you actually see. Same treatment
+      // as the cog.
+      `<button class="no" aria-label="Dismiss">` +
+      `<svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" ` +
+      `stroke-width="1.6" stroke-linecap="round"><path d="M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5"/>` +
+      `</svg></button>`;
     const how = document.createElement('div');
     how.className = 'vs-update-how';
     how.hidden = true;
     const lead = info.howLead || 'To update:';
     how.innerHTML = `<p>${esc(lead)}</p><pre>${esc((info.install || []).join('\n'))}</pre>` +
-      (info.auto ? `<p class="auto">${esc(info.auto)}</p>` : '') +
-      (info.url ? `<a href="${esc(info.url)}" target="_blank" rel="noopener">What changed</a>` : '');
+      (info.auto ? `<p class="auto">${esc(info.auto)}</p>` : '');
     bar.appendChild(how);
     bar.querySelector('.how').onclick = () => { how.hidden = !how.hidden };
-    bar.querySelector('.no').onclick = () => { store.set(KEY.seen, info.title); bar.remove() };
+    bar.querySelector('.no').onclick = () => { store.set(KEY.seen, seen); bar.remove() };
     const top = $('.vs-topbar');
     if (top) top.insertAdjacentElement('afterend', bar);
   }

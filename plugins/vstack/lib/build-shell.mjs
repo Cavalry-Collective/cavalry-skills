@@ -36,7 +36,7 @@ const SKILLS = path.join(HERE, '..', 'skills')
 
 /* Every page that wears the shell. Adding one here is the whole registration. */
 const PAGES = [
-  'wireframe/assets/workspace.html',
+  'review/assets/workspace.html',
   'spec/assets/spec-tree.html',
   'phase-build/assets/build-board.html',
   'user-story-map/assets/story-map-template.html',

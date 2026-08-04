@@ -18,7 +18,7 @@ plugins/vstack/
   contracts/           ← this directory (the specs)
   hosts/               ← profiles that implement Host (claude.json, codex.json, grok.json)
   lib/host.mjs         ← loads a profile; used by servers
-  skills/wireframe/
+  skills/review/
     SKILL.md           ← loop in contract terms (no host-specific tools)
     hosts/claude.md    ← Claude Code adapter: maps Host ops → tools
     hosts/codex.md     ← Codex adapter: same

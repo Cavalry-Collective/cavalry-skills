@@ -153,20 +153,25 @@
   padding:7px 12px;font-size:12px;color:var(--ink-2);
   background:color-mix(in srgb,#b0761a 8%,var(--surface));
   border-bottom:1px solid color-mix(in srgb,#b0761a 26%,transparent)}
-.vs-update .v{font:700 9.5px/1 var(--mono);letter-spacing:.06em;color:#8a5c06;
+.vs-update .v{font:500 9.5px/1 var(--mono);letter-spacing:.06em;color:#8a5c06;
   background:color-mix(in srgb,#b0761a 16%,transparent);border-radius:999px;padding:4px 7px;flex:none}
 .vs-update .t{flex:1;min-width:0}
+/* Both buttons are one height and centre their own contents. Left to padding
+   and line-height they came out different sizes, and the × — which sits on the
+   maths axis, not the baseline — hung high inside the smaller one. */
 .vs-update button{font:inherit;font-size:11.5px;font-weight:600;color:var(--ink-2);
-  border:1px solid var(--line-2);background:var(--surface);border-radius:6px;padding:3px 8px;flex:none}
+  border:1px solid var(--line-2);background:var(--surface);border-radius:6px;
+  height:24px;padding:0 8px;flex:none;
+  display:inline-flex;align-items:center;justify-content:center}
 .vs-update button:hover{color:var(--ink);background:var(--surface-2)}
-.vs-update .no{width:24px;padding:0;font-size:14px;line-height:1}
+.vs-update .no{width:24px;padding:0;display:grid;place-items:center}
+.vs-update .no svg{width:11px;height:11px;display:block}
 .vs-update-how{flex-basis:100%;margin:2px 0 0;font-size:11.5px;color:var(--ink-3)}
 .vs-update-how[hidden]{display:none}
 .vs-update-how p{margin:0 0 4px}
 .vs-update-how pre{margin:0 0 4px;padding:7px 9px;border-radius:7px;overflow-x:auto;
   font:500 11px/1.6 var(--mono);color:var(--ink);background:var(--surface);border:1px solid var(--line)}
 .vs-update-how .auto{margin:0 0 4px}
-.vs-update-how a{color:var(--ink-2)}
 @media (prefers-color-scheme:dark){.vs-update .v{color:#e2b567}}
 :root[data-theme=dark] .vs-update .v{color:#e2b567}
 

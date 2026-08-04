@@ -21,7 +21,7 @@ Every Host is described by a **profile** (`hosts/<id>.json`, schema
 
 ## Operations
 
-These are the abstract operations the wireframe skill (and later other skills)
+These are the abstract operations the review skill (and later other skills)
 require. Adapters map each op to concrete tools. Ops marked **required** must
 work or the loop is not product-quality.
 
@@ -107,6 +107,6 @@ update detection (`capabilities.updateDetect`).
 
 ## Adapter documents
 
-For each Host id, `skills/wireframe/hosts/<id>.md` maps every required op (and
+For each Host id, `skills/review/hosts/<id>.md` maps every required op (and
 optional ones the Host supports) to that product’s tools, with exact invocation
 examples. The core `SKILL.md` only names the ops above — never product tools.
