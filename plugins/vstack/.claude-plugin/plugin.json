@@ -1,6 +1,6 @@
 {
   "name": "vstack",
-  "description": "Visual Stack is interactive wireframing for Claude Code. Build a screen from a prompt, screenshot, reference site, or design system; comment directly on the result; and receive each revision in the same browser workspace. It can also review a running app or public website route by route, turning feedback on your own app into source-code changes. Wireframes are self-contained HTML and local review state stays in the project. Earlier project-planning experiments remain bundled for compatibility but are not part of the current product offer.",
+  "description": "Visual Stack is interactive wireframing for Claude Code. Build a screen from a prompt, screenshot, reference site, or design system; comment directly on the result; and receive each revision in the same browser workspace. It can also review a running app or public website route by route, turning feedback on your own app into source-code changes. Wireframes are self-contained HTML and local review state stays in the project.",
   "author": {
     "name": "Cavalry Collective",
     "email": "adam@cavalry.sg"

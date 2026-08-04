@@ -32,16 +32,16 @@ import { fileURLToPath } from 'node:url'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const SHELL = path.join(HERE, 'shell')
-const SKILLS = path.join(HERE, '..', 'skills')
+const ROOT = path.join(HERE, '..')
 
 /* Every page that wears the shell. Adding one here is the whole registration. */
 const PAGES = [
-  'review/assets/workspace.html',
-  'spec/assets/spec-tree.html',
-  'phase-build/assets/build-board.html',
-  'user-story-map/assets/story-map-template.html',
-  'start/assets/chooser.html',
-].map(p => path.join(SKILLS, p))
+  'skills/review/assets/workspace.html',
+  'experimental/spec/assets/spec-tree.html',
+  'experimental/phase-build/assets/build-board.html',
+  'skills/user-story-map/assets/story-map-template.html',
+  'experimental/start/assets/chooser.html',
+].map(p => path.join(ROOT, p))
 
 const read = f => fs.readFileSync(f, 'utf8')
 

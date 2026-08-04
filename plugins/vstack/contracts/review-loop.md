@@ -28,8 +28,8 @@ Host-independent: any Host that fulfills [host.md](host.md) can drive this loop.
 
 ## On-disk store
 
-Beside the file: `<dir>/.vstack/local/wireframe/<name>/`
-Live (no file): `<cwd>/.vstack/local/wireframe/<name>/`
+Beside the file: `<dir>/.vstack/local/review/<name>/`
+Live (no file): `<cwd>/.vstack/local/review/<name>/`
 
 | Path | Role |
 | --- | --- |

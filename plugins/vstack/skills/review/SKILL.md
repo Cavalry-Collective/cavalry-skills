@@ -267,7 +267,7 @@ Publish **`$FILE` itself** with Host op **`share`** (adapter names the tool), th
 so it appears in the workspace.
 
 **In a live review** there is no `$FILE` — publish the capture the workspace just took,
-`.vstack/local/wireframe/<name>/versions/v<n>.html` for the current round, and say plainly that the link is a
+`.vstack/local/review/<name>/versions/v<n>.html` for the current round, and say plainly that the link is a
 still of one screen, not the app.
 
 ```bash
@@ -313,7 +313,7 @@ The server reverse-proxies the app, so the workspace and the app share an origin
 coordinate. The workspace moves to **http://localhost:7788/__review/**; every
 other path belongs to the app. Sockets are proxied too, so hot reload keeps
 working. Start it with Host op **`background`**, tell the user the
-`/__review/` URL, and arm **`watch_stream`** (§5) against `.vstack/local/wireframe/<name>/` in the
+`/__review/` URL, and arm **`watch_stream`** (§5) against `.vstack/local/review/<name>/` in the
 directory you ran it from — **run every later command from that same directory**,
 or pass `--store`. Pass `--host` / `VSTACK_HOST` the same as a file review.
 
@@ -396,7 +396,7 @@ route.
 ## Notes
 
 - **Never edit `assets/workspace.html`, `review-server.mjs` or `bundle-artifact.mjs`** to fit a project — they're the engine; only the page under review is yours. The shell chrome is stamped in from `lib/shell/` — see `lib/shell/README.md`. (`harvest-reference.js` is meant to be pasted and run, not edited.)
-- State lives in `<dir>/.vstack/local/wireframe/<name>/` beside the file — versions, reviews, threads, and the sentinels. The page itself stays clean. A live review has nothing to sit beside, so it lands in `.vstack/local/wireframe/<name>/` under the directory you started it from.
+- State lives in `<dir>/.vstack/local/review/<name>/` beside the file — versions, reviews, threads, and the sentinels. The page itself stays clean. A live review has nothing to sit beside, so it lands in `.vstack/local/review/<name>/` under the directory you started it from.
 - **Every vstack tool writes under `.vstack/local/<tool>/`**, so a project grows one dot-directory, not one per engine. `lib/workdir.mjs` resolves it — use that rather than joining the path by hand. One gitignore line covers the lot (`**/.vstack/local/`); the rest of `.vstack/` is the pipeline and belongs in the repo.
 - The server binds to `127.0.0.1` only. Port 7788 busy usually means a review server is already running — pass `--port`.
 - `node "$SKILL/assets/review-server.mjs" status --file "$FILE"` prints the current version, whether a review is waiting, and any stop / sign-off / share request outstanding.

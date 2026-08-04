@@ -101,5 +101,5 @@ With a state file:
 - **Phases here define the phases everywhere after.** `phase-build` owns the phase *counter*, but
   the number of phases and what falls in each is decided on this page — renumbering later invalidates
   every phase screen already cut.
-- **Next** — `/vstack:phase-preview` cuts the signed-off design down to each phase. Offer to run
-  it; don't ask whether to continue.
+- **Next** — nothing to offer: the phase tools that used to follow this stage are not currently
+  shipped as skills. End with the finished map and where it was written.

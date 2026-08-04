@@ -11,7 +11,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const SERVER = path.resolve(HERE, '../assets/review-server.mjs')
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'vstack-round-test-'))
 const page = path.join(temp, 'page.html')
-const store = path.join(temp, '.vstack', 'local', 'wireframe', 'page')
+const store = path.join(temp, '.vstack', 'local', 'review', 'page')
 const port = 18000 + (process.pid % 1000)
 const origin = `http://127.0.0.1:${port}`
 

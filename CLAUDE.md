@@ -67,9 +67,10 @@ The layering rule that everything else follows (`plugins/vstack/contracts/README
   origin-sharing is why comments can attach to elements, not coordinates). CLI
   subcommands (`publish`, `claim`, `reply`, `cancelled`, `share`, `status`,
   `check`, `watch`) drive the protocol; sentinels and round records live on disk.
-- `lib/json-bridge.mjs` — the live link for JSON-document pages (spec,
-  user-story-map, phase-build): the page POSTs saves and bumps a seq counter the
-  agent's watcher wakes on; agent edits are pushed back over SSE.
+- `lib/json-bridge.mjs` — the live link for JSON-document pages (user-story-map,
+  plus the experimental spec and phase-build tools): the page POSTs saves and
+  bumps a seq counter the agent's watcher wakes on; agent edits are pushed back
+  over SSE.
 
 Both share `lib/live-link.mjs`: a `watching` heartbeat file that says an agent
 session is listening, atomic write-then-rename, and one protocol-wide staleness
@@ -96,16 +97,29 @@ Every tool writes per-machine state under `<root>/.vstack/local/<tool>/`
 specs/, build/) is the pipeline and belongs in the repo. `lib/workdir.mjs`
 resolves the directory — use it rather than joining paths by hand.
 
+**Renaming a tool does not rename the directory it already filled.** `workdir.mjs`
+keeps a `LEGACY` map of a tool's former directory names; `subjectDir()` reads a
+subject from the first directory that holds it and creates new ones under the
+current name, and `toolNames()` gives every name to callers that enumerate. Add
+to `LEGACY` when you rename a tool — never migrate a user's rounds behind their
+back. Review's rounds sat in `local/wireframe/` before the tool was renamed.
+
 ### Skills
 
 Each skill is `plugins/vstack/skills/<name>/SKILL.md` plus `assets/` (the pages
-and servers it runs). `review` is the primary tool; `wireframe` and `go` are
-compatibility entries that read `review/SKILL.md` and nothing else — the former
-is what `review` used to be called, the latter the old `/vstack:go`. The on-disk
-tool directory stays `.vstack/local/wireframe/` so existing reviews keep
-resolving. Engine assets (`workspace.html`,
+and servers it runs). `review` is the primary tool and `user-story-map` ships
+alongside it; `wireframe` is a compatibility entry that reads `review/SKILL.md`
+and nothing else — it is what `review` used to be called. Engine
+assets (`workspace.html`,
 `review-server.mjs`, `bundle-artifact.mjs`) are never edited to fit a project —
 only the page under review is.
+
+`plugins/vstack/experimental/` holds the earlier project-planning tools (spec,
+start, phase-build, phase-preview) and the retired `/vstack:go` alias in the
+same `<name>/SKILL.md + assets/` shape. They are parked outside `skills/` on
+purpose so no host discovers them as installable skills; their pages still
+carry the stamped shell and are kept from drifting by `build-shell.mjs`.
+Moving one back under `skills/` is the whole act of re-releasing it.
 
 ## Demo recordings (README GIFs)
 

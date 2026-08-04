@@ -13,7 +13,7 @@ archived.
 **Reviewed wireframes live in [`wireframes/`](wireframes/)** — `requirements`, the one still-unbuilt
 stage, alongside the designs that `spec`, the phase slider and the build maps were built from. They are
 reviewed designs, not implementations; `start`'s chooser was one of them until it became
-`plugins/vstack/skills/start/assets/chooser.html`.
+`plugins/vstack/experimental/start/assets/chooser.html`.
 
 ## The problem
 
@@ -128,7 +128,7 @@ rule nobody advances the phase and the loop stalls silently.
 signed off and **subtracts** it to each release phase, so the phase-1 build target looks exactly like
 the approved design minus what isn't in phase 1 yet. It is the one stage with no equivalent
 elsewhere, and it needs nothing from the pipeline — a base wireframe and a set of phases are enough —
-so it was built first. See `plugins/vstack/skills/phase-preview/`.
+so it was built first. See `plugins/vstack/experimental/phase-preview/`.
 
 Three things settled while building it, worth carrying into the rest of the chain:
 
@@ -164,7 +164,7 @@ output, wrong shape for the question people ask. The phase slider fixed that; se
 
 ### 0 · `start` — the setup form · **built**
 
-*Shipped as `plugins/vstack/skills/start/` (né `init`). What the stage does is under
+*Shipped as `plugins/vstack/experimental/start/` (né `init`). What the stage does is under
 [Stage 0](#stage-0--start-which-is-the-whole-day-1-checklist); this is what it looks like while doing it.*
 
 A four-step form with a progress header — **what** are you building → **details** (kind, name,
@@ -215,7 +215,7 @@ another round, not from this text.
 
 ### 3 · `spec` — the drill-down · **built**
 
-*Shipped as `plugins/vstack/skills/spec/` on the shared `lib/json-bridge.mjs` engine. The tree JSON
+*Shipped as `plugins/vstack/experimental/spec/` on the shared `lib/json-bridge.mjs` engine. The tree JSON
 at `.vstack/specs/<feature>.json` is the source of truth; the dated markdown under `specs/` is
 generated every round with a "this file is an export" header. Notes are the conversation — the user
 annotates, Claude answers by fixing the spec or replying in a note.*
@@ -265,7 +265,7 @@ than an editor that edits the wrong file.
 
 ### 6–8 · `phase-build` — the board · **built, as one skill**
 
-*Shipped as `plugins/vstack/skills/phase-build/` — the trio merged into one skill with three tabs,
+*Shipped as `plugins/vstack/experimental/phase-build/` — the trio merged into one skill with three tabs,
 as the reviewed wireframe already had it. The same board is the pre-build plan and the live build view.*
 
 The same shape three times, over three different subjects, as tabs on one board:

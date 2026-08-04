@@ -12,7 +12,7 @@ way:
 ```
 wireframes/
   candidate-pipeline.html        ← the page — the ONLY file you edit
-  .vstack/local/wireframe/
+  .vstack/local/review/
     candidate-pipeline/
       state.json                 { name, version }
       versions/v1.html           frozen copy of each published version
@@ -35,7 +35,7 @@ engine — and one gitignore line covers all of them. The review store sits besi
 the page, so moving the page moves its review with it.
 
 A live review has no file to sit beside, so its store is
-`.vstack/local/wireframe/<name>/`
+`.vstack/local/review/<name>/`
 under the directory `serve` was run from, and `state.json` also carries the app's
 origin. `versions/v<n>.html` is then a capture of the screen the reviewer was
 commenting on when they sent round *n* — the timeline scrubs to it, and it is

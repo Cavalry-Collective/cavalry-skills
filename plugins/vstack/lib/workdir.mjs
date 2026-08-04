@@ -10,7 +10,7 @@
  *
  * `root` is the artifact's own directory, so state still sits beside the thing
  * it belongs to — a review of `design/login.html` lands in
- * `design/.vstack/local/wireframe/login/`, and moving the page moves its review
+ * `design/.vstack/local/review/login/`, and moving the page moves its review
  * with it. The one exception is an artifact that already lives inside a
  * `.vstack` directory: the spec tree writes `.vstack/specs/<feature>.json`, and
  * hanging `.vstack/specs/.vstack/` off it would nest the same name twice. When
@@ -27,12 +27,39 @@ export const LOCAL = 'local'
 /** Tool directory names. Engines take one of these rather than spelling their
     own, so a skill and the engine it calls can't disagree. */
 export const TOOL = {
-  wireframe: 'wireframe',
+  review: 'review',
   spec: 'spec',
   storyMap: 'user-story-map',
   phaseBuild: 'phase-build',
   /* Fallback for a JSON document opened outside any of the skills above. */
   documents: 'documents',
+}
+
+/** What a tool used to write under, newest first. A tool is free to be renamed
+    — the directory it already filled is not, because the rounds inside it are
+    the user's, not ours. Writers only ever use the name in `TOOL`; readers try
+    these when their own directory has nothing to say. */
+export const LEGACY = { [TOOL.review]: ['wireframe'] }
+
+/** Every directory name a tool's work could be under, current one first. For
+    callers that enumerate rather than look one subject up. */
+export const toolNames = tool => [tool, ...(LEGACY[tool] || [])]
+
+/**
+ * Where one named subject's files are: `<root>/.vstack/local/<tool>/<name>/`.
+ *
+ * A subject that predates a rename is still under the old directory, and moving
+ * it silently would be a worse answer than reading it where it lies — so the
+ * first directory that actually holds this subject wins, and a subject that
+ * exists nowhere yet is created under the current name.
+ */
+export function subjectDir (from, tool, name) {
+  const local = path.join(vstackRoot(from), LOCAL)
+  for (const t of toolNames(tool)) {
+    const here = path.join(local, t, name)
+    if (fs.existsSync(here)) return here
+  }
+  return path.join(workDir(from, tool), name)
 }
 
 /** The `.vstack` directory that governs `from` — the enclosing one if there is
