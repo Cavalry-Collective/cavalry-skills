@@ -503,6 +503,10 @@ body.phase #hiNew{display:inline-flex}
 .mark.sel{outline:2px dashed var(--ink);outline-offset:3px}
 .mark.ghost{opacity:.4;filter:saturate(.4)}
 .mark.done{opacity:.32}
+/* Addressed is a colour, not a fade: the mark switches its `--mk` to the green
+   the panel card already uses, and every part of it — pin, box, number, note —
+   follows. Dimming it on top of that would only make the green hard to read. */
+.mark.addressed{opacity:1}
 /* A comment belongs to the thing it was made on. When that thing is not on the
    page right now — a closed modal, a screen that is not showing — the mark goes
    with it rather than floating over whatever took its place. */
@@ -518,8 +522,11 @@ body.phase #hiNew{display:inline-flex}
   border-radius:10px;box-shadow:var(--shadow-pop);display:none;overflow:hidden}
 #composer.on{display:block}
 #composer .chead{display:flex;align-items:center;gap:7px;padding:8px 9px 6px}
-#composer .cnum{font:700 10px/1 var(--mono);color:#fff;background:var(--mk,var(--brand));
-  padding:3px 5px;border-radius:4px}
+/* The same bubble the mark and the list card wear, so one comment looks like
+   one comment wherever its number turns up. */
+#composer .cnum{flex:none;width:20px;height:20px;display:grid;place-items:center;
+  font:700 10px/1 var(--font);color:#fff;background:var(--mk,var(--brand));
+  border-radius:50% 50% 50% 3px}
 #composer .ckind{font-size:11.5px;color:var(--ink-3);flex:1}
 #composer .chead button{width:20px;height:20px;border-radius:4px;color:var(--ink-3);
   display:grid;place-items:center;font-size:12px}
@@ -1483,6 +1490,11 @@ const uid = () => 'c' + Math.random().toString(36).slice(2, 8);
 /* One severity: everything the reviewer writes is something to do. The mark
    colour is the accent, and nothing on screen has to be decoded. */
 const MARK = 'var(--brand)';
+/* A comment that has been dealt with is drawn in the same colour everywhere it
+   appears — mark, list card, composer. Each of those sets `--mk` once and every
+   part it is made of picks the colour up from there. */
+const MARK_DONE = 'var(--ok)';
+const markColour = a => a.status === 'addressed' ? MARK_DONE : MARK;
 
 /* ── language ─────────────────────────────────────────────────────────
    The workspace chrome speaks two languages; the page under review is
@@ -1927,16 +1939,18 @@ async function onReloadEvent () {
     for (const version of Object.keys(data.reviews || {}).map(Number).sort((a, b) => a - b)) {
       for (const comment of data.reviews?.[version]?.annotations || []) latest.set(comment.id, comment);
     }
-    const conversationChanged = mergeThreads([...latest.values()]);
+    const merged = mergeThreads([...latest.values()]);
     if (finishedRound) {
       const stopped = S.stopping;
       roundEnded();
       if (stopped) toast(T('stopped'));
     }
-    if (conversationChanged) {
+    if (merged.changed) {
       render();
       if (S.sel) openComposer(S.sel, false);
-      toast(T('replied'));
+      // The reviewer's own reply comes back the same way Claude's does. Only
+      // announce the one the reviewer did not write.
+      if (merged.agentSpoke) toast(T('replied'));
     }
     return;
   }
@@ -2085,7 +2099,7 @@ function flushHeld () {
     that is still inside the autosave window. The longer thread wins; a local
     dismissal or explicit reopen also wins until the server has received it. */
 function mergeThreads (serverAnn) {
-  let changed = false, asked = false;
+  let changed = false, agentSpoke = false;
   for (const sa of serverAnn) {
     const local = annById(sa.id);
     if (!local) { S.ann.push(normalise(sa)); changed = true; continue }
@@ -2099,13 +2113,13 @@ function mergeThreads (serverAnn) {
     if (sr > lr) {
       local.replies = sa.replies || [];
       S.threadOpen.add(local.id); changed = true;
-      if (isAgent((sa.replies || []).at(-1)?.by)) asked = true;
+      if (isAgent((sa.replies || []).at(-1)?.by)) agentSpoke = true;
     }
     const localAhead = lr > sr;
     const locallyReopened = local.status === 'open' && !!local.reopenedAt && sa.status === 'addressed';
     if (sa.status !== local.status && !localAhead && !locallyReopened) {
       local.status = sa.status;
-      if (sa.status === 'question') { S.threadOpen.add(local.id); asked = true }
+      if (sa.status === 'question') { S.threadOpen.add(local.id); agentSpoke = true }
       // A comment that has been addressed again starts clean: whatever was
       // asked for on the way here has now been answered.
       if (sa.status === 'addressed') { delete local.revert; delete local.reopenedAt }
@@ -2113,8 +2127,8 @@ function mergeThreads (serverAnn) {
     }
   }
   // A question stalls the round, so it should not wait behind a closed drawer.
-  if (asked) setPanel(true);
-  return changed;
+  if (agentSpoke) setPanel(true);
+  return { changed, agentSpoke };
 }
 
 /**
@@ -3039,6 +3053,7 @@ function openComposer (id, focus) {
   if (!a) return;
   S.sel = id;
   composer.classList.add('on');
+  composer.style.setProperty('--mk', markColour(a));
   composer.querySelector('.cnum').textContent = num(a);
   composer.querySelector('.ckind').textContent = T(a.kind === 'area' ? 'areaComment' : 'comment');
 
@@ -3326,8 +3341,11 @@ function visibleAnn () {
      is folded: a page covered in marks for things already dealt with is a page
      you have to read past. Opening the group brings them back, which is exactly
      when you are looking at them. */
+  /* The one you clicked is the exception. Selecting an addressed comment
+     scrolls the canvas to it and opens its composer there, so hiding its mark
+     leaves the composer pointing at nothing. */
   return list.filter(a => !a.dismissed
-    && (S.doneOpen || isHistory() || a.status !== 'addressed')
+    && (S.doneOpen || isHistory() || a.status !== 'addressed' || S.sel === a.id)
     && (a.size || 'desktop') === S.size.id && !offRoute(a));
 }
 /* Drawing a mark and placing it are two different jobs on two different clocks:
@@ -3343,13 +3361,16 @@ function drawMarks () {
 }
 function drawMark (a) {
   const ghost = !!a.fromVersion, done = a.status !== 'open', n = num(a);
-  const cls = (S.sel === a.id ? ' sel' : '') + (ghost ? ' ghost' : '') + (done ? ' done' : '');
+  // Done covers a question too, which is still being asked. Only an addressed
+  // comment is finished, and only that one is drawn in the secondary voice.
+  const cls = (S.sel === a.id ? ' sel' : '') + (ghost ? ' ghost' : '') + (done ? ' done' : '')
+    + (a.status === 'addressed' ? ' addressed' : '');
   const area = a.kind === 'area' && a.rect;
   if (!area && !a.point) return;
   const d = document.createElement('div');
   d.className = 'mark ' + (area ? 'area' : 'pin') + cls;
   d.dataset.id = a.id;
-  d.style.setProperty('--mk', MARK);
+  d.style.setProperty('--mk', markColour(a));
   d.innerHTML = area
     ? `<span class="num">${n}</span>` + (a.note ? `<span class="lbl">${esc(a.note)}</span>` : '')
     : esc(String(n)) + (a.note ? `<span class="lbl">${esc(a.note)}</span>` : '');
@@ -3499,7 +3520,7 @@ function itemNode (a, { ghost, otherSize, done, asked } = {}) {
     (working ? ' working' : '') +
     (off ? ' off' : '') + (asked ? ' asked' : '');
   el.dataset.id = a.id;
-  el.style.setProperty('--mk', MARK);
+  el.style.setProperty('--mk', markColour(a));
   el.innerHTML = `
     <div class="ih">
       <span class="n">${num(a)}</span>
