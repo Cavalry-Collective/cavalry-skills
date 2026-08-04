@@ -5,7 +5,8 @@
    works identically served, opened off disk, or published as an Artifact. */
 window.VSShell = (function () {
   const $ = s => document.querySelector(s);
-  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang', seen: 'vstack:update-seen' };
+  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang', seen: 'vstack:update-seen',
+    met: 'vstack:update-met' };
   const store = {
     get (k, d) { try { return localStorage.getItem(k) ?? d } catch { return d } },
     set (k, v) { try { localStorage.setItem(k, v) } catch {} },
@@ -185,6 +186,10 @@ window.VSShell = (function () {
     // release too.
     const seen = info?.key || info?.title;
     if (!info?.title || store.get(KEY.seen, '') === seen) return;
+    // Never on the load that first hears about a release. Opening a page is the
+    // start of a piece of work, and a plugin update is not what that moment is
+    // for — the first load only remembers, and the next one asks.
+    if (store.get(KEY.met, '') !== seen) { store.set(KEY.met, seen); return }
     const bar = document.createElement('div');
     bar.className = 'vs-update';
     bar.innerHTML =
@@ -207,8 +212,20 @@ window.VSShell = (function () {
     bar.appendChild(how);
     bar.querySelector('.how').onclick = () => { how.hidden = !how.hidden };
     bar.querySelector('.no').onclick = () => { store.set(KEY.seen, seen); bar.remove() };
+    // Pages lay their chrome out in a row grid — `grid-template-rows:auto 1fr`
+    // and the like — so a bare sibling of the bar takes the row meant for the
+    // content and gets stretched down the whole window. The notice moves in
+    // with the bar instead, leaving the layout the single child it sized for.
     const top = $('.vs-topbar');
-    if (top) top.insertAdjacentElement('afterend', bar);
+    if (!top) return;
+    let slot = top.parentElement;
+    if (!slot || !slot.classList.contains('vs-chrome')) {
+      slot = document.createElement('div');
+      slot.className = 'vs-chrome';
+      top.insertAdjacentElement('beforebegin', slot);
+      slot.appendChild(top);
+    }
+    slot.appendChild(bar);
   }
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 

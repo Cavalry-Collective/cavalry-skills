@@ -66,10 +66,11 @@ node "$SKILL/assets/review-server.mjs" reply --file "$FILE" \
 # acknowledge Stop without publishing the partial round
 node "$SKILL/assets/review-server.mjs" cancelled --file "$FILE" --round r1
 
-# serve (Host op background) — closes itself 90s after the tab does
+# serve (Host op background) — opens the workspace in the browser, closes itself 90s after the tab does
 # --host / VSTACK_HOST selects UI labels (claude | codex | grok); see contracts/host.md
 node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788 --host "$VSTACK_HOST"
 node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --idle-timeout 0 --host "$VSTACK_HOST"  # stay up until stopped
+node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --no-open                               # leave the browser alone
 
 # hand back a public URL when Host capabilities.share is artifact
 node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "https://example.com/…"

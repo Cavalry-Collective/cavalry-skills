@@ -18,6 +18,7 @@
  *
  *   node json-bridge.mjs serve --json <doc.json> --template <page.html>
  *        [--port 0] [--idle-timeout 90] [--name <label>] [--tool <skill>] [--host <id>]
+ *        [--no-open]   (serving opens the page in the browser unless told not to)
  *   node json-bridge.mjs patch --json <doc.json> --id <nodeId> --set k=v [--set k=v ...]
  *   node json-bridge.mjs watch --json <doc.json> --tool <skill> [--seq <n>] [--stream]
  *        (blocks; heartbeats presence)
@@ -59,7 +60,7 @@ import { fileURLToPath } from 'node:url'
 import { checkForUpdate, withUpdate } from './update-check.mjs'
 import { loadHost, resolveHostId, withHost } from './host.mjs'
 import { workDir, findWorkDir, TOOL } from './workdir.mjs'
-import { writeAtomic, watchingRecently, startHeartbeat, startPresence } from './live-link.mjs'
+import { writeAtomic, watchingRecently, startHeartbeat, startPresence, openInBrowser } from './live-link.mjs'
 
 const argv = process.argv.slice(2)
 const cmd = argv[0] && !argv[0].startsWith('--') ? argv.shift() : 'serve'
@@ -391,4 +392,7 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log(`${NAME} — live link up`)
   console.log(`  open ${url}`)
   console.log(`  seq  ${SEQ_FILE} (${fs.readFileSync(SEQ_FILE, 'utf8')})`)
+  // The page is the point — open it rather than leave the URL to be fetched
+  // out of a log. `--no-open`, or VSTACK_NO_OPEN=1, to leave the screen alone.
+  openInBrowser(url, { skip: argv.includes('--no-open') })
 })

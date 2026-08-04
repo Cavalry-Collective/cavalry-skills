@@ -105,7 +105,10 @@ your adapter for the exact tool:
 node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788 --host "$VSTACK_HOST"
 ```
 
-Tell the user to open **http://localhost:7788/**, then arm the waiter (§5).
+The server opens the workspace in the browser itself, as soon as it is up. Say
+it is open and name the URL — **http://localhost:7788/** — so a machine that
+could not open anything still has it, then arm the waiter (§5). Pass
+`--no-open` when the user asked you not to take over their screen.
 
 Reviewing a running app instead? Same server, `--app` in place of `--file` — see §7.
 

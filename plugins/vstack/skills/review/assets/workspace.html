@@ -127,21 +127,27 @@ body.panelshut #panelHandle:hover .pbadge{background:#fff;color:var(--brand)}
 /* The handle is narrower than a default badge, so its own count runs tighter. */
 #handleBadge{min-width:14px;height:14px;padding:0 2px;font-size:9px}
 /* Keep comments beside the canvas for every width that still uses the desktop
-   chrome. The old intermediate breakpoint made a partial drawer cover the
-   reviewed page. At the compact breakpoint comments become their own view, so
-   a card never straddles the panel and the page underneath. */
+   chrome. Below that the panel floats over the page instead of sharing the grid
+   with it — but it keeps its own width rather than taking the window. Comments
+   are about something, and covering the thing they are about leaves the reader
+   reading them blind. */
 @media (max-width:720px){
+  :root{--panelw-compact:min(var(--panelw),74vw)}
   #main{grid-template-columns:1fr}
-  #panel{position:fixed;top:46px;right:0;bottom:0;width:100vw;z-index:45;
+  /* Below the chrome, which is the bar plus whatever the shell put under it —
+     an update notice, most of the time nothing. Measured, not assumed. */
+  #panel{position:fixed;top:var(--chromeh,46px);right:0;bottom:0;width:var(--panelw-compact);z-index:45;
     box-shadow:var(--shadow-pop);transform:translateX(100%);transition:transform .16s ease-out}
   /* Off to the side rather than gone: the compact view still slides into place. */
   body.panelshut #panel{display:flex}
   body.panelopen #panel{transform:none}
-  /* The compact panel is its own view, not a drawer over part of the page. */
+  /* Cards fill the panel at whatever width it ended up. */
   #panel > *{width:100%}
   #panelHandle{grid-column:1;position:fixed;right:0;top:64px;margin-top:0;
     transform:none;justify-self:auto}
-  body.panelopen #panelHandle{right:calc(100vw - 20px);z-index:46}
+  /* The handle rides the panel's edge here too, so the way back out sits where
+     the panel actually stops. */
+  body.panelopen #panelHandle{right:var(--panelw-compact);z-index:46}
 }
 @media (prefers-reduced-motion:reduce){
   #main,#panel,#panelHandle,#panelHandle svg{transition:none}
@@ -299,6 +305,11 @@ body.panelshut #panelHandle:hover .pbadge{background:#fff;color:var(--brand)}
 /* ── "there is a newer one" ──
    One line under the bar, in the workmanlike amber the WIP tag uses: it is
    information, not an alarm, and it goes away for good on ×. */
+/* The bar and the notice as one block, because that is what a page's layout
+   sized the row for: on its own, the notice would claim the content row of a
+   `grid-template-rows:auto 1fr` shell and stretch down the window. Only ever
+   built when there is a notice to put in it. */
+.vs-chrome{flex:none;min-width:0}
 .vs-update{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
   padding:7px 12px;font-size:12px;color:var(--ink-2);
   background:color-mix(in srgb,#b0761a 8%,var(--surface));
@@ -1009,7 +1020,8 @@ body.phase #hiNew{display:inline-flex}
    works identically served, opened off disk, or published as an Artifact. */
 window.VSShell = (function () {
   const $ = s => document.querySelector(s);
-  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang', seen: 'vstack:update-seen' };
+  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang', seen: 'vstack:update-seen',
+    met: 'vstack:update-met' };
   const store = {
     get (k, d) { try { return localStorage.getItem(k) ?? d } catch { return d } },
     set (k, v) { try { localStorage.setItem(k, v) } catch {} },
@@ -1189,6 +1201,10 @@ window.VSShell = (function () {
     // release too.
     const seen = info?.key || info?.title;
     if (!info?.title || store.get(KEY.seen, '') === seen) return;
+    // Never on the load that first hears about a release. Opening a page is the
+    // start of a piece of work, and a plugin update is not what that moment is
+    // for — the first load only remembers, and the next one asks.
+    if (store.get(KEY.met, '') !== seen) { store.set(KEY.met, seen); return }
     const bar = document.createElement('div');
     bar.className = 'vs-update';
     bar.innerHTML =
@@ -1211,8 +1227,20 @@ window.VSShell = (function () {
     bar.appendChild(how);
     bar.querySelector('.how').onclick = () => { how.hidden = !how.hidden };
     bar.querySelector('.no').onclick = () => { store.set(KEY.seen, seen); bar.remove() };
+    // Pages lay their chrome out in a row grid — `grid-template-rows:auto 1fr`
+    // and the like — so a bare sibling of the bar takes the row meant for the
+    // content and gets stretched down the whole window. The notice moves in
+    // with the bar instead, leaving the layout the single child it sized for.
     const top = $('.vs-topbar');
-    if (top) top.insertAdjacentElement('afterend', bar);
+    if (!top) return;
+    let slot = top.parentElement;
+    if (!slot || !slot.classList.contains('vs-chrome')) {
+      slot = document.createElement('div');
+      slot.className = 'vs-chrome';
+      top.insertAdjacentElement('beforebegin', slot);
+      slot.appendChild(top);
+    }
+    slot.appendChild(bar);
   }
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -1733,6 +1761,7 @@ async function boot () {
   // already on the window below, twice. Phase preview is a different tool and
   // still names itself.
   VSShell.init({ name: phase ? 'Phase preview' : 'Visual Stack' });
+  measureChrome();
   document.title = S.name + (phase ? ' — Phases' : ' — Review') + ' · Visual Stack';
   $('#urlBar').textContent = live() ? S.route : S.fileName;
   LANG = VSShell.lang;
@@ -2126,6 +2155,19 @@ function setLang (l) {
   if (l === LANG) return;
   LANG = l;
   applyLang();
+}
+
+/* How tall the chrome ended up. At compact widths the comments float over the
+   page and have to start under it, and the bar is not always all of it — the
+   shell can put an update notice below the bar, and a notice the panel covers
+   is one nobody can dismiss. */
+function measureChrome () {
+  const bar = $('.vs-topbar');
+  const chrome = bar.parentElement?.classList.contains('vs-chrome') ? bar.parentElement : bar;
+  const fit = () => document.documentElement.style
+    .setProperty('--chromeh', chrome.offsetHeight + 'px');
+  new ResizeObserver(fit).observe(chrome);
+  fit();
 }
 
 function wireChrome () {

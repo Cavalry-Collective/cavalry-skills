@@ -47,7 +47,7 @@ Derive these from whatever context exists — a spec, a plan, a `tasks.md`, a de
    MAP=.vstack/maps/<slug>.json
    node "$LIB/json-bridge.mjs" serve --json "$MAP" --template "$SKILL/assets/story-map-template.html" --port 0 --tool user-story-map
    ```
-   It prints the URL (with its token) and the seq path. Give the user the whole URL — the token is required.
+   It opens the map in the browser and prints the URL (with its token) and the seq path. Give the user the whole URL too — the token is required, and a machine that could not open a browser still needs it. `--no-open` leaves the screen alone.
 2. **Start the watcher** so their click reaches you with nothing typed — the **Monitor tool**, `persistent: true`:
    ```bash
    node "$LIB/json-bridge.mjs" watch --json .vstack/maps/<slug>.json --stream --tool user-story-map \

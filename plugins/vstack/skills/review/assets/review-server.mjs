@@ -16,7 +16,7 @@
  *
  * Node >= 18, standard library only.
  *
- *   node review-server.mjs serve   --file <page.html> [--port 7788] [--idle-timeout 90]
+ *   node review-server.mjs serve   --file <page.html> [--port 7788] [--idle-timeout 90] [--no-open]
  *   node review-server.mjs serve   --app <url> [--name <slug>] [--start /path] [--port 7788]
  *   node review-server.mjs claim   --file <page.html> --round r1
  *   node review-server.mjs publish --file <page.html> --round r1 --label "…" [--addressed c1,c3]
@@ -45,6 +45,9 @@
  *     url                   the live URL — present only while the server runs
  *     watching              heartbeat — an agent session is waiting on this review
  *
+ * Serving opens the workspace in the machine's default browser as soon as it is
+ * up — `--no-open`, or VSTACK_NO_OPEN=1, for a run that should not.
+ *
  * The server closes itself when the browser tab does: the workspace holds an
  * SSE connection, and once the last one goes away and none returns within the
  * grace period the server removes `url` and exits. That exit re-invokes the
@@ -65,7 +68,7 @@ import { fileURLToPath } from 'node:url'
 import { checkForUpdate, withUpdate } from '../../../lib/update-check.mjs'
 import { resolveHostId, loadHost, withHost, AGENT_ROLE, REVIEWER_ROLE } from '../../../lib/host.mjs'
 import { workDir, subjectDir, toolNames, LOCAL, TOOL } from '../../../lib/workdir.mjs'
-import { writeAtomic, watchingRecently, startHeartbeat, startPresence } from '../../../lib/live-link.mjs'
+import { writeAtomic, watchingRecently, startHeartbeat, startPresence, openInBrowser } from '../../../lib/live-link.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
@@ -1396,6 +1399,11 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
    what it does and does not do. */
 let update = null
 
+/* The workspace opens itself as the server comes up — see openInBrowser in
+   lib/live-link.mjs. `--no-open`, or VSTACK_NO_OPEN=1, for a run that should
+   leave the screen alone. */
+const openWorkspace = target => openInBrowser(target, { skip: !!args['no-open'] })
+
 async function cmdServe () {
   update = await checkForUpdate(HOST_PROFILE)
   if (HOST_PROFILE) console.log(`  host       ${HOST_PROFILE.id} (${HOST_PROFILE.name})`)
@@ -1505,6 +1513,7 @@ async function cmdServe () {
     console.log(idleTimeout > 0
       ? `  ready — closes itself ${idleTimeout}s after the tab does`
       : '  ready — stays up until stopped')
+    openWorkspace(url)
   })
 }
 

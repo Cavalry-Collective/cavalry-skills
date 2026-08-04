@@ -37,7 +37,7 @@ async function waitForServer () {
 }
 
 async function startServer () {
-  const child = spawn(process.execPath, [SERVER, 'serve', '--file', page, '--port', String(port), '--idle-timeout', '0', '--host', 'codex'], {
+  const child = spawn(process.execPath, [SERVER, 'serve', '--file', page, '--port', String(port), '--idle-timeout', '0', '--host', 'codex', '--no-open'], {
     cwd: temp, stdio: ['ignore', 'pipe', 'pipe'],
   })
   server = child

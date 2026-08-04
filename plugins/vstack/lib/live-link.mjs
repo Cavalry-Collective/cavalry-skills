@@ -10,6 +10,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { spawn } from 'node:child_process'
 
 /** Write-then-rename, so a concurrent reader sees the old file or the new one,
     never a torn one. */
@@ -17,6 +18,28 @@ export function writeAtomic (file, text) {
   const tmp = file + '.tmp-' + process.pid
   fs.writeFileSync(tmp, text)
   fs.renameSync(tmp, file)
+}
+
+/**
+ * Show the page the server just started serving. These tools are things you
+ * look at, and a URL sitting in a log is a step between the person and the
+ * thing they asked for — so the server opens it the moment it is ready.
+ *
+ * Best effort by design. A machine with no browser to hand — a container, an
+ * ssh session — has already been told the URL, and the server goes on serving
+ * it. Callers print the URL first, then call this; VSTACK_NO_OPEN=1 (or a
+ * caller's own flag) skips it.
+ */
+export function openInBrowser (url, { skip = false } = {}) {
+  if (skip || process.env.VSTACK_NO_OPEN) return
+  const [cmd, argv] = process.platform === 'darwin' ? ['open', [url]]
+    : process.platform === 'win32' ? ['cmd', ['/c', 'start', '', url]]
+      : ['xdg-open', [url]]
+  try {
+    const child = spawn(cmd, argv, { stdio: 'ignore', detached: true })
+    child.on('error', () => {})   // no such command — the printed URL stands
+    child.unref()
+  } catch {}
 }
 
 /**

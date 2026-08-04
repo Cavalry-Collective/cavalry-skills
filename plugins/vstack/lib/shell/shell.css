@@ -149,6 +149,11 @@
 /* ── "there is a newer one" ──
    One line under the bar, in the workmanlike amber the WIP tag uses: it is
    information, not an alarm, and it goes away for good on ×. */
+/* The bar and the notice as one block, because that is what a page's layout
+   sized the row for: on its own, the notice would claim the content row of a
+   `grid-template-rows:auto 1fr` shell and stretch down the window. Only ever
+   built when there is a notice to put in it. */
+.vs-chrome{flex:none;min-width:0}
 .vs-update{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
   padding:7px 12px;font-size:12px;color:var(--ink-2);
   background:color-mix(in srgb,#b0761a 8%,var(--surface));

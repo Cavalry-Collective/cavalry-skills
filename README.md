@@ -18,9 +18,8 @@ Create a new screen, or open an existing one. Click anywhere and leave highly pr
 
 Your agent applies the feedback and updates the design in the same place, hopefully without adding another gradient.
 
+![Point. Comment. Iterate. No more jumping between chat and the UI.](docs/assets/wireframe-demo.gif)
 *Point. Comment. Iterate. No more jumping between chat and the UI.*
-
-![Leave feedback on a wireframe and review the next version in the same workspace](docs/assets/wireframe-demo.gif)
 
 ## Get started
 
@@ -36,7 +35,7 @@ Install, in Claude Code:
 Then run:
 
 ```text
-/vstack:review Build a mobile checkout screen.
+/vstack:review Wireframe a desktop personal task manager with minimal aesthetics.
 ```
 
 ### Codex
@@ -51,7 +50,7 @@ codex plugin add vstack@cavalry-collective
 Then run:
 
 ```text
-$vstack:review Build a mobile checkout screen.
+$vstack:review Wireframe a desktop personal task manager with minimal aesthetics.
 ```
 
 ## What you can do
@@ -93,6 +92,6 @@ Feedback and contributions are welcome.
 
 ---
 
-Built by [Cavalry Collective](https://cavalry.sg), presumably after one too many rounds of screenshot-based feedback.
+Built by [DeyangChan](https://github.com/DeyangChan). Released by [Cavalry Collective](https://cavalry.sg), presumably after one too many rounds of screenshot-based feedback.
 
 Licensed under the [MIT License](LICENSE).
