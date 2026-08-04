@@ -666,11 +666,19 @@ function liveStores (from = process.cwd(), depth = 5) {
       // their files. Both directories are read: one waiter has to find a review
       // opened before the rename as readily as one opened after it.
       if (e.name === '.vstack') {
+        /* One subject is one review however many directories it appears in:
+           `toolNames` puts the current one first, so the same rule `subjectDir`
+           follows applies here — first name wins, and a stale copy under an old
+           name can't arm a second waiter that reports the same rounds twice and
+           heartbeats into a store no server owns. */
+        const seen = new Set()
         for (const reviews of toolNames(TOOL.review).map(t => path.join(here, LOCAL, t))) {
           let subs = []
           try { subs = fs.readdirSync(reviews, { withFileTypes: true }) } catch {}
           for (const sub of subs) {
-            if (sub.isDirectory() && fs.existsSync(path.join(reviews, sub.name, 'url'))) {
+            if (!sub.isDirectory() || seen.has(sub.name)) continue
+            if (fs.existsSync(path.join(reviews, sub.name, 'url'))) {
+              seen.add(sub.name)
               found.push(path.join(reviews, sub.name))
             }
           }
@@ -860,6 +868,11 @@ function cmdStatus () {
   console.log(JSON.stringify({
     reviewing: LIVE ? 'app' : 'file',
     file: FILE,
+    /* Where this review's files actually are. A caller that needs one — the
+       capture to share, a version to read — asks rather than assembling the
+       path from the tool's current name, which is not where a review opened
+       under an earlier name still lives. */
+    store: STORE,
     app: appOrigin(),
     name: pageName(),
     version: state.version,

@@ -31,6 +31,13 @@ Host-independent: any Host that fulfills [host.md](host.md) can drive this loop.
 Beside the file: `<dir>/.vstack/local/review/<name>/`
 Live (no file): `<cwd>/.vstack/local/review/<name>/`
 
+`review/` is where a store is **created**. An implementation must also **read**
+`<dir>/.vstack/local/wireframe/<name>/`, which is where stores made before this
+tool was renamed still are — first directory holding the subject wins, and a
+subject present in both is read from `review/`. Nothing is migrated: a user's
+rounds stay where they were written. `status` reports the resolved `store`, so
+a caller never has to pick between the two itself.
+
 | Path | Role |
 | --- | --- |
 | `state.json` | `{ name, version, app?, … }` |

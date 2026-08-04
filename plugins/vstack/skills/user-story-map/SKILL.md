@@ -38,7 +38,7 @@ Derive these from whatever context exists — a spec, a plan, a `tasks.md`, a de
 
 ## Live link (bridge)
 
-`lib/json-bridge.mjs` — the shared engine `spec` and `phase-build` also run on — serves the map on `127.0.0.1` and links it to this session in both directions. The page detects the bridge on its own; the template is served unmodified.
+`lib/json-bridge.mjs` — the shared engine the experimental `spec` and `phase-build` also run on — serves the map on `127.0.0.1` and links it to this session in both directions. The page detects the bridge on its own; the template is served unmodified.
 
 1. **Start it** with Bash `run_in_background`:
    ```bash
@@ -84,15 +84,18 @@ TaskStop on the server task; `--idle-timeout 0` keeps it up until then.
 
 **No `.vstack/pipeline.json`?** You're standalone — a plan, a `tasks.md` or a conversation is enough.
 Everything above still applies; skip this section, and write the map wherever suits (default
-`.vstack/maps/`). **Never create the state file here.** Only `/vstack:start` and
-`/vstack:requirements` bring a pipeline into being.
+`.vstack/maps/`). **Never create the state file here** — a half-written one is worse than none,
+because the next stage would trust it. Nothing currently shipped brings a pipeline into being: the
+tool that did, `start`, is parked in `plugins/vstack/experimental/`. **Standalone is the normal
+case**, and the section below applies only to a project that already has the file.
 
 With a state file:
 
 - **Read** `artifacts.specs[]` — the specs are the stories, and the map's job is to say *when*, not
   to reopen *what*. `artifacts.product` for the goal the phases serve.
-- **Write** the map to `specs/story-map.json`. That exact path matters: `phase-preview` cuts the
-  phases from it and `phase-build` reads it to know which phase is last. Then set
+- **Write** the map to `specs/story-map.json`. That exact path is what `phase-preview` and
+  `phase-build` read — both experimental, so this matters for a project that used them or will when
+  they return, not for anything shipping today. Then set
   `artifacts.storyMap` and `stage: "user-story-map"`, and add a `history` entry noting the phase
   count.
 - **Write it when the user has finished re-slicing**, not on the first send. A map is dragged

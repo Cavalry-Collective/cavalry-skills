@@ -59,7 +59,7 @@ Three rules fall out of it:
 ## The stages
 
 ```
-  ◆ /vstack:go  ←  former "what now?" router (planned here as `next`; now a wireframe alias)
+  ◆ /vstack:go  ←  former "what now?" router (planned here as `next`; since parked in experimental/)
 
   ◆ 0  start              multi-step form: what you're building → stack → confirm
                           (or skip development, or record an existing app untouched)
@@ -547,8 +547,9 @@ Items 1–3 shipped on 2026-07-29 with plugin 4.0.0.
    [Stage 0](#0--start--the-setup-form--built).
 
 2. ~~**`/vstack` bare, in any chat.**~~ — originally built as the `/vstack:go` pipeline router. That
-   behavior was retired when Visual Stack became the wireframe product. `/vstack:go` remains a
-   compatibility alias to `/vstack:review`.
+   behavior was retired when Visual Stack became the wireframe product. It survived a while as a
+   compatibility alias to `/vstack:review`; that too is now parked in `experimental/`, so
+   `/vstack:go` no longer resolves.
 
 3. ~~**Drop the `/cavalry` prefix.**~~ — **done.** The repo was already clean; the prefix came from a
    stale `cavalry@cavalry-collective` 1.1.0 plugin installed before the vstack rename. Fixed by
@@ -679,7 +680,8 @@ Rough order, each step independently useful:
    `user-story-map` run on it; `bridge.py` is gone. `wireframe` keeps `review-server.mjs` — see
    *One engine, not eight* for why that one is not a duplicate.
 4. ~~**`next`**~~ — was built as `/vstack:go`, with inference mode on top of the planned state-file
-   reading. The router was later retired; `/vstack:go` now delegates to wireframing for compatibility.
+   reading. The router was retired, then delegated to review for compatibility, and is now parked in
+   `experimental/` along with the rest of the pipeline tools.
 5. **`requirements`**, from another round of design — the v6 wireframe was parked, not approved. It is
    also the first mind map, so the graph-layout question gets settled here.
 6. ~~**The `ui-review` → `wireframe` rename**~~ — **done**. Footers still to come, once the state file has stopped moving.

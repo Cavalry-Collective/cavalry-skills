@@ -267,8 +267,10 @@ Publish **`$FILE` itself** with Host op **`share`** (adapter names the tool), th
 so it appears in the workspace.
 
 **In a live review** there is no `$FILE` — publish the capture the workspace just took,
-`.vstack/local/review/<name>/versions/v<n>.html` for the current round, and say plainly that the link is a
-still of one screen, not the app.
+`<store>/versions/v<n>.html` for the current round, and say plainly that the link is a
+still of one screen, not the app. **Take `<store>` from `status`** (it reports `store`), never by
+building the path yourself: a review opened before this tool was renamed still lives under the
+directory it was created in.
 
 ```bash
 node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "<public-url>"
@@ -410,8 +412,9 @@ route.
 
 **No `.vstack/pipeline.json`?** You're standalone, and that is a first-class way to run this — a URL
 or a sentence is enough. Everything above still applies; skip this section. **Never create the state
-file here.** Only `/vstack:start` and `/vstack:requirements` bring a pipeline into being, and a
-half-written one is worse than none, because the next stage would trust it.
+file here** — a half-written one is worse than none, because the next stage would trust it. Nothing
+currently shipped brings a pipeline into being: the tool that did, `start`, is parked in
+`plugins/vstack/experimental/`. **Standalone is the normal case.**
 
 Standalone, the design source is §2's priority order (reference site → screenshots → the project's
 own system → ask), the page goes where the user wants (default `wireframes/`), and you end with the
