@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Review lifecycle
+        run: node plugins/vstack/skills/review/tests/review-lifecycle.mjs
+      - name: Host profiles
+        run: node plugins/vstack/skills/review/tests/host-profiles.mjs
+      - name: Working-directory resolution
+        run: node plugins/vstack/skills/review/tests/workdir.mjs
+
+  shell:
+    name: Stamped shell is current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # Fails when a page's stamped region has drifted from lib/shell/.
+      # Fix by running `node plugins/vstack/lib/build-shell.mjs stamp`.
+      - name: Check for drift
+        run: node plugins/vstack/lib/build-shell.mjs check
+
+  manifests:
+    name: Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Claude Code
+        run: npm install --global @anthropic-ai/claude-code
+      # The community-marketplace review pipeline runs this same check on every
+      # submission, so a warning here is a warning a reviewer would see.
+      - name: Validate the marketplace
+        run: claude plugin validate . --strict
+      - name: Validate the plugin
+        run: claude plugin validate ./plugins/vstack --strict
+      # Both hosts read a version out of their own manifest, so they can drift
+      # apart silently and ship the same commit under two version numbers.
+      - name: Host manifests declare the same version
+        run: |
+          node -e '
+            const { readFileSync } = require("node:fs")
+            const version = file => JSON.parse(readFileSync(file, "utf8")).version
+            const claude = version("plugins/vstack/.claude-plugin/plugin.json")
+            const codex = version("plugins/vstack/.codex-plugin/plugin.json")
+            if (claude !== codex) {
+              console.error(`Claude manifest says ${claude}, Codex manifest says ${codex}.`)
+              process.exit(1)
+            }
+            console.log(`Both host manifests declare ${claude}.`)
+          '

@@ -1,0 +1,72 @@
+name: Bug report
+description: Something in a skill or workspace does not work as described.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report a security problem here. Follow
+        [SECURITY.md](https://github.com/Cavalry-Collective/visual-stack/blob/main/SECURITY.md)
+        instead.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: >
+        Start from the command you ran. A bug we can reproduce is a bug we can
+        fix.
+      placeholder: |
+        1. Run `/vstack:review Wireframe a login screen.`
+        2. Click the submit button and leave a comment.
+        3. Send the comment.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host
+      options:
+        - Claude Code
+        - Codex
+        - Grok
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Visual Stack version
+      description: >
+        The version shown in the plugin manager, or the commit you installed
+        from.
+      placeholder: 4.7.0
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Operating system, Node version, and browser
+      placeholder: macOS 15.2, Node 22.11.0, Chrome 131
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Server output or console errors
+      description: >
+        Anything the review server printed, or errors from the browser console.
+        This is pasted as code, so no backticks are needed.
+      render: text

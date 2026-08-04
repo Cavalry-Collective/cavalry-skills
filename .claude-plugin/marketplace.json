@@ -2,14 +2,41 @@
   "name": "cavalry-collective",
   "owner": {
     "name": "Cavalry Collective",
-    "email": "adam@cavalry.sg"
+    "email": "adam@cavalry.sg",
+    "url": "https://cavalry.sg"
   },
-  "description": "Visual Stack — interactive wireframing and UI review with your coding agent.",
+  "description": "Visual Stack adds a Figma-like feedback layer to AI coding agents. Comment directly on a wireframe or a running app, and get the next revision in the same place.",
   "plugins": [
     {
       "name": "vstack",
+      "displayName": "Visual Stack",
       "source": "./plugins/vstack",
-      "description": "Visual Stack is interactive wireframing for Claude Code. Build a screen from a prompt, screenshot, reference site, or design system, then comment directly on the result and receive each revision in the same browser workspace. It can also review a running app or public website route by route. Wireframes are self-contained HTML; local review state stays in the project."
+      "description": "Stop prompting. Start pointing. Visual Stack adds a Figma-like feedback layer to Claude Code. Create a new screen from a prompt, screenshot, reference site, or design system, or open an app you already have running. Click any element and leave feedback exactly where the problem is hiding, and Claude publishes the next revision into the same workspace. Compare revisions on a timeline, preview desktop, tablet, and mobile layouts, and keep every comment attached to the element, route, and version it refers to. Wireframes are self-contained HTML and review state stays in your project.",
+      "author": {
+        "name": "Cavalry Collective",
+        "email": "adam@cavalry.sg",
+        "url": "https://cavalry.sg"
+      },
+      "homepage": "https://www.cavalry.sg/visual-stack",
+      "repository": "https://github.com/Cavalry-Collective/visual-stack",
+      "license": "MIT",
+      "category": "design",
+      "keywords": [
+        "wireframe",
+        "wireframing",
+        "mockup",
+        "prototype",
+        "ui",
+        "ui-review",
+        "ux",
+        "design",
+        "design-review",
+        "design-feedback",
+        "frontend",
+        "annotate",
+        "visual-feedback",
+        "screenshot"
+      ]
     }
   ]
 }

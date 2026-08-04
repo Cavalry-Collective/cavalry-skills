@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  version-matches-tag:
+    name: Tag matches the manifest version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # An explicit version in plugin.json is what Claude Code compares against
+      # to decide an update exists. Tagging a release without bumping it leaves
+      # every installed copy believing it is already current.
+      - name: Compare the tag against plugin.json
+        run: |
+          node -e '
+            const { readFileSync } = require("node:fs")
+            const tag = process.env.GITHUB_REF_NAME.replace(/^v/, "")
+            const declared = JSON.parse(
+              readFileSync("plugins/vstack/.claude-plugin/plugin.json", "utf8")
+            ).version
+            if (declared !== tag) {
+              console.error(`Tag ${process.env.GITHUB_REF_NAME} does not match plugin.json version ${declared}.`)
+              console.error("Bump the version in both host manifests, commit, then move the tag.")
+              process.exit(1)
+            }
+            console.log(`Tag and manifest agree on ${declared}.`)
+          '

@@ -9,13 +9,16 @@
  * dismissable line under the bar.
  *
  * WHAT COUNTS AS NEWER
- * This plugin ships without a `version` in plugin.json, which is Claude Code's
- * way of saying "every commit is a release": it then keys its own update
- * decision on the git commit the plugin was installed from, and records that in
- * ~/.claude/plugins/installed_plugins.json. So this asks the same question the
- * same way — the SHA behind the installed copy, against the head of the default
- * branch. Should a `version` ever come back, it wins, because that is what
- * Claude Code would key on instead.
+ * This asks the question Claude Code itself would ask, so the banner never
+ * disagrees with what `/plugin update` would do. Claude Code keys its update
+ * decision on the plugin's `version` when plugin.json declares one, and on the
+ * git commit the plugin was installed from when it does not, recording either
+ * in ~/.claude/plugins/installed_plugins.json.
+ *
+ * plugin.json declares a version, so the comparison is normally version against
+ * version. A copy installed before that version existed has no version on
+ * record, and falls back to the SHA behind it against the head of the default
+ * branch.
  *
  * A working copy is not an install. Running from a clone (developing the plugin
  * itself) finds no entry, and the check returns nothing rather than telling you

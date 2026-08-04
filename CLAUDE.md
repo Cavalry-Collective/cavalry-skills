@@ -38,6 +38,36 @@ node plugins/vstack/lib/build-shell.mjs stamp    # write lib/shell/ into every p
 node plugins/vstack/lib/build-shell.mjs check    # exit 1 if any page has drifted
 ```
 
+The manifests are validated by the same tool the community-marketplace review
+pipeline runs:
+
+```bash
+claude plugin validate . --strict                # .claude-plugin/marketplace.json
+claude plugin validate ./plugins/vstack --strict # the plugin manifest
+```
+
+`.github/workflows/ci.yml` runs all of the above on every pull request.
+
+CI cannot install the plugin, so rehearse that locally before a release.
+`CLAUDE_CONFIG_DIR` keeps it out of the real config: without it, a local-path
+marketplace is written to user settings and shadows the published
+`cavalry-collective` until it is removed. The source must be `./`, not `.`.
+
+```bash
+SANDBOX=$(mktemp -d)
+CLAUDE_CONFIG_DIR=$SANDBOX/.claude claude plugin marketplace add ./
+CLAUDE_CONFIG_DIR=$SANDBOX/.claude claude plugin install vstack@cavalry-collective
+CLAUDE_CONFIG_DIR=$SANDBOX/.claude claude plugin details vstack   # what a user sees
+rm -rf $SANDBOX
+```
+
+Nothing above runs a review end to end. For that, load the plugin from disk and
+drive the skill in a real project:
+
+```bash
+claude --plugin-dir ./plugins/vstack
+```
+
 ## Architecture
 
 ### Contracts / engine / adapters / profiles
@@ -120,6 +150,88 @@ same `<name>/SKILL.md + assets/` shape. They are parked outside `skills/` on
 purpose so no host discovers them as installable skills; their pages still
 carry the stamped shell and are kept from drifting by `build-shell.mjs`.
 Moving one back under `skills/` is the whole act of re-releasing it.
+
+## Distribution and releases
+
+This repo is what a stranger installs, so its public metadata is part of the
+product. `claude plugin validate --strict` must pass on both manifests before
+any change ships, because the community-marketplace review pipeline runs the
+same check.
+
+### Two host manifests, one identity
+
+`plugins/vstack/.claude-plugin/plugin.json` and
+`plugins/vstack/.codex-plugin/plugin.json` describe the same plugin to two
+hosts, and `.claude-plugin/marketplace.json` repeats the Claude entry.
+
+- Change one manifest, change all three in the same commit.
+- `version`, `author`, `homepage`, `repository`, `license`, and `keywords` are
+  identical across them. Only the description's host name and the Codex
+  `interface` block differ.
+- Descriptions take their wording from `README.md`. The README is where the
+  product's voice is decided; a manifest quotes it rather than inventing a
+  second one.
+- Keywords cover what someone would type to find this, not what it is built
+  from. Do not add a keyword the description cannot back up.
+- CI fails when the two host manifests declare different versions.
+
+### Versioning
+
+`version` is declared, so it is what a host compares against to decide an update
+exists. **Pushing commits without bumping it ships nothing to anyone.**
+
+- Bump `version` in both host manifests, and add the release to `CHANGELOG.md`,
+  in the release commit.
+- Tag `vX.Y.Z` on the commit that lands on `main`.
+  `.github/workflows/release.yml` fails when the tag and the manifest disagree.
+- MAJOR for a breaking change to a skill name, an on-disk path, or a protocol.
+  MINOR for new behaviour. PATCH for a fix.
+- Orphaning a user's in-flight state is MAJOR, and it needs a `LEGACY` entry in
+  `lib/workdir.mjs` rather than a migration.
+- `lib/update-check.mjs` mirrors the host's own update decision. It reads the
+  declared `version` first and falls back to the install SHA only for a copy
+  installed before a version existed. Changing how the version is declared means
+  changing that file.
+
+### Cutting a release when asked
+
+When the user says to cut, ship, or publish a release, run this end to end. The
+`main` ruleset requires a pull request, so nothing lands directly on `main`.
+
+1. **Decide the version.** Read the commits since the last tag, apply the semver
+   rule above, and tell the user the number you picked and why in one line.
+   Proceed on that number. Stop and ask only when the same set of commits reads
+   as either MINOR or MAJOR depending on how a breaking change is judged.
+2. **Verify before proposing anything.** Run the tests, the shell check, both
+   validate commands, and the install rehearsal from *Commands*. A failure here
+   ends the release. Report it and fix it first.
+3. **Branch.** `release/vX.Y.Z` off current `main`.
+4. **Bump and record.** `version` in both host manifests, and a `CHANGELOG.md`
+   entry written from the merged commits, newest first, with breaking changes
+   called out.
+5. **Open the PR.** Title `vX.Y.Z — <the release's one-line point>`. The body is
+   the changelog entry, so it can be reused as the release notes.
+6. **Watch CI.** `gh pr checks <number> --watch`. Every check must pass. A red
+   check means fix it on the branch and watch again, never merge past it.
+7. **Merge when green.** Squash. The user has standing approval for this merge
+   and for the tag and release that follow, so do not ask again for a release
+   they asked for.
+8. **Tag `main`.** Pull the squashed commit, tag it `vX.Y.Z`, and push the tag.
+   The release workflow re-checks the tag against the manifest.
+9. **Publish the GitHub release** with the changelog entry as its notes, then
+   give the user the release URL.
+
+Stop and report rather than working around a problem: a red check that is not
+yours to fix, a ruleset that rejects the merge, or a tag that already exists.
+
+Nothing here is a dry run. Every step from 5 onward is public.
+
+### Contributor-facing files
+
+`CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`, and this file state the
+same rules to three audiences. A rule is owned by one of them and referenced
+from the others. When a rule here changes and a contributor has to follow it,
+update the PR checklist in the same commit.
 
 ## Coding standards
 

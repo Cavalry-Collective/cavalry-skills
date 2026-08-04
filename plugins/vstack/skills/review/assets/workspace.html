@@ -2705,9 +2705,16 @@ function selectorFor (el) {
     const sibs = n.parentElement ? [...n.parentElement.children].filter(c => c.tagName === n.tagName) : [];
     if (sibs.length > 1) part += `:nth-of-type(${sibs.indexOf(n) + 1})`;
     parts.unshift(part);
-    if (parts.length >= 8) break;
   }
-  return parts.join(' > ');
+  /* A short suffix of the path can first-match a lookalike elsewhere in the
+     document, and querySelector would hand back that one. Use the shortest
+     suffix that matches only this element; a path that is ambiguous even at
+     full length gets rooted at body, where the child chain is exact. */
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const sel = parts.slice(i).join(' > ');
+    try { if (fdoc.querySelectorAll(sel).length === 1) return sel } catch {}
+  }
+  return (parts[0]?.startsWith('#') ? '' : 'body > ') + parts.join(' > ');
 }
 /** The part of the page this sits in — a dialog, a nav, a card. What a person
     would say first when telling someone else where to look. */
@@ -2863,6 +2870,11 @@ function findAnchor (a) {
     }
   }
   if (bestScore >= 3) return keep(best);
+  /* Reaching here, the selector's hit matched none of the captured words or
+     identity — an ambiguous path from an older version can land on a lookalike
+     first. An element that carries the words is better evidence than a path
+     that merely still parses. */
+  if (bestScore >= 2) return keep(best);
   if (hit) return keep(hit);
   missCache.set(a.id, domEpoch);
   return null;
