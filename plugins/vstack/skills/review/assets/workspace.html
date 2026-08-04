@@ -1861,15 +1861,17 @@ function loadAnnotations () {
   // to answer in is already there.
   for (const a of S.ann) if (awaitsReply(a)) S.threadOpen.add(a.id);
   /* What earlier versions still have to say. Open comments ride along because
-     they are unfinished — and so do addressed ones, because "Claude changed it"
-     is not the same as "that was the change I wanted". A comment leaves the
-     screen when the reviewer dismisses it, and not before. Versions iterate in
-     order, so a later copy of the same comment overwrites an earlier one. */
+     they are unfinished, addressed ones because "Claude changed it" is not the
+     same as "that was the change I wanted", and questions because they are the
+     one thing waiting on the reviewer — leaving those behind took Claude's
+     question off the screen at the next version and left nobody to answer it.
+     A comment leaves the screen when the reviewer dismisses it, and not before.
+     Versions iterate in order, so a later copy overwrites an earlier one. */
   const ghosts = new Map();
   for (const [v, rev] of Object.entries(S.reviews)) {
     if (Number(v) >= S.version) continue;
     for (const a of rev.annotations || []) {
-      if (a.status !== 'open' && a.status !== 'addressed') continue;
+      if (!['open', 'addressed', 'question'].includes(a.status)) continue;
       ghosts.set(a.id, { ...normalise(a), fromVersion: Number(v) });
     }
   }
@@ -3176,10 +3178,11 @@ function adopt (a) {
  */
 function takeOff (a) {
   if (isHistory()) return;
-  // Only a draft that has never left this tab can disappear outright. Once
-  // Claude has replied, asked, or addressed it, keep a dismissed record so a
-  // slightly older server snapshot cannot immediately bring it back.
-  if (!a.fromVersion && !sent(a)) { removeComment(a.id); return }
+  // Only a draft that has never left this tab can disappear outright. Once it
+  // has words it has been autosaved, and once Claude has replied, asked, or
+  // addressed it there is a thread — either way keep a dismissed record, so
+  // neither the server nor a slightly older snapshot brings it back.
+  if (!a.fromVersion && !sent(a) && !hasSubstance(a)) { removeComment(a.id); return }
   const live = adopt(a);
   live.dismissed = true;
   delete live.reopenedAt; delete live.revert;

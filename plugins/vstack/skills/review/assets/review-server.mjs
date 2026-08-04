@@ -253,6 +253,27 @@ function commentRecords (id) {
 
 const latestComment = id => commentRecords(id).at(-1) || null
 
+/**
+ * Where an agent's own writing about a comment belongs: the version the
+ * workspace has open. A comment the reviewer has not touched since the last
+ * publication still lives in an earlier review file, so it is copied forward
+ * first. Writing to the older copy instead answers where nobody is looking —
+ * the workspace reads its list from the current version.
+ */
+function currentRecord (id) {
+  const version = loadState().version
+  const file = path.join(P.review(version), 'annotations.json')
+  const saved = readJSON(file) || { version, annotations: [] }
+  saved.annotations ||= []
+  const here = saved.annotations.find(comment => comment.id === id)
+  if (here) return { version, file, saved, comment: here }
+  const earlier = latestComment(id)
+  if (!earlier) return null
+  const carried = { ...earlier.comment }
+  saved.annotations.push(carried)
+  return { version, file, saved, comment: carried, carriedFrom: earlier.version }
+}
+
 function latestComments () {
   const found = new Map()
   for (const version of listReviewVersions()) {
@@ -525,13 +546,15 @@ function cmdReply () {
       process.exit(2)
     }
   }
-  const record = latestComment(id)
+  const record = currentRecord(id)
   if (!record) { console.error(`No comment ${id} found`); process.exit(1) }
   const target = record.comment
   target.replies = (target.replies || []).concat({
     by: AGENT_ROLE, text, at: new Date().toISOString(),
   })
   if (args.status !== 'open') target.status = 'question'
+  record.saved.version = record.version
+  record.saved.updatedAt = new Date().toISOString()
   writeJSON(record.file, record.saved)
 
   // A round made entirely of questions/dismissals needs no empty publication.
@@ -545,7 +568,7 @@ function cmdReply () {
       finishActiveRound(active, 'completed', { outcomes })
     }
   }
-  console.log(`Replied to ${id} on v${record.version} — the reviewer will see it on the comment`)
+  console.log(`Replied to ${id} on v${record.version}${record.carriedFrom ? ` (carried forward from v${record.carriedFrom})` : ''} — the reviewer will see it on the comment`)
   touch()
 }
 
@@ -974,19 +997,26 @@ function payload () {
  * last fetch and its next save would be lost. The stored thread wins on length,
  * and a client can never un-address a comment by accident — only deliberately,
  * by hitting Revert or Refine, which stamps `reopenedAt`.
+ *
+ * A save says what the client holds, not what the review contains: a comment
+ * carried from an earlier version is never in the payload, and a second tab
+ * knows nothing of what the first just wrote. So an id the client left out is
+ * kept. Removing a comment is `dismissed`, which is a field, not an absence.
  */
 function mergeIncoming (n, incoming) {
   const stored = readJSON(path.join(P.review(n), 'annotations.json'))?.annotations
   if (!stored?.length) return incoming
-  const byId = new Map(stored.map(a => [a.id, a]))
-  return incoming.map(a => {
-    const prev = byId.get(a.id)
-    if (!prev) return a
-    const merged = { ...a }
-    if ((prev.replies || []).length > (a.replies || []).length) merged.replies = prev.replies
-    if (prev.status === 'addressed' && a.status !== 'addressed' && !a.reopenedAt) merged.status = 'addressed'
-    return merged
+  const byId = new Map(incoming.map(a => [a.id, a]))
+  const merged = stored.map(prev => {
+    const a = byId.get(prev.id)
+    if (!a) return prev
+    const next = { ...a }
+    if ((prev.replies || []).length > (a.replies || []).length) next.replies = prev.replies
+    if (prev.status === 'addressed' && a.status !== 'addressed' && !a.reopenedAt) next.status = 'addressed'
+    return next
   })
+  const kept = new Set(stored.map(a => a.id))
+  return merged.concat(incoming.filter(a => !kept.has(a.id)))
 }
 
 /** Keep the current snapshot, but remove every earlier snapshot. Comments stay

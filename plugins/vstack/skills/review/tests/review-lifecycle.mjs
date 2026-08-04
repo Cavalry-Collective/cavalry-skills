@@ -155,6 +155,39 @@ try {
   const approved = JSON.parse(fs.readFileSync(path.join(store, 'approved')))
   assert.deepEqual(approved.openComments.map(item => item.id), ['c2'])
 
+  const annotationsIn = version =>
+    JSON.parse(fs.readFileSync(path.join(store, 'reviews', `v${version}`, 'annotations.json'))).annotations
+
+  // A save reports what one client holds, which is never the whole review: a
+  // comment carried from an earlier version is not in the payload at all. An id
+  // the client left out must survive the save that omitted it.
+  const save = annotations => request('/api/annotations', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ version: 2, annotations }),
+  })
+  await save([comment('c3', 'Third'), comment('c4', 'Fourth')])
+  await save([comment('c3', 'Third, edited')])
+  assert.deepEqual(annotationsIn(2).map(item => item.id).sort(), ['c2', 'c3', 'c4'],
+    'a save must not delete the comments it did not mention')
+  assert.equal(annotationsIn(2).find(item => item.id === 'c3').note, 'Third, edited',
+    'a save must still update the comments it did mention')
+
+  // c1 was addressed back on v1 and has not been touched since, so it lives
+  // only in that older review file. The reply belongs where the workspace is
+  // looking — the current version — not where the comment happens to sit.
+  const replied = cli('reply', '--comment', 'c1', '--text', 'Which heading did you mean?')
+  assert.equal(replied.status, 0)
+  assert.match(replied.stdout, /on v2 \(carried forward from v1\)/)
+  const answered = annotationsIn(2).find(item => item.id === 'c1')
+  assert.ok(answered, 'a reply must land in the version the workspace has open')
+  assert.equal(answered.replies.at(-1).text, 'Which heading did you mean?')
+  assert.equal(answered.status, 'question')
+  assert.deepEqual(annotationsIn(1).find(item => item.id === 'c1').replies, [],
+    'the stale copy must not be the one that changed')
+
+  assert.equal(cli('reply', '--comment', 'c404', '--text', 'Nobody home').status, 1,
+    'a comment in no version at all must fail loudly')
+
   console.log('review lifecycle integration: ok')
 } finally {
   server?.kill('SIGTERM')
