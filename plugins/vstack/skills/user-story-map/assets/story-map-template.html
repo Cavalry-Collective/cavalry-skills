@@ -255,8 +255,12 @@
 /* The bar and the notice as one block, because that is what a page's layout
    sized the row for: on its own, the notice would claim the content row of a
    `grid-template-rows:auto 1fr` shell and stretch down the window. Only ever
-   built when there is a notice to put in it. */
-.vs-chrome{flex:none;min-width:0}
+   built when there is a notice to put in it.
+   It carries the bar's sticky, not just its place in the flow — a sticky child
+   sticks within its containing block, so a shrink-wrapped wrapper would scroll
+   the bar away with the notice on any page that is a document rather than an
+   app shell. */
+.vs-chrome{flex:none;min-width:0;position:sticky;top:0;z-index:50}
 .vs-update{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
   padding:7px 12px;font-size:12px;color:var(--ink-2);
   background:color-mix(in srgb,#b0761a 8%,var(--surface));
@@ -286,6 +290,13 @@
 @media (max-width:720px){
   .brand .eyebrow,.wip{display:none}
   .vs-topbar{gap:8px;padding:0 8px}
+  /* What the bar keeps at this width is what the page is doing. The mark says
+     which tool this is as well as the word beside it did, and the dot carries
+     the link state on its own — colour is the whole message, the words only
+     ever spelled it out. Both stay in the DOM: the text is still the dot's
+     accessible name, and its title says it on hover. */
+  .brand b{display:none}
+  .linkdot{gap:0;font-size:0}
 }
 /* /vstack:shell css */
 
@@ -612,8 +623,7 @@
    works identically served, opened off disk, or published as an Artifact. */
 window.VSShell = (function () {
   const $ = s => document.querySelector(s);
-  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang', seen: 'vstack:update-seen',
-    met: 'vstack:update-met' };
+  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang', seen: 'vstack:update-seen' };
   const store = {
     get (k, d) { try { return localStorage.getItem(k) ?? d } catch { return d } },
     set (k, v) { try { localStorage.setItem(k, v) } catch {} },
@@ -687,11 +697,15 @@ window.VSShell = (function () {
     el.classList.toggle('on', linked && !idle);
     el.classList.toggle('idle', !!idle);
     const words = linkWords();
-    el.textContent = !linked ? (linkLabels?.off ?? words.off)
+    const label = !linked ? (linkLabels?.off ?? words.off)
       : idle ? (linkLabels?.idle ?? words.idle)
       : (linkLabels?.on ?? words.on);
-    el.title = !linked ? (linkLabels?.offTitle ?? words.offTitle)
-      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '';
+    el.textContent = label;
+    // Narrow bars show the dot and not the words, so the title has to say what
+    // the words would have — the state that needs no explaining still needs
+    // naming when nothing beside the colour is left.
+    el.title = (!linked ? (linkLabels?.offTitle ?? words.offTitle)
+      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '') || label;
   }
   function setLink (up, labels, isWatching) {
     linked = !!up;
@@ -792,11 +806,10 @@ window.VSShell = (function () {
     // same every time, so remembering the sentence would silence every future
     // release too.
     const seen = info?.key || info?.title;
+    // Nothing here decides whether a release is worth mentioning yet — the
+    // server holds back the first sighting (lib/update-check.mjs), because a
+    // page served on an ephemeral port has no memory that outlives its run.
     if (!info?.title || store.get(KEY.seen, '') === seen) return;
-    // Never on the load that first hears about a release. Opening a page is the
-    // start of a piece of work, and a plugin update is not what that moment is
-    // for — the first load only remembers, and the next one asks.
-    if (store.get(KEY.met, '') !== seen) { store.set(KEY.met, seen); return }
     const bar = document.createElement('div');
     bar.className = 'vs-update';
     bar.innerHTML =
@@ -818,7 +831,22 @@ window.VSShell = (function () {
       (info.auto ? `<p class="auto">${esc(info.auto)}</p>` : '');
     bar.appendChild(how);
     bar.querySelector('.how').onclick = () => { how.hidden = !how.hidden };
-    bar.querySelector('.no').onclick = () => { store.set(KEY.seen, seen); bar.remove() };
+    bar.querySelector('.no').onclick = () => {
+      store.set(KEY.seen, seen);
+      // Say it to the server too, when there is one: this page's memory of it
+      // lasts as long as its origin does, which for a server on an ephemeral
+      // port is one run. Nothing here depends on the answer.
+      if (info.dismiss) {
+        try {
+          fetch(info.dismiss, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ key: seen }),
+          }).catch(() => {});
+        } catch {}
+      }
+      bar.remove();
+    };
     // Pages lay their chrome out in a row grid — `grid-template-rows:auto 1fr`
     // and the like — so a bare sibling of the bar takes the row meant for the
     // content and gets stretched down the whole window. The notice moves in
@@ -1302,7 +1330,6 @@ window.VSScrub = (function () {
   }
 
   function wire(){
-    // story cards
     document.querySelectorAll(".card").forEach(el=>{
       el.addEventListener("mousedown",e=>{ if(selMode||e.metaKey||e.ctrlKey) e.preventDefault(); });
       el.addEventListener("click",e=>{
@@ -1322,7 +1349,8 @@ window.VSScrub = (function () {
     document.querySelectorAll(".stories").forEach(cell=>{
       cell.addEventListener("dragover",e=>{ if(!dragId) return; e.preventDefault(); e.dataTransfer.dropEffect="move"; liveMoveCard(cell,e); });
     });
-    // activities (columns) — the whole column slides while its header is dragged
+    // The whole column slides while its header is dragged, so the drag reads as
+    // moving the activity rather than moving one heading.
     document.querySelectorAll(".act").forEach(el=>{
       el.addEventListener("dragstart",e=>{
         if(editing(el)){ e.preventDefault(); return; }
@@ -1333,7 +1361,7 @@ window.VSScrub = (function () {
       el.addEventListener("dragend",()=>{ const revert=dragDirty&&dragAct; clearDragState(); if(revert) render(); });
       el.addEventListener("dragover",e=>{ if(!dragAct) return; e.preventDefault(); e.dataTransfer.dropEffect="move"; liveMoveColumn(el,e); });
     });
-    // phases (rows) — the whole row slides while its rail is dragged
+    // Same for a row: the rail is the handle, and the phase is what moves.
     document.querySelectorAll(".rail").forEach(el=>{
       el.addEventListener("dragstart",e=>{
         if(editing(el)){ e.preventDefault(); return; }
@@ -1344,13 +1372,11 @@ window.VSScrub = (function () {
       el.addEventListener("dragend",()=>{ const revert=dragDirty&&dragPhase; clearDragState(); if(revert) render(); });
       el.addEventListener("dragover",e=>{ if(!dragPhase) return; e.preventDefault(); e.dataTransfer.dropEffect="move"; liveMoveRow(el,e); });
     });
-    // inline edits
     document.querySelectorAll("[data-edit]").forEach(el=>{
       el.addEventListener("blur",()=>commitEdit(el));
       el.addEventListener("keydown",e=>{ if(e.key==="Enter" && el.dataset.edit!=="card"){ e.preventDefault(); el.blur(); } if(e.key==="Escape"){ render(); } });
     });
     $("title").onblur=()=>{ state.title=$("title").textContent.trim(); save(); };
-    // buttons
     document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{ const [ph,ac]=b.dataset.add.split("|"); const id=uid("s"); state.stories.push({id:id,activity:ac,phase:ph,text:T("newStory"),tags:[]}); save(); render(); focusCard(id); });
     document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{ state.stories=state.stories.filter(s=>s.id!==b.dataset.del); save(); render(); });
     document.querySelectorAll("[data-status]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); openStMenu(b,b.dataset.status); });
@@ -1384,12 +1410,13 @@ window.VSScrub = (function () {
     setTimeout(()=>{ if(document.contains(btn)){ delete btn.dataset.armed; btn.classList.remove("armed"); } },2500);
   }
   function focusCard(id){
-    // focus the card that was just added, in place — never scroll the page
+    // In place: a new card must never pull the map out from under the reviewer.
     const el=document.querySelector(`.card p[data-id="${id}"]`);
     if(el){ el.focus({preventScroll:true}); document.getSelection().selectAllChildren(el); }
   }
 
-  // status menu — dropdown picker; sid null = apply to the multi-selection
+  // A null sid means the menu applies to the multi-selection, so one control
+  // serves both a single card and a bulk change.
   const stmenu=$("stmenu"); let stStory=null;
   function stTargets(){ return stStory ? state.stories.filter(x=>x.id===stStory) : state.stories.filter(x=>sel.has(x.id)); }
   function openStMenu(btn,sid){
@@ -1409,7 +1436,8 @@ window.VSScrub = (function () {
   }
   document.addEventListener("pointerdown",e=>{ if(!stmenu.hidden && !stmenu.contains(e.target) && !e.target.closest("[data-status]")) stmenu.hidden=true; });
 
-  // tag menu — tags are cross-cutting themes; sid null = apply to the multi-selection
+  // Tags are cross-cutting themes rather than a property of one story, so the
+  // menu edits the whole tag vocabulary. A null sid targets the multi-selection.
   const tagmenu=$("tagmenu"); let tagStory=null;
   function tagTargets(){ return tagStory ? state.stories.filter(x=>x.id===tagStory) : state.stories.filter(x=>sel.has(x.id)); }
   function openTagMenu(btn,sid){
@@ -1478,7 +1506,6 @@ window.VSScrub = (function () {
     else if(dragPhase){ e.preventDefault(); dragDirty?commitPhases():clearDragState(); }
   });
 
-  // bulk actions on the multi-selection
   $("selmode").onclick=()=>{ selMode=!selMode; if(!selMode) sel.clear(); render(); };
   $("bb-clear").onclick=()=>{ sel.clear(); selMode=false; render(); };
   $("bb-del").onclick=()=>armConfirm($("bb-del"),()=>{ state.stories=state.stories.filter(s=>!sel.has(s.id)); sel.clear(); save(); render(); });
@@ -1494,7 +1521,6 @@ window.VSScrub = (function () {
     applyLang(); render(); if(!tagmenu.hidden) renderTagMenu();
   });
 
-  // import / export
   const io=$("io");
   function copyJSON(){ const t=JSON.stringify(state,null,2); (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast(T("tCopied"))).catch(()=>{ openIO(T("ioCopy"),t,true); }); }
   $("copy").onclick=()=>{ $("export-menu").hidden=true; copyJSON(); };

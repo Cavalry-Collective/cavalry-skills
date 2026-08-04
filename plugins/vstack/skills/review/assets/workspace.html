@@ -143,8 +143,10 @@ body.panelshut #panelHandle:hover .pbadge{background:#fff;color:var(--brand)}
   body.panelopen #panel{transform:none}
   /* Cards fill the panel at whatever width it ended up. */
   #panel > *{width:100%}
-  #panelHandle{grid-column:1;position:fixed;right:0;top:64px;margin-top:0;
-    transform:none;justify-self:auto}
+  /* Under the chrome like the panel it belongs to — pinned to a bar's height
+     it would sit on top of an update notice and cover the × that dismisses it. */
+  #panelHandle{grid-column:1;position:fixed;right:0;top:calc(var(--chromeh,46px) + 18px);
+    margin-top:0;transform:none;justify-self:auto}
   /* The handle rides the panel's edge here too, so the way back out sits where
      the panel actually stops. */
   body.panelopen #panelHandle{right:var(--panelw-compact);z-index:46}
@@ -308,8 +310,12 @@ body.panelshut #panelHandle:hover .pbadge{background:#fff;color:var(--brand)}
 /* The bar and the notice as one block, because that is what a page's layout
    sized the row for: on its own, the notice would claim the content row of a
    `grid-template-rows:auto 1fr` shell and stretch down the window. Only ever
-   built when there is a notice to put in it. */
-.vs-chrome{flex:none;min-width:0}
+   built when there is a notice to put in it.
+   It carries the bar's sticky, not just its place in the flow — a sticky child
+   sticks within its containing block, so a shrink-wrapped wrapper would scroll
+   the bar away with the notice on any page that is a document rather than an
+   app shell. */
+.vs-chrome{flex:none;min-width:0;position:sticky;top:0;z-index:50}
 .vs-update{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
   padding:7px 12px;font-size:12px;color:var(--ink-2);
   background:color-mix(in srgb,#b0761a 8%,var(--surface));
@@ -339,6 +345,13 @@ body.panelshut #panelHandle:hover .pbadge{background:#fff;color:var(--brand)}
 @media (max-width:720px){
   .brand .eyebrow,.wip{display:none}
   .vs-topbar{gap:8px;padding:0 8px}
+  /* What the bar keeps at this width is what the page is doing. The mark says
+     which tool this is as well as the word beside it did, and the dot carries
+     the link state on its own — colour is the whole message, the words only
+     ever spelled it out. Both stay in the DOM: the text is still the dot's
+     accessible name, and its title says it on hover. */
+  .brand b{display:none}
+  .linkdot{gap:0;font-size:0}
 }
 /* /vstack:shell css */
 
@@ -376,6 +389,21 @@ body.phase #hiNew{display:inline-flex}
 .seg.icons button{width:36px;padding:0;justify-content:center;color:var(--ink-3)}
 .seg.icons button:hover{color:var(--ink)}
 .seg.icons button[aria-pressed=true]{color:var(--surface)}
+/* The mode switch keeps its words while the bar has room for them — a word is a
+   better label than a drawing of one. Under the compact breakpoint the bar has
+   to fit the things that have no picture (the link state, Send), so the two
+   modes fall back to their icons and the keyboard hint goes with the words. */
+#modeSwitch .ico{display:none}
+/* Send names the agent while the bar can carry it. Narrow, it is the verb
+   alone — the link state beside it already says who is on the other end. */
+#btnSend .narrow{display:none}
+@media (max-width:720px){
+  #modeSwitch button{width:36px;padding:0;justify-content:center}
+  #modeSwitch .ico{display:block}
+  #modeSwitch .lbl,#modeSwitch .kbd{display:none}
+  #btnSend .wide{display:none}
+  #btnSend .narrow{display:inline}
+}
 
 /* Send is the loop; approve is the way out of it. Same control, because they
    are the same decision made two ways — one more round, or done. The split
@@ -803,9 +831,24 @@ body.phase #hiNew{display:inline-flex}
   <!-- The page's own controls: `tools` sits before the shared switches,
        `actions` after them, where the primary action belongs. -->
   <!-- vstack:slot tools -->
+    <!-- Both modes carry their icon and their word. The word is the better
+         label and stays as long as there is room for it; under the compact
+         breakpoint the icon speaks for it, so the bar keeps the controls that
+         have no picture — the link state and Send. -->
     <div class="seg" id="modeSwitch">
-      <button data-mode="view" aria-pressed="false"></button>
-      <button data-mode="annotate" aria-pressed="true"></button>
+      <button data-mode="view" aria-pressed="false">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M1.9 12S5.6 5.8 12 5.8 22.1 12 22.1 12 18.4 18.2 12 18.2 1.9 12 1.9 12Z"/>
+          <circle cx="12" cy="12" r="3.1"/>
+        </svg><span class="lbl"></span>
+      </button>
+      <button data-mode="annotate" aria-pressed="true">
+        <!-- A pen with a mark under its nib: the tool and what it leaves. -->
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4.2 15.4 15.6 4a2.3 2.3 0 0 1 3.2 3.2L7.4 18.6l-4 1.2 0.8-4.4Z"/>
+          <path d="M14.2 5.4l3.2 3.2"/>
+        </svg><span class="lbl"></span><span class="kbd">esc</span>
+      </button>
     </div>
 
     <button class="switch" id="hiNew" role="switch" aria-checked="false">
@@ -1020,8 +1063,7 @@ body.phase #hiNew{display:inline-flex}
    works identically served, opened off disk, or published as an Artifact. */
 window.VSShell = (function () {
   const $ = s => document.querySelector(s);
-  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang', seen: 'vstack:update-seen',
-    met: 'vstack:update-met' };
+  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang', seen: 'vstack:update-seen' };
   const store = {
     get (k, d) { try { return localStorage.getItem(k) ?? d } catch { return d } },
     set (k, v) { try { localStorage.setItem(k, v) } catch {} },
@@ -1095,11 +1137,15 @@ window.VSShell = (function () {
     el.classList.toggle('on', linked && !idle);
     el.classList.toggle('idle', !!idle);
     const words = linkWords();
-    el.textContent = !linked ? (linkLabels?.off ?? words.off)
+    const label = !linked ? (linkLabels?.off ?? words.off)
       : idle ? (linkLabels?.idle ?? words.idle)
       : (linkLabels?.on ?? words.on);
-    el.title = !linked ? (linkLabels?.offTitle ?? words.offTitle)
-      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '';
+    el.textContent = label;
+    // Narrow bars show the dot and not the words, so the title has to say what
+    // the words would have — the state that needs no explaining still needs
+    // naming when nothing beside the colour is left.
+    el.title = (!linked ? (linkLabels?.offTitle ?? words.offTitle)
+      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '') || label;
   }
   function setLink (up, labels, isWatching) {
     linked = !!up;
@@ -1200,11 +1246,10 @@ window.VSShell = (function () {
     // same every time, so remembering the sentence would silence every future
     // release too.
     const seen = info?.key || info?.title;
+    // Nothing here decides whether a release is worth mentioning yet — the
+    // server holds back the first sighting (lib/update-check.mjs), because a
+    // page served on an ephemeral port has no memory that outlives its run.
     if (!info?.title || store.get(KEY.seen, '') === seen) return;
-    // Never on the load that first hears about a release. Opening a page is the
-    // start of a piece of work, and a plugin update is not what that moment is
-    // for — the first load only remembers, and the next one asks.
-    if (store.get(KEY.met, '') !== seen) { store.set(KEY.met, seen); return }
     const bar = document.createElement('div');
     bar.className = 'vs-update';
     bar.innerHTML =
@@ -1226,7 +1271,22 @@ window.VSShell = (function () {
       (info.auto ? `<p class="auto">${esc(info.auto)}</p>` : '');
     bar.appendChild(how);
     bar.querySelector('.how').onclick = () => { how.hidden = !how.hidden };
-    bar.querySelector('.no').onclick = () => { store.set(KEY.seen, seen); bar.remove() };
+    bar.querySelector('.no').onclick = () => {
+      store.set(KEY.seen, seen);
+      // Say it to the server too, when there is one: this page's memory of it
+      // lasts as long as its origin does, which for a server on an ephemeral
+      // port is one run. Nothing here depends on the answer.
+      if (info.dismiss) {
+        try {
+          fetch(info.dismiss, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ key: seen }),
+          }).catch(() => {});
+        } catch {}
+      }
+      bar.remove();
+    };
     // Pages lay their chrome out in a row grid — `grid-template-rows:auto 1fr`
     // and the like — so a bare sibling of the bar takes the row meant for the
     // content and gets stretched down the whole window. The notice moves in
@@ -1448,6 +1508,10 @@ const STR = {
     comments: 'Comments',
     open: 'Open',
     send: 'Send to {agent}', copyFor: 'Copy for {agent}',
+    /* What the button says when the bar is too narrow to say who. Who it goes
+       to has not changed — the link state says it, and it is the same agent it
+       was a moment ago at a wider window. */
+    sendShort: 'Send', copyForShort: 'Copy',
     comment: 'Comment', areaComment: 'Area comment', generalComment: 'On the page',
     addGeneral: 'Add a comment about the page as a whole', notePlaceholder: 'What needs to change?',
     replyPlaceholder: 'Reply…', answerPlaceholder: 'Answer {agent}…',
@@ -1549,6 +1613,7 @@ const STR = {
     comments: '批注',
     open: '待处理',
     send: '发送给 {agent}', copyFor: '复制给 {agent}',
+    sendShort: '发送', copyForShort: '复制',
     comment: '批注', areaComment: '区域批注', generalComment: '关于整个页面',
     addGeneral: '添加一条关于整个页面的批注', notePlaceholder: '需要改什么？',
     replyPlaceholder: '回复…', answerPlaceholder: '回答 {agent}…',
@@ -2122,8 +2187,13 @@ function setSize (id) {
 /** Re-label every static surface. Comment text is the reviewer's, never ours. */
 function applyLang () {
   const mv = $('#modeSwitch [data-mode=view]'), ma = $('#modeSwitch [data-mode=annotate]');
-  mv.textContent = T('viewLabel'); mv.title = T('view');
-  ma.innerHTML = esc(T('annotateLabel')) + ' <span class="kbd">esc</span>'; ma.title = T('annotate');
+  // The words live in their own span so the icon beside them survives, and both
+  // buttons carry the name on themselves — under the compact breakpoint the
+  // word is gone and the icon is all a reader, or a screen reader, has.
+  $('.lbl', mv).textContent = T('viewLabel'); mv.title = T('view');
+  $('.lbl', ma).textContent = T('annotateLabel'); ma.title = T('annotate');
+  mv.setAttribute('aria-label', T('view'));
+  ma.setAttribute('aria-label', T('annotate'));
   $('#hiNew .lbl').textContent = T('hiNew');
   $('#hiNew').title = T('hiNewTitle');
   $('#btnReload').title = T('reloadTitle');
@@ -3661,7 +3731,12 @@ function setPanel (on) {
 function renderSendButton (open) {
   const btn = $('#btnSend');
   btn.classList.remove('stop');
-  btn.innerHTML = (S.runtime === 'artifact' ? T('copyFor') : T('send')) + ' <span class="kbd">⌘⏎</span>';
+  // Both labels, and the bar's width picks one — the long form while there is
+  // room to name the agent, the bare verb when there is not.
+  const artifact = S.runtime === 'artifact';
+  btn.innerHTML = `<span class="wide">${T(artifact ? 'copyFor' : 'send')}</span>` +
+    `<span class="narrow">${T(artifact ? 'copyForShort' : 'sendShort')}</span>` +
+    ' <span class="kbd">⌘⏎</span>';
   btn.title = '';
   const nothing = !open.length && !S.carried.length;
   // Nothing new to say since the last send is the only reason to be disabled.
@@ -4180,7 +4255,12 @@ function showShareReady () {
 const hideShare = () => $('#shareBanner').classList.remove('on');
 function renderShare () {
   const b = $('#btnShare');
-  if (S.runtime === 'artifact' || !canShareArtifact()) { b.hidden = true; $('#shareRule').hidden = true; return }
+  // Nothing to publish in a live review: what is under the marks is somebody's
+  // running app, reachable only from this machine, and a link to a wireframe is
+  // not a thing this review has.
+  if (S.runtime === 'artifact' || live() || !canShareArtifact()) {
+    b.hidden = true; $('#shareRule').hidden = true; return;
+  }
   const s = S.share;
   b.disabled = s.pending;
   if (s.pending) { b.querySelector('.t').textContent = T('shareWorking'); b.querySelector('.d').textContent = T('shareWait'); return }

@@ -108,8 +108,11 @@ async function ask (kind) {
       value = (await res.json())?.version || null
     }
     // Cache the answer either way: a repo that has not moved should not be
-    // asked again every time a server starts.
-    try { fs.writeFileSync(CACHE, JSON.stringify({ at: Date.now(), kind, value })) } catch {}
+    // asked again every time a server starts. Merged rather than replaced —
+    // `met` is a different question and outlives any one answer.
+    try {
+      fs.writeFileSync(CACHE, JSON.stringify({ ...(readJSON(CACHE) || {}), at: Date.now(), kind, value }))
+    } catch {}
     return value
   } catch {
     return cached?.kind === kind ? cached.value ?? null : null
@@ -124,6 +127,38 @@ async function ask (kind) {
     what dismissal is remembered against, so saying "not now" to one release
     still leaves the next one free to ask. */
 const say = (key, title) => ({ pill: 'update', key, title })
+
+/**
+ * True the first time this machine hears about a release, and false after.
+ * Opening a page is the start of a piece of work and a plugin update is not
+ * what that moment is for, so the run that learns of a release keeps it to
+ * itself and the next one says so.
+ *
+ * It is remembered here rather than in the page because the page cannot: a
+ * server on an ephemeral port is a new origin every run, so its localStorage
+ * starts empty every time and a first sighting would be all there ever was.
+ */
+function firstSighting (key) {
+  const cache = readJSON(CACHE) || {}
+  if (cache.met === key) return false
+  try { fs.writeFileSync(CACHE, JSON.stringify({ ...cache, met: key })) } catch {}
+  return true
+}
+
+/**
+ * "Not now" for this release, remembered here as well as in the page. The page
+ * remembers in localStorage, which is scoped to an origin — and a server on an
+ * ephemeral port is a different origin every run, so a dismissal made there
+ * would be forgotten by the next one and the same banner would return for good.
+ *
+ * @param {string} key The release the reader dismissed. Servers pass on only
+ *   the key they offered, so a page cannot silence a release nobody has seen.
+ */
+export function dismissUpdate (key) {
+  if (!key) return
+  const cache = readJSON(CACHE) || {}
+  try { fs.writeFileSync(CACHE, JSON.stringify({ ...cache, seen: String(key) })) } catch {}
+}
 
 /**
  * `{ pill, key, title, install, howLead, auto }` when there is something newer,
@@ -154,6 +189,8 @@ export async function checkForUpdate (hostProfile = null) {
     }
   }
   if (!words) return null
+  if ((readJSON(CACHE) || {}).seen === words.key) return null   // asked once, answered
+  if (firstSighting(words.key)) return null
 
   const install = hostProfile?.install?.commands?.length
     ? hostProfile.install.commands

@@ -121,6 +121,104 @@ purpose so no host discovers them as installable skills; their pages still
 carry the stamped shell and are kept from drifting by `build-shell.mjs`.
 Moving one back under `skills/` is the whole act of re-releasing it.
 
+## Coding standards
+
+Keep cross-cutting concerns in shared modules, and keep `lib/` pure.
+(Libraries-over-hand-rolling is a Principle below.)
+
+- **Configuration.** All runtime config is read from the environment in one
+  place and validated at startup against a declared schema, so a missing or
+  malformed value fails fast with a clear, named error rather than misbehaving
+  mid-request. No inner layer reads config directly — it is passed inward as
+  values.
+
+### Readability and Naming
+
+Readable code is a review priority. A reviewer should understand intent from
+names alone.
+
+- Names are precise and state business meaning, not mechanics.
+- No abbreviations unless standard in the domain or codebase. No misleading
+  names. No single-letter variables outside trivial loop counters and
+  conventional math.
+
+#### Comments
+
+- Comments explain **why** — the constraint, tradeoff, or external quirk behind
+  the code — never what.
+- Delete any comment that repeats what the code says.
+- Notes to the reviewer ("fixed X here") go in the commit message, not in
+  comments.
+
+## Documentation style
+
+Applies to every Markdown document in this repo.
+
+- Write plain business English. Say it the way you would explain it to a
+  colleague.
+- Lead with the purpose. Open a document or section with why it exists, then
+  drill into detail. Edge cases and notes go at the end.
+- One idea per sentence. One rule per bullet. Prefer bullets and numbered lists
+  over paragraphs. Use tables for reference material (keys, codes, bounds).
+- Make a person or the system the subject.
+- No slogans, no compressed abstractions. Contrast is fine when it prevents a
+  mistake ("return 404, not 403"); drop it when it is only for effect
+  ("assertions, not hopes").
+- No em-dash chains or nested parentheticals. If a sentence needs more than one
+  qualifier, split it.
+- State rules imperatively. Rationale and rejected alternatives live in the
+  document's designated notes/decisions section, never inline with the rule.
+- No document history or meta-narration. Don't describe how the document came to
+  be, what moved where, or what another file deliberately omits.
+- State a rule once, in the document that owns it. Link to it from everywhere
+  else.
+- Exception: verbatim contract strings and copy-paste command blocks are never
+  reworded for style.
+
+## Principles (must follow)
+
+Load-bearing engineering rules; honor them on every change. They are stack- and
+tooling-agnostic.
+
+- **Think before coding.** Don't assume, don't hide confusion, surface
+  tradeoffs. State your assumptions and ask when uncertain; present multiple
+  interpretations rather than silently picking one; suggest simpler alternatives
+  and respectfully push back when warranted; stop and name what's confusing
+  rather than proceeding on unclear requirements.
+- **Simplicity first / YAGNI.** Write the minimum code that solves the problem.
+  No unrequested features, no abstractions for single-use code, no
+  configurability or error handling for cases that can't occur. "We might want
+  it later" is not a reason. If 200 lines could be 50, rewrite.
+- **Change the right place, surgically.** First identify *where* a change
+  belongs — the correct layer and boundary — and make it there; don't patch
+  wherever is convenient. Then touch only what you must: match the surrounding
+  style and conventions (error handling, logging, validation), don't reformat or
+  refactor unrelated working code, flag unrelated dead code without removing it,
+  and remove only the imports/variables your own change orphaned.
+- **Goal-driven execution.** Define success criteria and loop until verified.
+  Turn requests into measurable objectives with a brief plan and a verification
+  step per phase, so each phase can iterate to a clear success marker. Verified
+  means observed, not inferred: before calling a change done, run it and state
+  the evidence you saw.
+- **Don't reinvent existing solutions.** Use established libraries and project
+  utilities for dates, money, validation, retry, pagination, parsing, and
+  formatting rather than hand-rolling them — especially date/timezone math.
+  Don't duplicate existing abstractions or wrap a library without a clear
+  reason. Before adding a new dependency, confirm an existing dependency or
+  shared util doesn't already cover it, and prefer well-maintained,
+  widely-used, permissively-licensed packages. A trivial, stable one-liner
+  doesn't earn a dependency — but dates, money, timezones, auth, and crypto
+  always do; never hand-roll those.
+- **Don't overfit to the immediate request.** Solve the general problem, not
+  just the demonstrated case. Avoid hardcoding strings, IDs, statuses, roles, or
+  regions; handle the empty, invalid, duplicate, retry, timeout, and permission
+  cases, not only the happy path; and write tests that assert behavior rather
+  than mirror the implementation.
+- **Keep implementations clean, not mechanical.** No noisy logs, no broad
+  `try/catch` that hides errors, no unused parameters or dead branches, no
+  defensive code without a clear failure model. (Comment rules: *Readability and
+  Naming*.)
+
 ## Demo recordings (README GIFs)
 
 Use these dimensions for every demo recording — they were tuned so the text

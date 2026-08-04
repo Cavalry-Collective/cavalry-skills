@@ -136,7 +136,7 @@ The page opens in **its own browser window** on the canvas — own viewport, own
 | **Send to {agent}** (⌘⏎) | sends straight through — no preview step — and wakes you up. Label uses the Host profile name. Greys out until something actually changes |
 | **In flight** | every comment you were sent keeps an indeterminate progress bar until you publish or reply. No banner covers the page any more — the progress is on the comments it belongs to |
 | **Addressed** | comments you closed stay in the list in their own section, each offering **Revert** or **Refine** |
-| **Publish a link to this wireframe** (the ▾ beside Send) | only when Host `capabilities.share` is `artifact`. Asks you to publish **the wireframe** (Host op `share`) and hand the URL back. Hidden on hosts without public share |
+| **Publish a link to this wireframe** (the ▾ beside Send) | only when Host `capabilities.share` is `artifact`. Asks you to publish **the wireframe** (Host op `share`) and hand the URL back. Hidden on hosts without public share, and in a live review |
 | **Approve & finish** (the ▾ beside Send) | sign-off. Ends the review, closes the server, and tells you the design is settled — behind a confirm that warns how many comments are being left unapplied |
 | **Cancel** | stops the round you're working on. Not a kill: finish what you were mid-way through, then say what you'd already changed |
 
@@ -254,8 +254,9 @@ it is the queue they built up while you worked, not an echo of the round you jus
 
 ## 6 · Publish the wireframe as a shareable link
 
-Skip this section when Host `capabilities.share` is not `artifact` — the UI hides
-the control, and there is no public URL backend. Offer a file path or
+Skip this section when Host `capabilities.share` is not `artifact`, or when the
+review is live — the UI hides the control in both cases, and there is no public
+URL backend. Offer a file path or
 `bundle-artifact.mjs` instead (adapter may say more).
 
 **What gets shared is the wireframe** — the design itself, opening full-bleed the way the
@@ -394,9 +395,10 @@ route.
 - **Strict CSRF or origin checks can still refuse a POST**, and an API on a third
   origin that only allows the site's own will refuse the browser. Reads are
   reliable; writes on a hardened site may not be.
-- **A live review has no shareable design.** *Publish a link* captures the screen
-  they are on and publishes that — a still, not the app. Say so when you hand the
-  link over.
+- **A live review has nothing to publish.** *Publish a link* is not offered: what
+  is under the marks is an app running on this machine, not a design that can be
+  sent. If they ask for one, say that, and offer a screenshot (Host op
+  `browser_capture`) instead.
 
 ## Notes
 

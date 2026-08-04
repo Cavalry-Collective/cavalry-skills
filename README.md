@@ -6,7 +6,7 @@
 
 Visual Stack adds a Figma-like feedback layer to AI coding agents.
 
-Create a new screen, or open an existing one. Click anywhere and leave highly professional feedback such as:
+Create a new screen, or open an existing app. Click anywhere and leave highly professional feedback such as:
 
 > "claude its 3am just align the buttons"
 >
@@ -92,6 +92,6 @@ Feedback and contributions are welcome.
 
 ---
 
-Built by [DeyangChan](https://github.com/DeyangChan). Released by [Cavalry Collective](https://cavalry.sg), presumably after one too many rounds of screenshot-based feedback.
+Built by [DeyangChan](https://github.com/DeyangChan), presumably after one too many rounds of screenshot-based feedback. Released by [Cavalry Collective](https://cavalry.sg).
 
 Licensed under the [MIT License](LICENSE).

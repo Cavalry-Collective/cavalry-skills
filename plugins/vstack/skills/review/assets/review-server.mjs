@@ -65,7 +65,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
-import { checkForUpdate, withUpdate } from '../../../lib/update-check.mjs'
+import { checkForUpdate, dismissUpdate, withUpdate } from '../../../lib/update-check.mjs'
 import { resolveHostId, loadHost, withHost, AGENT_ROLE, REVIEWER_ROLE } from '../../../lib/host.mjs'
 import { workDir, subjectDir, toolNames, LOCAL, TOOL } from '../../../lib/workdir.mjs'
 import { writeAtomic, watchingRecently, startHeartbeat, startPresence, openInBrowser } from '../../../lib/live-link.mjs'
@@ -767,7 +767,6 @@ async function cmdStream (stores, beatAll, stop, label, all) {
     // Without --all, empty means the only subject closed: done.
     if (!stores.length) {
       if (!all) { stop(); say('CLOSED    nothing left to watch'); return process.exit(0) }
-      // still waiting
     }
     beatAll()
     await new Promise(r => setTimeout(r, 1000))
@@ -1317,6 +1316,14 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
    * public URL — only the agent via Host op `share` can — so this raises the ask
    * and waits. The agent publishes and hands the URL back with `share --url`.
    */
+  /* "Not now" for the release this page was offered. Recorded next to the
+     update check's own cache, because the page's memory of it dies with its
+     origin — see dismissUpdate in lib/update-check.mjs. */
+  if (p === '/api/update-dismissed' && req.method === 'POST') {
+    const body = JSON.parse(await readBody(req) || '{}')
+    if (update && body.key === update.key) dismissUpdate(update.key)
+    return sendJSON(res, 200, { ok: true })
+  }
   if (p === '/api/share' && req.method === 'POST') {
     const body = JSON.parse(await readBody(req) || '{}')
     const n = Number(body.version) || loadState().version
@@ -1402,10 +1409,15 @@ let update = null
 /* The workspace opens itself as the server comes up — see openInBrowser in
    lib/live-link.mjs. `--no-open`, or VSTACK_NO_OPEN=1, for a run that should
    leave the screen alone. */
-const openWorkspace = target => openInBrowser(target, { skip: !!args['no-open'] })
+const openWorkspace = target => openInBrowser(target, { skip: args['no-open'] })
 
 async function cmdServe () {
   update = await checkForUpdate(HOST_PROFILE)
+  // Where the page says "not now". The server offers the path rather than the
+  // page assuming one, so a page opened off disk simply has nowhere to say it.
+  // Under BASE like every other call: a live review proxies whatever is not,
+  // and this would have gone to the app being reviewed.
+  if (update) update.dismiss = BASE + '/api/update-dismissed'
   if (HOST_PROFILE) console.log(`  host       ${HOST_PROFILE.id} (${HOST_PROFILE.name})`)
   // Serving an unpublished page would name a version with no frozen copy. The
   // same startup transaction upgrades feedback left by a pre-ledger server.

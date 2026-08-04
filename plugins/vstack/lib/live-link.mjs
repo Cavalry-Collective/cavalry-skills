@@ -20,6 +20,9 @@ export function writeAtomic (file, text) {
   fs.renameSync(tmp, file)
 }
 
+/** "0", "false" and "" are how people write off, not on. */
+const truthy = v => v !== undefined && v !== false && !/^(0|false|)$/i.test(String(v))
+
 /**
  * Show the page the server just started serving. These tools are things you
  * look at, and a URL sitting in a log is a step between the person and the
@@ -31,7 +34,7 @@ export function writeAtomic (file, text) {
  * caller's own flag) skips it.
  */
 export function openInBrowser (url, { skip = false } = {}) {
-  if (skip || process.env.VSTACK_NO_OPEN) return
+  if (truthy(skip) || truthy(process.env.VSTACK_NO_OPEN)) return
   const [cmd, argv] = process.platform === 'darwin' ? ['open', [url]]
     : process.platform === 'win32' ? ['cmd', ['/c', 'start', '', url]]
       : ['xdg-open', [url]]

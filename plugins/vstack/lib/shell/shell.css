@@ -152,8 +152,12 @@
 /* The bar and the notice as one block, because that is what a page's layout
    sized the row for: on its own, the notice would claim the content row of a
    `grid-template-rows:auto 1fr` shell and stretch down the window. Only ever
-   built when there is a notice to put in it. */
-.vs-chrome{flex:none;min-width:0}
+   built when there is a notice to put in it.
+   It carries the bar's sticky, not just its place in the flow — a sticky child
+   sticks within its containing block, so a shrink-wrapped wrapper would scroll
+   the bar away with the notice on any page that is a document rather than an
+   app shell. */
+.vs-chrome{flex:none;min-width:0;position:sticky;top:0;z-index:50}
 .vs-update{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
   padding:7px 12px;font-size:12px;color:var(--ink-2);
   background:color-mix(in srgb,#b0761a 8%,var(--surface));
@@ -183,4 +187,11 @@
 @media (max-width:720px){
   .brand .eyebrow,.wip{display:none}
   .vs-topbar{gap:8px;padding:0 8px}
+  /* What the bar keeps at this width is what the page is doing. The mark says
+     which tool this is as well as the word beside it did, and the dot carries
+     the link state on its own — colour is the whole message, the words only
+     ever spelled it out. Both stay in the DOM: the text is still the dot's
+     accessible name, and its title says it on hover. */
+  .brand b{display:none}
+  .linkdot{gap:0;font-size:0}
 }

@@ -57,7 +57,7 @@ import path from 'node:path'
 import http from 'node:http'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
-import { checkForUpdate, withUpdate } from './update-check.mjs'
+import { checkForUpdate, dismissUpdate, withUpdate } from './update-check.mjs'
 import { loadHost, resolveHostId, withHost } from './host.mjs'
 import { workDir, findWorkDir, TOOL } from './workdir.mjs'
 import { writeAtomic, watchingRecently, startHeartbeat, startPresence, openInBrowser } from './live-link.mjs'
@@ -274,6 +274,21 @@ const server = http.createServer((req, res) => {
     return send(res, 200, 'application/json', fs.readFileSync(f, 'utf8'))
   }
 
+  /* "Not now" for the release this page was offered — recorded beside the
+     update check's cache, which outlives this port. */
+  if (req.method === 'POST' && url.pathname === '/update-dismissed') {
+    if (!okToken(url) && !okHeader(req)) return send(res, 403, 'application/json', '{"error":"bad token"}')
+    let body = ''
+    req.on('data', c => { body += c; if (body.length > 1e4) req.destroy() })
+    req.on('end', () => {
+      let note = {}
+      try { note = JSON.parse(body || '{}') } catch {}
+      if (update && note.key === update.key) dismissUpdate(update.key)
+      send(res, 200, 'application/json', '{"ok":true}')
+    })
+    return
+  }
+
   if (req.method === 'POST' && url.pathname === '/save') {
     if (!okToken(url) && !okHeader(req)) return send(res, 403, 'application/json', '{"error":"bad token"}')
     let body = ''
@@ -381,7 +396,12 @@ server.on('error', e => {
   process.exit(2)
 })
 
-checkForUpdate(HOST).then(u => { update = u }).catch(() => {})
+checkForUpdate(HOST).then(u => {
+  update = u
+  // The path the page says "not now" on, token and all — this server's origin
+  // changes every run, so its own localStorage cannot remember the answer.
+  if (u) u.dismiss = `/update-dismissed?t=${TOKEN}`
+}).catch(() => {})
 
 server.listen(PORT, '127.0.0.1', () => {
   const url = `http://127.0.0.1:${server.address().port}/?t=${TOKEN}`

@@ -5,8 +5,7 @@
    works identically served, opened off disk, or published as an Artifact. */
 window.VSShell = (function () {
   const $ = s => document.querySelector(s);
-  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang', seen: 'vstack:update-seen',
-    met: 'vstack:update-met' };
+  const KEY = { theme: 'vstack:theme', lang: 'vstack:lang', seen: 'vstack:update-seen' };
   const store = {
     get (k, d) { try { return localStorage.getItem(k) ?? d } catch { return d } },
     set (k, v) { try { localStorage.setItem(k, v) } catch {} },
@@ -80,11 +79,15 @@ window.VSShell = (function () {
     el.classList.toggle('on', linked && !idle);
     el.classList.toggle('idle', !!idle);
     const words = linkWords();
-    el.textContent = !linked ? (linkLabels?.off ?? words.off)
+    const label = !linked ? (linkLabels?.off ?? words.off)
       : idle ? (linkLabels?.idle ?? words.idle)
       : (linkLabels?.on ?? words.on);
-    el.title = !linked ? (linkLabels?.offTitle ?? words.offTitle)
-      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '';
+    el.textContent = label;
+    // Narrow bars show the dot and not the words, so the title has to say what
+    // the words would have — the state that needs no explaining still needs
+    // naming when nothing beside the colour is left.
+    el.title = (!linked ? (linkLabels?.offTitle ?? words.offTitle)
+      : idle ? (linkLabels?.idleTitle ?? words.idleTitle) : '') || label;
   }
   function setLink (up, labels, isWatching) {
     linked = !!up;
@@ -185,11 +188,10 @@ window.VSShell = (function () {
     // same every time, so remembering the sentence would silence every future
     // release too.
     const seen = info?.key || info?.title;
+    // Nothing here decides whether a release is worth mentioning yet — the
+    // server holds back the first sighting (lib/update-check.mjs), because a
+    // page served on an ephemeral port has no memory that outlives its run.
     if (!info?.title || store.get(KEY.seen, '') === seen) return;
-    // Never on the load that first hears about a release. Opening a page is the
-    // start of a piece of work, and a plugin update is not what that moment is
-    // for — the first load only remembers, and the next one asks.
-    if (store.get(KEY.met, '') !== seen) { store.set(KEY.met, seen); return }
     const bar = document.createElement('div');
     bar.className = 'vs-update';
     bar.innerHTML =
@@ -211,7 +213,22 @@ window.VSShell = (function () {
       (info.auto ? `<p class="auto">${esc(info.auto)}</p>` : '');
     bar.appendChild(how);
     bar.querySelector('.how').onclick = () => { how.hidden = !how.hidden };
-    bar.querySelector('.no').onclick = () => { store.set(KEY.seen, seen); bar.remove() };
+    bar.querySelector('.no').onclick = () => {
+      store.set(KEY.seen, seen);
+      // Say it to the server too, when there is one: this page's memory of it
+      // lasts as long as its origin does, which for a server on an ephemeral
+      // port is one run. Nothing here depends on the answer.
+      if (info.dismiss) {
+        try {
+          fetch(info.dismiss, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ key: seen }),
+          }).catch(() => {});
+        } catch {}
+      }
+      bar.remove();
+    };
     // Pages lay their chrome out in a row grid — `grid-template-rows:auto 1fr`
     // and the like — so a bare sibling of the bar takes the row meant for the
     // content and gets stretched down the whole window. The notice moves in

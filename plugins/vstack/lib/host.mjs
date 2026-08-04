@@ -16,17 +16,12 @@ const HOSTS_DIR = path.join(HERE, '..', 'hosts')
 
 const DEFAULT_ID = 'claude'
 
-/** @returns {string} */
 export function resolveHostId (args = {}) {
   const fromArg = args.host && args.host !== true ? String(args.host) : null
   const fromEnv = process.env.VSTACK_HOST || null
   return (fromArg || fromEnv || DEFAULT_ID).toLowerCase().trim()
 }
 
-/**
- * @param {string} [id]
- * @returns {object} Host profile
- */
 export function loadHost (id = DEFAULT_ID) {
   const key = String(id || DEFAULT_ID).toLowerCase().trim()
   const file = path.join(HOSTS_DIR, `${key}.json`)
@@ -41,7 +36,6 @@ export function loadHost (id = DEFAULT_ID) {
   return raw
 }
 
-/** @returns {string[]} */
 export function listHosts () {
   try {
     return fs.readdirSync(HOSTS_DIR)
@@ -53,11 +47,7 @@ export function listHosts () {
   }
 }
 
-/**
- * Put the host handle into HTML the same way withUpdate does for updates.
- * @param {string} html
- * @param {object} profile
- */
+/** Put the host handle into HTML the same way withUpdate does for updates. */
 export function withHost (html, profile) {
   if (!profile) return html
   return injectHead(html, `<script>window.__VSTACK_HOST__=${JSON.stringify(profile)}</script>\n`)
