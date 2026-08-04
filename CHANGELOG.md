@@ -8,6 +8,15 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 4.8.1 — 2026-08-05
+
+- **The comment composer's send button is readable in dark mode.** Its label was
+  fixed to white while its background follows `--ink`, which is the text colour
+  and therefore near-white under a dark theme. The button rendered as a blank
+  white box, at a contrast of 1.12:1. The label now follows `--surface`, the
+  pairing the rest of the interface already uses, giving 15.70:1 in dark and
+  leaving light mode exactly as it was.
+
 ## 4.8.0 — 2026-08-04
 
 - **The plugin declares a version.** Until now it shipped without one, so every
