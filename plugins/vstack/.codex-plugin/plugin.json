@@ -1,24 +1,40 @@
 {
   "name": "vstack",
-  "description": "Visual Stack is the interactive wireframe and UI review tool for Codex.",
+  "version": "4.8.0",
+  "description": "Stop prompting. Start pointing. Visual Stack adds a Figma-like feedback layer to Codex. Create a new screen from a prompt, screenshot, reference site, or design system, or open an app you already have running. Click any element and leave feedback exactly where the problem is hiding, and Codex publishes the next revision into the same workspace. Compare revisions on a timeline, preview desktop, tablet, and mobile layouts, and keep every comment attached to the element, route, and version it refers to. Wireframes are self-contained HTML and review state stays in your project.",
   "author": {
     "name": "Cavalry Collective",
     "email": "adam@cavalry.sg",
     "url": "https://cavalry.sg"
   },
-  "homepage": "https://github.com/Cavalry-Collective/visual-stack",
+  "homepage": "https://www.cavalry.sg/visual-stack",
   "repository": "https://github.com/Cavalry-Collective/visual-stack",
   "license": "MIT",
-  "keywords": ["wireframe", "ui", "design", "review", "prototype"],
+  "keywords": [
+    "wireframe",
+    "wireframing",
+    "mockup",
+    "prototype",
+    "ui",
+    "ui-review",
+    "ux",
+    "design",
+    "design-review",
+    "design-feedback",
+    "frontend",
+    "annotate",
+    "visual-feedback",
+    "screenshot"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Visual Stack",
-    "shortDescription": "Wireframe directly with Codex",
-    "longDescription": "Build a wireframe or review a running UI, comment directly on the screen, and receive each Codex revision in one linked workspace.",
+    "shortDescription": "Stop prompting. Start pointing.",
+    "longDescription": "Visual Stack adds a Figma-like feedback layer to Codex. Create a new screen, or open an app you already have running. Click any element and leave feedback exactly where the problem is hiding, and Codex publishes the next revision into the same workspace.",
     "developerName": "Cavalry Collective",
     "category": "Productivity",
     "capabilities": ["Interactive", "Write"],
-    "websiteURL": "https://github.com/Cavalry-Collective/visual-stack",
+    "websiteURL": "https://www.cavalry.sg/visual-stack",
     "defaultPrompt": [
       "Build a wireframe for this screen and open it for review.",
       "Open the running app in an interactive UI review workspace."

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security issue
+    url: https://github.com/Cavalry-Collective/visual-stack/blob/main/SECURITY.md
+    about: Follow the security policy. Do not open a public issue.
+  - name: Something you would rather not post publicly
+    url: mailto:adam@cavalry.sg
+    about: Email the maintainer directly.

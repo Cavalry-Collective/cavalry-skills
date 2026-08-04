@@ -1,0 +1,40 @@
+name: Idea or feature request
+description: Something Visual Stack should do that it does not do yet.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: >
+        What you were trying to do, and where the current tools got in the way.
+        Lead with the problem rather than the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like instead
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of Visual Stack
+      options:
+        - review (wireframes)
+        - review (running app or website)
+        - user-story-map
+        - The workspace UI
+        - Host support
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried instead
+      description: Workarounds you already have, and why they fall short.
