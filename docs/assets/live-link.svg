@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 970" width="900" height="970" role="img" aria-label="Architecture of the live link, top to bottom. The workspace page in a browser tab holds the comments, the versions, and the page or app being reviewed, all on one origin. It talks to the review engine over http and SSE. The review engine groups two parts: the review server, one local process on 127.0.0.1 that serves the workspace, proxies your app and pushes every change to the tab; and the store on disk at .vstack/local/review/name, which it reads and writes. The store holds state.json for the current version and the round in flight, versions for every frozen version, reviews for the comments and the brief they became, rounds for what was sent and what closed it, and the handshake, watching and pending files that carry the link. Below it, the agent session watches and writes that same store, running a watcher that turns the store into events and the commands that answer them. The workspace and agent session communicate through the shared store. This allows a review round to continue after the browser tab closes or the agent session restarts.">
+  <rect x="0.5" y="0.5" width="899" height="969" rx="16" fill="#0d0e13" stroke="#1c1e25"/>
+
+  <text x="60" y="52" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="11" letter-spacing="2.4" fill="#8b8e97">LIVE LINK</text>
+  <text x="60" y="86" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="17" font-weight="600" fill="#f1f2f4">How the workspace, review server, and agent session connect</text>
+
+  <!-- browser -->
+  <rect x="90.5" y="126.5" width="719" height="100" rx="12" fill="#17191e" stroke="#282a31"/>
+  <text x="112" y="154" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="10" letter-spacing="1.6" fill="#8b8e97">BROWSER TAB</text>
+  <text x="112" y="184" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="600" fill="#f1f2f4">Workspace page</text>
+  <text x="112" y="208" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#bcbfc7">The comments, the versions, and the page or app being reviewed, all on one origin.</text>
+
+  <line x1="450" y1="234" x2="450" y2="288" stroke="#363942" stroke-width="2"/>
+  <path d="M445,236 L450,227 L455,236 Z" fill="#4a4d57"/>
+  <path d="M445,286 L450,295 L455,286 Z" fill="#4a4d57"/>
+  <text x="466" y="266" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">http + SSE</text>
+
+  <!-- the server and the state it keeps -->
+  <rect x="60.5" y="304.5" width="779" height="400" rx="14" fill="none" stroke="#363942" stroke-width="1" stroke-dasharray="5 5"/>
+  <rect x="76" y="294" width="126" height="22" fill="#0d0e13"/>
+  <text x="88" y="309" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="10" letter-spacing="1.6" fill="#8b8e97">REVIEW ENGINE</text>
+
+  <rect x="90.5" y="336.5" width="719" height="100" rx="12" fill="#17191e" stroke="#282a31"/>
+  <text x="112" y="364" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="10" letter-spacing="1.6" fill="#8b8e97">ONE LOCAL PROCESS, ON 127.0.0.1</text>
+  <text x="112" y="394" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="600" fill="#f1f2f4">Review server</text>
+  <text x="112" y="418" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#bcbfc7">Serves the workspace, proxies your app, and pushes every change to the tab.</text>
+
+  <line x1="450" y1="444" x2="450" y2="490" stroke="#363942" stroke-width="2"/>
+  <path d="M445,446 L450,437 L455,446 Z" fill="#4a4d57"/>
+  <path d="M445,488 L450,497 L455,488 Z" fill="#4a4d57"/>
+  <text x="466" y="472" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">reads and writes</text>
+
+  <rect x="90.5" y="504.5" width="719" height="170" rx="12" fill="#131519" stroke="#282a31"/>
+  <text x="112" y="532" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="600" fill="#f1f2f4">Store on disk</text>
+  <text x="290" y="532" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="11" fill="#8b8e97">.vstack/local/review/&lt;name&gt;/</text>
+
+  <text x="112" y="562" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="12" fill="#f1f2f4">state.json</text>
+  <text x="360" y="562" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">the current version and the round in flight</text>
+
+  <text x="112" y="586" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="12" fill="#f1f2f4">versions/</text>
+  <text x="360" y="586" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">every version, frozen as it was published</text>
+
+  <text x="112" y="610" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="12" fill="#f1f2f4">reviews/</text>
+  <text x="360" y="610" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">the comments and the brief they became</text>
+
+  <text x="112" y="634" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="12" fill="#f1f2f4">rounds/</text>
+  <text x="360" y="634" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">what was sent, and what closed it</text>
+
+  <text x="112" y="658" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="12" fill="#f0685c">handshake · watching · pending</text>
+  <text x="360" y="658" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">the link, and what waits on the agent</text>
+
+  <line x1="450" y1="712" x2="450" y2="766" stroke="#363942" stroke-width="2"/>
+  <path d="M445,714 L450,705 L455,714 Z" fill="#4a4d57"/>
+  <path d="M445,764 L450,773 L455,764 Z" fill="#4a4d57"/>
+  <text x="466" y="744" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">watches and writes</text>
+
+  <!-- agent -->
+  <rect x="90.5" y="782.5" width="719" height="100" rx="12" fill="#17191e" stroke="#282a31"/>
+  <text x="112" y="810" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="10" letter-spacing="1.6" fill="#8b8e97">YOUR AGENT</text>
+  <text x="112" y="840" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="600" fill="#f1f2f4">Agent session</text>
+  <text x="112" y="864" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12.5" fill="#bcbfc7">A watcher that turns the store into events, and the commands that answer them.</text>
+
+  <text x="60" y="920" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#71737c">The workspace and agent session communicate through the shared store. This allows a review</text>
+  <text x="60" y="940" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#71737c">round to continue after the browser tab closes or the agent session restarts.</text>
+</svg>

@@ -45,6 +45,10 @@
  *     url                   the live URL — present only while the server runs
  *     watching              heartbeat — an agent session is waiting on this review
  *
+ * A serve also leaves a pointer to that store under the directory it was run
+ * from — `<cwd>/.vstack/local/review/.serving/<key>` — so `watch --all`, run
+ * from the same place, finds a review whose page lives somewhere else entirely.
+ *
  * Serving opens the workspace in the machine's default browser as soon as it is
  * up — `--no-open`, or VSTACK_NO_OPEN=1, for a run that should not.
  *
@@ -660,6 +664,44 @@ const storeFor = f => {
 }
 const inStore = (store, name) => path.join(store, name)
 
+/* Where a server records the store it is serving, for the benefit of a watcher
+   that cannot walk to it.
+
+   A review's store sits beside the page under review, and `watch --all` finds
+   stores by walking the directory it was run from. A page written outside that
+   directory — a temp directory is the usual one, since that is where an agent
+   puts a file it just generated — takes its store with it, and the watcher
+   walks right past a review that is running. It then heartbeats into nothing
+   while the workspace says Unlinked, which is the one failure this protocol
+   must not have.
+   The directory both processes share is the one the session ran them from, so
+   the server leaves a pointer there naming its real store. Keyed by the store
+   path, so a second serve from the same place adds a pointer rather than
+   overwriting one. */
+const servingDir = from => path.join(workDir(from, TOOL.review), '.serving')
+const servingFile = (from, store) =>
+  path.join(servingDir(from), createHash('sha1').update(store).digest('hex').slice(0, 12))
+
+/** Stores pointed at from `from`, minus any whose server is gone. */
+function pointedStores (from) {
+  const found = []
+  for (const tool of toolNames(TOOL.review)) {
+    const dir = path.join(workDir(from, tool), '.serving')
+    let entries = []
+    try { entries = fs.readdirSync(dir) } catch { continue }
+    for (const name of entries) {
+      const pointer = path.join(dir, name)
+      let store = ''
+      try { store = fs.readFileSync(pointer, 'utf8').trim() } catch { continue }
+      // The pointer is written after `url` and removed with it, so a pointer
+      // with no `url` behind it belongs to a server that was killed outright.
+      if (store && fs.existsSync(path.join(store, 'url'))) found.push(store)
+      else fs.rmSync(pointer, { force: true })
+    }
+  }
+  return found
+}
+
 /** Every store with a server behind it — `url` exists only while one runs. */
 function liveStores (from = process.cwd(), depth = 5) {
   const found = []
@@ -698,7 +740,8 @@ function liveStores (from = process.cwd(), depth = 5) {
     }
   }
   walk(from, depth)
-  return found
+  // A store found both ways is one review, so compare resolved paths.
+  return [...new Set([...found, ...pointedStores(from)].map(store => path.resolve(store)))]
 }
 
 /* How long a stream watcher waits to be told its events are being read. Long
@@ -717,7 +760,12 @@ const stopBeating = () => { heartbeat?.stop(); heartbeat = null }
 function cmdAck () {
   const waiting = readJSON(P.handshake())
   if (!waiting) {
+    // Naming the directory it looked in, because the usual reason to find
+    // nothing is being somewhere else: `--all` resolves the handshake from the
+    // working directory, and an ack run from a different one reads a file that
+    // was never there rather than the one the watcher wrote.
     console.log('Nothing to answer — no watcher is waiting on a handshake for this review.')
+    console.log(`Looked in ${STORE}`)
     return
   }
   const token = args.token && args.token !== true ? String(args.token) : null
@@ -725,8 +773,15 @@ function cmdAck () {
     console.error('That is not the token the waiting watcher printed — read its HANDSHAKE line again.')
     process.exit(2)
   }
-  fs.rmSync(P.handshake(), { force: true })
-  console.log('Answered — the watcher is wired to this session, and the workspace says Linked.')
+  /* Answered, not gone. A second watcher overwrites the first one's handshake,
+     so a watcher that read "the file I wrote is missing" as "someone answered
+     me" would go live on an answer addressed to another process — and the one
+     nobody answered would heartbeat forever. The token stays on the record, and
+     only the watcher that owns it clears it. */
+  writeJSON(P.handshake(), { ...waiting, answeredAt: new Date().toISOString() })
+  // Whether the workspace goes Linked is the watcher's to report: it knows
+  // which reviews it covers, and this command does not.
+  console.log('Answered — the watcher is wired to this session. Read its next line.')
 }
 
 /**
@@ -759,22 +814,56 @@ async function cmdStream (stores, label, all, subjectFlags) {
   say(`          node "${process.argv[1]}" ack ${subjectFlags} --token ${token}`)
   const askedAt = Date.now()
 
+  /* Answered means answered *here*. A second watcher on the same review
+     overwrites this record, so an answer carrying someone else's token is not
+     this watcher's to act on — and only the watcher that owns the record clears
+     it. Without that, the watcher nobody answered goes live too, and heartbeats
+     long after the answered one has stopped. */
+  const mine = () => readJSON(P.handshake())?.token === token
+  const answered = () => { const record = readJSON(P.handshake()); return record?.token === token && !!record.answeredAt }
+
+  /* The handshake proves a session is reading this stream. It says nothing
+     about whether the stream reaches the review the reviewer is looking at, and
+     a watcher covering no store heartbeats into nothing — so LINKED waits for a
+     store to be under it, and the gap is named rather than papered over. */
+  let saidLinked = false, saidUnlinked = false, answeredAt = 0
+  const sayLink = () => {
+    if (saidLinked || !stores.length) return
+    saidLinked = true
+    say('LINKED    handshake answered — the workspace says Linked from here')
+  }
+  /* Arming the watcher before the serve is a supported order, and a review that
+     turns up a moment later needs no explaining — so the empty case is only
+     worth reporting once it has had time to stop being empty. */
+  const EMPTY_LINK_MS = 15_000
+  const sayNoLink = () => {
+    if (saidLinked || saidUnlinked || Date.now() - answeredAt < EMPTY_LINK_MS) return
+    saidUnlinked = true
+    say(`UNLINKED  handshake answered, but no live review is visible from ${process.cwd()},`)
+    say('          so no workspace says Linked. A serve started here is picked up on its')
+    say('          own; one already running for a page outside this directory is not —')
+    say('          for that, start this again with the tool your adapter names for')
+    say(`          watch_stream:  node "${process.argv[1]}" watch --file <page.html> --stream`)
+  }
+
   while (true) {
     if (!heartbeat) {
-      if (!fs.existsSync(P.handshake())) {
+      if (answered()) {
+        fs.rmSync(P.handshake(), { force: true })
+        answeredAt = Date.now()
         heartbeat = startHeartbeat(() => stores.map(store => inStore(store, 'watching')))
-        say('LINKED    handshake answered — the workspace says Linked from here')
+        sayLink()
       } else if (Date.now() - askedAt > HANDSHAKE_MS) {
         /* Exiting is the point: on a host where a finished background command
            re-invokes the session, this delivers itself to whoever started the
            watcher. */
-        fs.rmSync(P.handshake(), { force: true })
+        if (mine()) fs.rmSync(P.handshake(), { force: true })
         say('UNWIRED   the handshake went unanswered, so these events reach no one.')
         say('          Start this again with the Host op watch_stream, using the tool')
         say('          your Host adapter names for it.')
         return process.exit(3)
       }
-    }
+    } else sayNoLink()
 
     for (const store of [...stores]) {
       const at = n => inStore(store, n)
@@ -822,6 +911,8 @@ async function cmdStream (stores, label, all, subjectFlags) {
         seen.set(store, { sent: null, flags: new Set(), replies: repliesIn(store) })
         say(`OPENED    ${label(store)} · now watching ${stores.length} review(s)`)
       }
+      // A review that arrives after the handshake is what makes the link real.
+      if (heartbeat) sayLink()
     }
 
     // With --all, an empty set means "no tab open right now" — keep the
@@ -1523,6 +1614,7 @@ async function cmdServe () {
      stops waiting instead of hanging until its timeout. */
   const close = why => {
     try { fs.rmSync(P.url(), { force: true }) } catch {}
+    try { fs.rmSync(servingFile(process.cwd(), STORE), { force: true }) } catch {}
     console.log(`closed (${why})`)
     process.exit(0)
   }
@@ -1565,6 +1657,11 @@ async function cmdServe () {
   server.listen(port, '127.0.0.1', () => {
     fs.mkdirSync(STORE, { recursive: true })
     fs.writeFileSync(P.url(), url + '\n')
+    // So `watch --all`, run from here, finds this review wherever the page lives.
+    try {
+      fs.mkdirSync(servingDir(process.cwd()), { recursive: true })
+      writeAtomic(servingFile(process.cwd(), STORE), STORE + '\n')
+    } catch {}
     console.log(`${LIVE ? 'live review' : 'wireframe'} · ${pageName()} · v${loadState().version}`)
     console.log(`  workspace  ${url}`)
     console.log(LIVE ? `  app        ${APP.origin} (proxied)` : `  page       ${FILE}`)

@@ -140,9 +140,16 @@ CLOSED    spec-tree · the tab went away
 ```
 
 `--all` covers every review with a live server under the project, including ones
-opened after the watcher started; `--file` can be repeated, and combines with
-`--all` for a page living outside the project. While it runs each page shows
-**Linked**; with no watcher they show **Unlinked**, in amber.
+opened after the watcher started, and any review whose server you started from
+this directory — a page written to a temp directory keeps its store beside
+itself, and the server leaves a pointer here so the watcher still finds it.
+`--file` can be repeated, and combines with `--all` for a server started
+somewhere else entirely. While it runs each page shows **Linked**; with no
+watcher they show **Unlinked**, in amber.
+
+A watcher that covers no review at all says `UNLINKED` in place of `LINKED` once
+its handshake is answered. Nothing is listening to any workspace at that point,
+whatever the handshake proved: start it again with `--file <page.html>`.
 
 **Linked** also needs the rounds to move: a round left unclaimed for 90 seconds
 flips the page back to **Unlinked** and marks the sent comments "not picked up

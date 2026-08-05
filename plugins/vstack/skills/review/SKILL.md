@@ -171,7 +171,8 @@ node "$SKILL/assets/review-server.mjs" watch --all --stream    # or --file <page
 
 Each line of its output is one event, delivered to you as it happens, and the process keeps running,
 so one watcher covers the whole session — `--all` takes in every review open in the project,
-including ones opened later.
+including ones opened later, and any you started from this directory whose page lives elsewhere.
+Run it from the same directory you started the server from; that is what ties the two together.
 
 **It opens with a `HANDSHAKE` line naming a command. Run that command straight away.** The watcher
 goes live once you answer, the workspace says **Linked**, and the round events start reaching you.
@@ -187,6 +188,8 @@ Each event is one line (full table: `contracts/review-loop.md`):
 | | What it means | What you do |
 |---|---|---|
 | **`HANDSHAKE`** | the watcher asking whether you can hear it | run the command it prints, now — it is what brings the watcher live |
+| **`LINKED`** | the handshake is answered and a review is under the watcher; the workspace says Linked | carry on — the loop is live |
+| **`UNLINKED`** | the handshake is answered, but the watcher found no review to cover, so no workspace says Linked | start it again with `--file <page.html>` if a review is already running for a page outside this directory. A serve started here after it needs nothing |
 | **`UNWIRED`** | the handshake went unanswered and the watcher exited | start it again with the tool your adapter names for `watch_stream` |
 | **`REVIEW`** | a review landed; the line names its round and brief | `claim` the round, then apply it — the steps below |
 | **`REPLIED`** | they answered a question you asked | read the thread and carry on with that comment. Nothing else announces this — a reply writes no sentinel |

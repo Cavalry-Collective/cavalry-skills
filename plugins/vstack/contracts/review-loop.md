@@ -47,12 +47,21 @@ a caller never has to pick between the two itself.
 | `reviews/v<n>/feedback.md` | Markdown brief for the agent |
 | `reviews/v<n>/feedback.json` | Same, structured |
 | `rounds/r<n>.json` | Durable membership, revisions, outcomes, and completion record |
-| `handshake` | A stream watcher waiting to be told its events are being read |
+| `handshake` | A stream watcher waiting to be told its events are being read. Carries the token it printed; `ack` marks the record answered rather than deleting it, and only the watcher whose token it holds acts on it and clears it |
 | `pending` | Notification only: review sent, agent must `claim` it |
 | `approved` | Sentinel: design signed off; engine shutting down |
 | `share` | Sentinel: reviewer wants a shareable link |
 | `url` | Present only while `serve` is running |
 | `watching` | Heartbeat while Host op `watch_stream` is active |
+
+`serve` also records the store it is serving under the directory it was run
+from: `<cwd>/.vstack/local/review/.serving/<key>`, one file per live review,
+holding that review's store path. It is written after `url` and removed with it.
+
+`watch --all` finds a review by walking the directory it was run from **and** by
+following those pointers. The pointer is what covers a page that lives outside
+that directory, whose store lives outside it too. A pointer whose store has no
+`url` is stale, and the reader deletes it.
 
 Every vstack tool keeps its per-machine working files under
 `.vstack/local/<tool>/`, resolved by `lib/workdir.mjs`: the enclosing `.vstack`
@@ -102,7 +111,8 @@ One line of stdout per event (from `watch --stream`):
 | --- | --- | --- |
 | `WATCHING` | Stream armed | — |
 | `HANDSHAKE` | The watcher asking whether anyone receives it | Run the `ack` command it prints, immediately |
-| `LINKED` | The handshake was answered | — |
+| `LINKED` | The handshake was answered and at least one review is covered | — |
+| `UNLINKED` | The handshake was answered and no review turned up to cover, so no workspace goes Linked | Start it again via `watch_stream` with `--file` if a review is running elsewhere; a later serve in the same directory is picked up without it |
 | `UNWIRED` | The handshake went unanswered; the watcher exits `3` | Start it again via `watch_stream` |
 | `REVIEW` | `pending` written; round id and path to `feedback.md` | `claim` the round, apply brief, publish/reply |
 | `REPLIED` | Reviewer answered a question | Continue that comment’s thread |
@@ -140,7 +150,8 @@ Rules:
 5. Retrying an already completed `publish --round …` is idempotent and creates no extra version.
 6. One `watch_stream` per session is enough with `--all`.
 7. Presence is proven. A stream watcher writes its `watching` heartbeat from the moment its handshake is answered, so **Linked** means a session is receiving the stream. Default window 120 s (`--handshake-timeout <seconds>`).
-8. Presence is also claim-backed. The engine reports the agent present (workspace **Linked**) only while the `watching` heartbeat is fresh **and** no queued round has sat unclaimed past the claim window (90 s). A stalled round drops presence — a watcher whose events nobody reads must look the same to the reviewer as no watcher at all.
+8. Presence is per review, and per watcher. A watcher heartbeats only the stores it covers, and goes live only on an answer carrying its own token — a second watcher's handshake is not an answer to the first. It reports `LINKED` once it covers a review, and `UNLINKED` when none has turned up.
+9. Presence is also claim-backed. The engine reports the agent present (workspace **Linked**) only while the `watching` heartbeat is fresh **and** no queued round has sat unclaimed past the claim window (90 s). A stalled round drops presence — a watcher whose events nobody reads must look the same to the reviewer as no watcher at all.
 
 ---
 
