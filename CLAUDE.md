@@ -48,6 +48,20 @@ claude plugin validate ./plugins/vstack --strict # the plugin manifest
 
 `.github/workflows/ci.yml` runs all of the above on every pull request.
 
+The security scans run in `.github/workflows/security.yml`, and a merge is
+blocked until every one of them passes. Two of them run locally:
+
+```bash
+gitleaks git --no-banner --redact --verbose   # secrets, over the full history
+uvx zizmor@1.29.0 .github/workflows/          # workflow audit
+```
+
+`SECURITY.md` owns what each gate enforces, the rule that a finding is fixed
+rather than silenced, and the rule that every action is pinned by commit SHA
+with its version in a trailing comment. Adding a step that uses an action means
+resolving that SHA with
+`gh api repos/<owner>/<action>/commits/<tag> --jq .sha`.
+
 CI cannot install the plugin, so rehearse that locally before a release.
 `CLAUDE_CONFIG_DIR` keeps it out of the real config: without it, a local-path
 marketplace is written to user settings and shadows the published

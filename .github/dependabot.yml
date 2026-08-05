@@ -1,0 +1,16 @@
+version: 2
+
+# Actions are pinned by commit SHA, which is immutable and therefore never
+# picks up an upstream fix on its own. Dependabot moves the pin and rewrites
+# the version comment beside it.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # A compromised release is usually pulled within days of publication, so
+    # wait before moving a pin onto it.
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci

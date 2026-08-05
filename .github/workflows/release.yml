@@ -12,7 +12,9 @@ jobs:
     name: Tag matches the manifest version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       # An explicit version in plugin.json is what Claude Code compares against
       # to decide an update exists. Tagging a release without bumping it leaves
       # every installed copy believing it is already current.
