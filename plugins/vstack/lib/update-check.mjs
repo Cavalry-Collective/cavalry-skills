@@ -216,6 +216,18 @@ export async function checkForUpdate (hostProfile = null) {
   }
 }
 
+/** The version of the copy that is running. */
+export const currentVersion = () => manifestVersion()
+
+/** Tell a served page which version served it, so the page can say so without
+    reaching for anything. A page kept open across an update still reports the
+    version it loaded with, which is the point. */
+export function withVersion (html) {
+  const version = manifestVersion()
+  if (!version) return html
+  return injectHead(html, `<script>window.__VSTACK_BUILD__=${JSON.stringify({ version })}</script>\n`)
+}
+
 /** Put the handle into a served page. No-op when there is nothing to say, so
     callers can apply it unconditionally. */
 export function withUpdate (html, info) {

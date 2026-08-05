@@ -57,6 +57,17 @@
           <button data-lang="zh" aria-pressed="false">中文</button>
         </div>
       </div>
+      <!-- What is running. The workspace reports the version it loaded with and
+           the server the one it is on now, so a tab left open across an update
+           says which is which. -->
+      <div class="row about" id="cogAbout" hidden>
+        <span class="lbl">Version</span>
+        <span class="abouts">
+          <span class="one"><em>workspace</em><b id="cogVersionPage">—</b></span>
+          <span class="one" id="cogServerLine"><em>server</em><b id="cogVersionServer">—</b></span>
+        </span>
+      </div>
+      <div class="row stale" id="cogStale" hidden>Reload to pick up the server's version.</div>
     </div>
   </div>
   <div class="sep"></div>

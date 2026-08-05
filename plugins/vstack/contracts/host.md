@@ -4,7 +4,7 @@ A **Host** is the coding-agent product that runs the skill (Claude Code, Codex, 
 Build, …). The review engine does not call into a host. The *agent session*
 running under a host fulfills these operations by using that host’s tools.
 
-Every Host is described by a **profile** (`hosts/<id>.json`, schema
+Every Host is described by a **profile** (`host-profiles/<id>.json`, schema
 [`host.schema.json`](host.schema.json)). Servers load it; the workspace reads
 `window.__VSTACK_HOST__`.
 
@@ -46,8 +46,12 @@ node review-server.mjs watch --all --stream
 
 - Process must not exit after the first event.
 - Lines are UTF-8 text, one event per line (see [review-loop.md](review-loop.md)).
-- While this process runs, the engine’s `watching` heartbeat is live and the UI
-  shows **Linked**.
+- **The agent must be able to act on a line as it arrives.**
+- The engine tests that: the stream opens with a `HANDSHAKE` line naming a
+  command the agent must run. The `watching` heartbeat starts once it is
+  answered, and the watcher exits `3` if two minutes pass first. Answering
+  proves a session is receiving the stream, which is the only claim the UI's
+  **Linked** state is allowed to make.
 
 ### `stop(handle)` — **required**
 
@@ -90,7 +94,7 @@ user provides or skips harvest.
 When serving a workspace, the server:
 
 1. Resolves Host via `--host <id>` or env `VSTACK_HOST` (default `claude`).
-2. Loads `plugins/vstack/hosts/<id>.json`.
+2. Loads `plugins/vstack/host-profiles/<id>.json`.
 3. Injects into the page:
 
 ```html

@@ -33,7 +33,7 @@ assert.match(html, /"name":"Codex"/)
    runtime (update-check gates on "none" alone). */
 for (const id of listHosts()) {
   const p = loadHost(id)
-  const where = `hosts/${id}.json`
+  const where = `host-profiles/${id}.json`
   assert.deepEqual(Object.keys(p).filter(k => !['id', 'name', 'capabilities', 'install'].includes(k)), [],
     `${where}: unknown top-level keys`)
   assert.match(p.id, /^[a-z][a-z0-9-]*$/, `${where}: id pattern`)

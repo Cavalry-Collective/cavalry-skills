@@ -81,8 +81,13 @@ button{cursor:pointer;background:none;border:0;padding:0}
 /* The column is what animates: the track collapses to nothing while the panel
    slides out through it, so the page under review grows into the space instead
    of the panel simply vanishing from it. */
+/* The clip is load-bearing, not tidiness. A closed track still holds the panel
+   at its full width (see below), and Safari counts that overhang as page
+   content it has to fit: it scales the whole workspace to about 85% and leaves
+   the window's own background down the right and along the bottom. Clipping
+   here keeps the overhang inside the box that the track belongs to. */
 #main{display:grid;grid-template-columns:minmax(0,1fr) var(--pw,var(--panelw));min-height:0;
-  transition:grid-template-columns .18s ease-out}
+  overflow:hidden;transition:grid-template-columns .18s ease-out}
 #canvasArea{grid-column:1;grid-row:1;overflow:hidden}
 #panel{grid-column:2;grid-row:1;position:relative;z-index:40}
 
@@ -264,6 +269,14 @@ body.panelshut #panelHandle:hover .pbadge{background:#fff;color:var(--brand)}
 .cogmenu[hidden]{display:none}
 .cogmenu .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
 .cogmenu .lbl{font-size:12px;color:var(--ink-2);white-space:nowrap}
+.cogmenu .about{align-items:flex-start}
+.cogmenu .abouts{display:grid;gap:3px;justify-items:end}
+.cogmenu .abouts .one{display:flex;gap:8px;align-items:baseline}
+.cogmenu .abouts em{font-style:normal;font-size:10.5px;letter-spacing:.03em;color:var(--ink-3)}
+.cogmenu .abouts b{font:600 11px/1.3 var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.cogmenu .stale{font-size:11px;line-height:1.4;color:var(--brand);justify-content:flex-start}
+.cogmenu .stale[hidden]{display:none}
+.cogmenu .about[hidden]{display:none}
 
 /* the live link, stated rather than implied */
 .linkdot{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--mono);
@@ -375,12 +388,6 @@ body.phase #main{grid-template-columns:1fr}
    two things. */
 #hiNew{display:none}
 body.phase #hiNew{display:inline-flex}
-/* Send becomes Stop while a round is out. Not red-on-red: a stop is a quiet
-   correction, not a second call to action competing with the one it replaces. */
-#btnSend.stop{background:var(--surface);border-color:var(--brand-line);color:var(--brand)}
-#btnSend.stop:hover{background:var(--brand);border-color:var(--brand);color:#fff;filter:none}
-#btnSend.stop[disabled]{opacity:1;color:var(--ink-3);border-color:var(--line-2)}
-.split #btnSend.stop + .caret{border-left-color:var(--brand-line)}
 .btn .kbd{font:500 10px/1 var(--mono);opacity:.6}
 .seg .kbd{font:500 10px/1 var(--mono);opacity:.65}
 /* Icon-only sizes — wider cells, nothing else. Selected is the shell's selected
@@ -598,16 +605,13 @@ body.phase #hiNew{display:inline-flex}
 
 /* ── work in flight ──
    Progress lives on the comments themselves, so it is obvious *which* ones are
-   being worked on — and cancel sits next to them, where the doubt is. */
+   being worked on. */
 #pwork{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);
   background:var(--brand-soft)}
 #pwork[hidden]{display:none}
 #pwork .spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--brand-line);
   border-top-color:var(--brand);animation:spin .7s linear infinite;flex:none}
 #pwork .ptxt{flex:1;min-width:0;font-size:11.5px;color:var(--ink-2);line-height:1.35}
-#pwork .pcancel{font-size:11.5px;font-weight:600;color:var(--brand);white-space:nowrap;flex:none;
-  border:1px solid var(--brand-line);border-radius:6px;padding:3px 8px;background:var(--surface)}
-#pwork .pcancel:hover{background:var(--brand);border-color:var(--brand);color:#fff}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes sweep{0%{left:-38%}55%{left:100%}100%{left:100%}}
 #pfoot{border-top:1px solid var(--line);padding:9px 10px;display:flex;gap:7px;align-items:center}
@@ -902,6 +906,17 @@ body.phase #hiNew{display:inline-flex}
           <button data-lang="zh" aria-pressed="false">中文</button>
         </div>
       </div>
+      <!-- What is running. The workspace reports the version it loaded with and
+           the server the one it is on now, so a tab left open across an update
+           says which is which. -->
+      <div class="row about" id="cogAbout" hidden>
+        <span class="lbl">Version</span>
+        <span class="abouts">
+          <span class="one"><em>workspace</em><b id="cogVersionPage">—</b></span>
+          <span class="one" id="cogServerLine"><em>server</em><b id="cogVersionServer">—</b></span>
+        </span>
+      </div>
+      <div class="row stale" id="cogStale" hidden>Reload to pick up the server's version.</div>
     </div>
   </div>
   <div class="sep"></div>
@@ -1018,7 +1033,6 @@ body.phase #hiNew{display:inline-flex}
       <div id="pwork" hidden>
         <span class="spin"></span>
         <span class="ptxt" id="pworkText"></span>
-        <button class="pcancel" id="btnCancel"></button>
       </div>
       <div id="pbody"></div>
       <div id="pfoot">
@@ -1169,6 +1183,30 @@ window.VSShell = (function () {
     paintLink();
   }
   const hideLink = () => { const el = $('#linkDot'); if (el) el.hidden = true };
+
+  /* ── which version is running ──
+     The page reports what served it, held from load; the server reports what it
+     is on now. A tab open across an update shows both and offers the reload. */
+  let pageVersion = null, serverVersion = null;
+  function paintVersions () {
+    const row = $('#cogAbout');
+    if (!row) return;
+    row.hidden = !pageVersion && !serverVersion;
+    const put = (id, value) => { const el = $(id); if (el) el.textContent = value || '—' };
+    put('#cogVersionPage', pageVersion || serverVersion);
+    put('#cogVersionServer', serverVersion);
+    const line = $('#cogServerLine');
+    if (line) line.hidden = !serverVersion;
+    const stale = $('#cogStale');
+    if (stale) stale.hidden = !(pageVersion && serverVersion && pageVersion !== serverVersion);
+  }
+  /** What the server is on right now, which a page learns from its own payload. */
+  function setServerVersion (version) {
+    const next = version || null;
+    if (serverVersion === next) return;
+    serverVersion = next;
+    paintVersions();
+  }
 
   /* ── one live-link client, instead of one per page ──
      Wires the dot to a server: SSE when the page has an event stream, a plain
@@ -1343,6 +1381,8 @@ window.VSShell = (function () {
     if (opts.wip) wip(true, typeof opts.wip === 'string' ? opts.wip : undefined);
     name(opts.name, opts.eyebrow);
     wireSettings();
+    pageVersion = (window.__VSTACK_BUILD__ || {}).version || null;
+    paintVersions();
     applyTheme();
     applyLang();
     updateNotice();
@@ -1350,7 +1390,7 @@ window.VSShell = (function () {
   }
 
   const api = {
-    init, setTheme, setLang, setLink, setWatching, hideLink, name, wip,
+    init, setTheme, setLang, setLink, setWatching, setServerVersion, hideLink, name, wip,
     connect, toast, armConfirm, esc,
     get theme () { return theme },
     get lang () { return lang },
@@ -1543,10 +1583,7 @@ const STR = {
     working: n => `Sent ${n} comment${n > 1 ? 's' : ''} — {agent} is working…`,
     hiNew: 'Highlight new', hiNewTitle: 'Outline what this phase adds over the one before it',
     phaseCur: 'the full design', phaseOf: n => `Phase ${n}`,
-    stop: 'Stop', stopping: 'Stopping…',
     stopTitle: 'Ask {agent} to stop this round at its next checkpoint',
-    stopAsked: 'Asked {agent} to stop — it stops at its next checkpoint',
-    stopped: 'Round called off — send it again whenever you are ready',
     editing: '{agent} is editing the page…', ready: v => `<b>v${v} is ready</b>`, changed: '<b>The page changed</b> — reload to see it',
     reviewChanges: 'Review changes', later: 'Later', backToCurrent: 'Back to current',
     viewingOld: v => `Viewing v${v} — read only`, readOnly: v => `read-only · v${v}`,
@@ -1558,12 +1595,12 @@ const STR = {
     save: 'Save', newlineHint: 'Shift+Enter for a new line',
     workingOn: n => `{agent} is working on ${n} comment${n > 1 ? 's' : ''}`,
     queuedOn: n => `${n} comment${n > 1 ? 's' : ''} waiting to be picked up`,
+    notPickedUp: n => `${n} comment${n > 1 ? 's' : ''} sent — not picked up yet`,
     workingAndQueued: (w, q) => `{agent} is working on ${w} · ${q} waiting`,
     queuedTag: 'queued',
     heldOn: n => `${n} comment${n > 1 ? 's' : ''} queued — sends when this round ends`,
     sendNow: 'Send the queue now',
     sendNowDesc: n => `${n} queued comment${n > 1 ? 's' : ''} — don't wait for this round to finish`,
-    cancel: 'Cancel', cancelled: 'Asked {agent} to pause', cancelFail: 'Could not ask {agent} to stop',
     addressedGroup: n => `Addressed (${n})`, earlierGroup: n => `Earlier (${n})`,
     revert: 'Revert', refine: 'Refine',
     revertTitle: 'Ask {agent} to put this back the way it was',
@@ -1646,10 +1683,7 @@ const STR = {
     working: n => `已发送 ${n} 条批注 — {agent} 处理中…`,
     hiNew: '高亮新增', hiNewTitle: '标出本阶段相对上一阶段新增的部分',
     phaseCur: '完整设计', phaseOf: n => `阶段 ${n}`,
-    stop: '停止', stopping: '正在停止…',
     stopTitle: '请求 {agent} 在下一个检查点停止本轮',
-    stopAsked: '已请求 {agent} 停止 — 将在下一个检查点停下',
-    stopped: '本轮已取消 — 随时可以重新发送',
     editing: '{agent} 正在修改页面…', ready: v => `<b>v${v} 已就绪</b>`, changed: '<b>页面已更新</b> — 重新加载查看',
     reviewChanges: '查看更新', later: '稍后', backToCurrent: '回到最新版本',
     viewingOld: v => `正在查看 v${v} — 只读`, readOnly: v => `只读 · v${v}`,
@@ -1661,12 +1695,12 @@ const STR = {
     save: '保存', newlineHint: 'Shift+Enter 换行',
     workingOn: n => `{agent} 正在处理 ${n} 条批注`,
     queuedOn: n => `${n} 条批注等待接收`,
+    notPickedUp: n => `${n} 条批注已发送，尚未被接收`,
     workingAndQueued: (w, q) => `{agent} 正在处理 ${w} 条 · ${q} 条等待中`,
     queuedTag: '等待中',
     heldOn: n => `${n} 条已排队 — 本轮结束后发送`,
     sendNow: '立即发送队列',
     sendNowDesc: n => `${n} 条排队中 — 不等本轮结束`,
-    cancel: '取消', cancelled: '已请求 {agent} 暂停', cancelFail: '无法通知 {agent} 停止',
     addressedGroup: n => `已处理（${n}）`, earlierGroup: n => `更早（${n}）`,
     revert: '撤回', refine: '继续完善',
     revertTitle: '让 {agent} 把这处改回原样',
@@ -1751,7 +1785,9 @@ const S = {
   historyClearedAt: null, clearingHistory: false,
   mode: 'annotate',
   size: SIZES[1],
-  zoom: 1,
+  // `fitted` says the zoom is the one that fills the canvas rather than one the
+  // reviewer chose, so it is free to follow the canvas when the canvas changes.
+  zoom: 1, fitted: true,
   ann: [], carried: [],
   sel: null,
   // Comments whose element is not on the page as it stands right now.
@@ -1771,7 +1807,6 @@ const S = {
      is what survives a reload — then go out as one batch when the round ends. */
   held: new Set(),
   // A stop has been asked for and the round has not ended yet.
-  stopping: false,
   linked: null,   // null until the connection has actually said one way or other
   // The shareable Artifact: asked for here, published by Claude, link comes back.
   share: { url: null, version: null, pending: false },
@@ -1785,7 +1820,7 @@ const S = {
 const isHistory = () => S.viewing !== S.version;
 /** The frame holds a running app, not a file we published. */
 const live = () => S.runtime === 'live';
-/** There is a session on the other end: it can be sent to, replied to, stopped. */
+/** There is a session on the other end: it can be sent to and replied to. */
 const served = () => S.runtime === 'local' || S.runtime === 'live';
 
 /* ─────────────────────────── boot ─────────────────────────── */
@@ -1813,6 +1848,8 @@ async function boot () {
   if (live()) S.route = S.startPath;
   adoptShare(data);
   VSShell.setWatching(data.watching);
+  S.watching = data.watching;
+  VSShell.setServerVersion(data.version);
 
   const phase = S.runtime === 'phase';
   loadAnnotations();
@@ -1918,7 +1955,18 @@ function liveReload () {
   VSShell.connect({
     url: API + '/events',
     onLink: up => { S.linked = up },
-    on: { reload: onReloadEvent },
+    on: {
+      reload: onReloadEvent,
+      // The strip needs the same fact as the dot: a queued round with nobody
+      // listening reads "not picked up yet", and no reload event carries that.
+      presence: ev => {
+        let watching;
+        try { watching = JSON.parse(ev.data).watching } catch { return }
+        if (S.watching === watching) return;
+        S.watching = watching;
+        renderWork();
+      },
+    },
   });
 }
 async function onReloadEvent () {
@@ -1927,20 +1975,17 @@ async function onReloadEvent () {
   // The link can land on its own, without the page or the review moving.
   adoptShare(data, true);
   VSShell.setWatching(data.watching);
+  S.watching = data.watching;
+  VSShell.setServerVersion(data.version);
   if (data.historyClearedAt && data.historyClearedAt !== S.historyClearedAt) {
     applyHistoryClear(data);
     toast(T('historyCleared'));
     return;
   }
-  /* A stop that has been taken: the server drops the brief when it records the
-     request, so a brief that is gone while we are stopping means the round is
-     over whether or not anyone is still listening — which is the whole reason
-     Stop used to hang forever.
-
-     ONLY while stopping. A missing brief otherwise means Claude picked it up
-     and deleted it, which is the *start* of the work, not the end of it —
-     reading that as "round over" is what took the progress bars off comments
-     the moment anything else touched the store. */
+  /* A missing brief means Claude picked it up and deleted it, which is the
+     *start* of the work, not the end of it — reading that as "round over" is
+     what took the progress bars off comments the moment anything else touched
+     the store. */
   const finishedRound = readFlight(data);   // collected, active, or complete?
   const bumped = (data.currentVersion || 1) !== S.version;
   if (!bumped && data.html === S.html) {
@@ -1950,11 +1995,7 @@ async function onReloadEvent () {
       for (const comment of data.reviews?.[version]?.annotations || []) latest.set(comment.id, comment);
     }
     const merged = mergeThreads([...latest.values()]);
-    if (finishedRound) {
-      const stopped = S.stopping;
-      roundEnded();
-      if (stopped) toast(T('stopped'));
-    }
+    if (finishedRound) roundEnded();
     if (merged.changed) {
       render();
       if (S.sel) openComposer(S.sel, false);
@@ -2037,57 +2078,22 @@ function renderWork () {
   for (const id of [...S.queued]) if (!S.working.has(id)) S.queued.delete(id);
   // Held comments are waiting too — just here rather than in a brief on disk.
   const n = S.working.size, q = S.queued.size, h = S.held.size;
-  // Claude answering or addressing the last comment in flight ends the round
-  // just as surely as publishing does — the button has to come back.
-  if (!n && S.stopping) { S.stopping = false; S.awaiting = false }
   $('#pwork').hidden = !n;
-  if (n) $('#pworkText').textContent = S.stopping ? T('stopping')
-    : q === n && !h ? T('queuedOn')(q)
+  if (n) $('#pworkText').textContent =
+    q === n && !h ? (S.watching === false ? T('notPickedUp')(q) : T('queuedOn')(q))
     : q + h ? T('workingAndQueued')(n - q, q + h)
     : T('workingOn')(n);
-  $('#btnCancel').disabled = S.stopping;
   composer.classList.toggle('working', !!S.sel && S.working.has(S.sel));
-}
-
-/** Stop, rather than let Claude finish something the reviewer no longer wants.
-    This raises a request; it cannot reach into a turn already running. Claude
-    checks for it at each checkpoint in the round and stops there — so the
-    button says "Stopping…" until the round actually ends, rather than
-    pretending the work died the instant it was pressed. */
-async function cancelWork () {
-  if (S.stopping || !S.working.size) return;
-  const ids = [...S.working];
-  if (!served()) { clearWorking(); S.awaiting = false; return }
-  S.stopping = true;
-  renderCounts(); renderWork();
-  try {
-    await fetch(API + '/cancel', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ version: S.version, comments: ids, reason: 'The reviewer stopped this round from the workspace.' }),
-    });
-    // Sending the same review again has to be possible after calling it off.
-    S.sentSig = null;
-    toast(T('stopAsked'));
-  } catch {
-    S.stopping = false;
-    renderCounts(); renderWork();
-    toast(T('cancelFail'));
-  }
 }
 
 /** The round is over — however it ended. Claude publishing, replying or
     closing the review all land here, and the button goes back to Send. */
 function roundEnded () {
-  const stopped = S.stopping;
-  S.stopping = false;
   S.awaiting = false;
   clearWorking();
   renderCounts();
-  /* The queue fires as the round ends — one round out at a time is the deal.
-     Not after a Stop: the reviewer just said "not now", and firing the next
-     batch on the heels of that would be the opposite of stopping. What is held
-     goes out with their next Send instead. */
-  if (!stopped) flushHeld();
+  // The queue fires as the round ends — one round out at a time is the deal.
+  flushHeld();
 }
 
 /** Everything held back during the round, out as one send. The set is cleared
@@ -2227,7 +2233,6 @@ function applyLang () {
   $('#btnCopyShare').textContent = T('copyLink');
   $('#btnDismissShare').textContent = T('later');
   if ($('#shareBanner').classList.contains('on')) showShareReady();
-  $('#btnCancel').textContent = T('cancel');
   renderApprove(); renderShare();
   composer.querySelector('.csave').innerHTML = esc(T('save')) + ' <span class="kbd">⏎</span>';
   composer.querySelector('.hint').textContent = T('newlineHint');
@@ -2286,7 +2291,6 @@ function wireChrome () {
   $('#btnDismissWork').onclick = hideWork;
   $('#btnCopyShare').onclick = () => { if (S.share.url) copy(S.share.url); hideShare() };
   $('#btnDismissShare').onclick = hideShare;
-  $('#btnCancel').onclick = cancelWork;
   // One button, on the panel's edge: it pushes the comments away and pulls them
   // back, so there is never a second control saying the same thing elsewhere.
   $('#panelHandle').onclick = () => setPanel(!document.body.classList.contains('panelopen'));
@@ -2585,14 +2589,38 @@ function setZoom (z) {
 }
 function fitZoom () {
   const wrap = $('#canvasWrap');
+  // The refit is debounced, so it can land after the canvas has gone — a phase
+  // page, or a bundle that swapped the body out.
+  if (!wrap) return;
   setZoom(Math.min(1, (wrap.clientWidth - 52) / S.size.width, (wrap.clientHeight - 52) / (S.size.height + 36)));
+  S.fitted = true;
 }
 $$('#zoombar button').forEach(b => b.onclick = () => {
-  if (b.dataset.z === 'in') setZoom(S.zoom + 0.1);
-  else if (b.dataset.z === 'out') setZoom(S.zoom - 0.1);
+  if (b.dataset.z === 'in') { setZoom(S.zoom + 0.1); S.fitted = false }
+  else if (b.dataset.z === 'out') { setZoom(S.zoom - 0.1); S.fitted = false }
   else fitZoom();
 });
-addEventListener('resize', () => { if (S.zoom < 1) fitZoom() });
+/* A fitted page follows the room it has, whatever changed that — the window,
+   the comments coming or going, a notice appearing under the bar. Watching the
+   canvas rather than the window is what makes putting the comments away grow
+   the page into the space they left, instead of leaving empty canvas beside it.
+   A zoom the reviewer set by hand stays where they put it.
+   Watch #stageArea, measure #canvasWrap inside it. The wrap is the box that
+   scrolls, and the frame is as tall as the page it holds, so the wrap can carry
+   a scrollbar. Watching a box that its own scrollbar narrows would feed itself:
+   a fit that clears the scrollbar widens the box, and the wider box fits back to
+   a zoom that brings the scrollbar in again. The stage is the wrap's own frame —
+   it moves with the panel, the window and the row beneath it, and never with the
+   scrollbar inside it.
+   It waits for the canvas to stop moving first. Every new zoom re-rasterises
+   the framed page at a new scale, and doing that on each frame of the panel's
+   slide, or of a window drag, is work the reviewer paid for and cannot see. */
+let refitTimer = 0;
+new ResizeObserver(() => {
+  if (!S.fitted) return;
+  clearTimeout(refitTimer);
+  refitTimer = setTimeout(fitZoom, 90);
+}).observe($('#stageArea') || document.body);
 
 /* ───────────────────────── two modes ──────────────────────── */
 
@@ -3146,12 +3174,14 @@ function openComposer (id, focus) {
 }
 function closeComposer () {
   if (!composerOpen()) return;
-  const a = annById(S.sel);
+  let a = annById(S.sel);
   if (a) {
     const note = composer.querySelector('.cnote').value.trim();
     const reply = composer.querySelector('.creply').value.trim();
-    if (reply) postReply(a, reply);
-    if (note !== (a.note || '')) { a.note = note; save() }
+    // Both of these write, so both work on this version's copy — an edit to a
+    // comment carried in from an earlier version is saved nowhere otherwise.
+    if (reply) a = postReply(a, reply);
+    if (note !== (a.note || '')) { a = adopt(a); a.note = note; save() }
     // No words and no thread is not feedback — clearing a comment removes it,
     // which is also how you take one back.
     if (!hasSubstance(a)) S.ann = S.ann.filter(x => x.id !== a.id);
@@ -3166,13 +3196,20 @@ function closeComposer () {
     is no separate button for it, because a reply nobody reads is worse than no
     button at all. */
 function postReply (a, text) {
-  a.replies = (a.replies || []).concat({ by: 'reviewer', text, at: new Date().toISOString() });
-  if (a.status === 'question') a.status = 'open';
-  if (a.status === 'addressed') { a.status = 'open'; a.reopenedAt = new Date().toISOString() }
+  /* Onto this version's copy, always. Answering is the one thing a carried
+     comment invites — it is on the list because Claude asked something — and a
+     reply written onto the ghost was saved nowhere, since `save()` posts only
+     `S.ann`. The answer was on screen until the next reload took it away, and
+     the question came back unanswered with nobody able to tell it had been. */
+  const live = adopt(a);
+  live.replies = (live.replies || []).concat({ by: 'reviewer', text, at: new Date().toISOString() });
+  if (live.status === 'question') live.status = 'open';
+  else if (live.status === 'addressed') { live.status = 'open'; live.reopenedAt = new Date().toISOString() }
   // A reply is new review input regardless of which reply surface wrote it.
   // Reset this here so both the canvas composer and panel thread enable Send.
   S.sentSig = null;
   save();
+  return live;
 }
 
 /**
@@ -3808,11 +3845,9 @@ function setPanel (on) {
 
 /* Send stays Send, even with a round out. Noticing something else while Claude
    works is the normal case, not an interruption to be blocked — the comment
-   goes out and joins the round. Stopping is a different intent, and it has its
-   own button on the strip that names what would be stopped. */
+   goes out and joins the round. */
 function renderSendButton (open) {
   const btn = $('#btnSend');
-  btn.classList.remove('stop');
   // Both labels, and the bar's width picks one — the long form while there is
   // room to name the agent, the bare verb when there is not.
   const artifact = S.runtime === 'artifact';
@@ -4314,8 +4349,8 @@ document.addEventListener('pointerdown', e => {
 
 /* ─────────────── the shareable copy ───────────────
    The workspace cannot publish an Artifact — only Claude can. So this asks, the
-   same way cancel and approve ask, and the link comes back down the same wire
-   the page reloads on. */
+   same way approve asks, and the link comes back down the same wire the page
+   reloads on. */
 function adoptShare (data, announce) {
   const had = S.share.url;
   S.share = {
