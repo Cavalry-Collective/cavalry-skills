@@ -1,7 +1,7 @@
 {
   "name": "vstack",
   "displayName": "Visual Stack",
-  "version": "4.9.0",
+  "version": "5.0.0",
   "description": "Stop prompting. Start pointing. Visual Stack adds a Figma-like feedback layer to Claude Code. Create a new screen from a prompt, screenshot, reference site, or design system, or open an app you already have running. Click any element and leave feedback exactly where the problem is hiding, and Claude publishes the next revision into the same workspace. Compare revisions on a timeline, preview desktop, tablet, and mobile layouts, and keep every comment attached to the element, route, and version it refers to. Wireframes are self-contained HTML and review state stays in your project.",
   "author": {
     "name": "Cavalry Collective",

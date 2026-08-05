@@ -8,8 +8,37 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-## 4.9.0 — 2026-08-05
+## 5.0.0 — 2026-08-05
 
+**Breaking**
+
+- **Stop is withdrawn.** Asking the agent to stop a round mid-flight could not
+  do the one thing it promised — interrupt the turn — so it is out rather than
+  half-working. The `cancelled` command, `/api/cancel`, the `cancel` sentinel
+  and the `CANCELLED` stream event are gone, and `check` always exits `0`. A
+  round already on disk with status `cancelled` stays terminal, so nothing in
+  your project needs migrating. What it would have to do to come back is written
+  down in [`docs/review-wishlist.md`](docs/review-wishlist.md).
+- **Host profiles move to `plugins/vstack/host-profiles/`.** `hosts/` now holds
+  only the adapter markdown that maps review operations to a product's tools.
+  This is inside the plugin, so an installed copy updates itself.
+
+**Added and fixed**
+
+- **Linked now means a session is listening.** The workspace used to show Linked
+  on evidence a session could produce without receiving anything. A stream
+  watcher now opens with a `HANDSHAKE` line naming a command, and its heartbeat
+  only starts once `ack` answers it; unanswered, the watcher exits after two
+  minutes (`--handshake-timeout <seconds>`). Presence also requires rounds to
+  move: one queued and unclaimed for 90 seconds drops the link, because a
+  watcher whose events nobody reads should look the same to you as no watcher at
+  all. A watcher covering no review reports `UNLINKED` rather than `LINKED`.
+- **The cog says which version you are on.** It shows the version the workspace
+  loaded with and the one the server is running now, and offers a reload when
+  they differ — so a tab left open across an update says so.
+- **An answer written on a comment carried in from an earlier version is kept.**
+  Replies and note edits copy the comment into the current version first, so the
+  answer lands in the file the workspace reads back.
 - **Two new ways to mark up a page: Move and Delete.** A toolbar beside the page
   holds Comment, Move and Delete — what Annotate draws with, on keys `c`, `m`
   and `d`. Neither new tool needs a note: the mark is the instruction, and
