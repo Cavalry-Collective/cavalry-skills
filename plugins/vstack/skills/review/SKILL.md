@@ -122,10 +122,14 @@ The page opens in **its own browser window** on the canvas — own viewport, own
 
 | | |
 |---|---|
-| **View / Annotate** | two modes, **space** toggles. **View hides every annotation** so the page is judged as it really is; Annotate brings them back |
+| **View / Annotate** | two modes, **esc** toggles. **View hides every annotation** so the page is judged as it really is; Annotate brings them back |
 | **Click** | a comment pin at that spot |
 | **Drag** | an area comment over that region — it carries the element that contains the box *and* everything named inside it |
 | Either way | the note opens **on the canvas** where the mark is. A comment with nothing typed in it is discarded on dismiss |
+| **Toolbar** (left of the canvas) | what Annotate draws with: Comment · Move · Delete, keys **c** · **m** · **d**. Picking one in View mode returns to Annotate with it |
+| **Move** and **Delete** | both are optional-note: the mark is the instruction, and anything typed adds to it. Both outline whatever the pointer is over, so it is clear which element the gesture will take |
+| **Move** | drag a thing to where it should go. Arrives as `kind: move` — the element to move, the element it was dropped on, and which side of it |
+| **Delete** | drag across text to strike exactly those words, or click an element to strike everything written inside it. Arrives as `kind: strike` |
 | **Target** | the note says which element the comment attached to |
 | **Attached to an element** | a comment belongs to the thing it was made on, not to a coordinate. The mark rides it when the layout moves, and **goes off the page with it** — a comment made inside a modal, tab or step is not drawn while that thing is closed. It stays in the list tagged *not on screen*, and it still reaches you |
 | Captions | stay hidden — a mark shows its note when it's open, or on hover in Annotate |

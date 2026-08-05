@@ -57,6 +57,7 @@ $vstack:review Wireframe a desktop personal task manager with minimal aesthetics
 
 - Work in a familiar, Figma-like interface.
 - Click any element and leave feedback exactly where the problem is hiding.
+- Drag a thing to where it belongs, or strike out what should go — no note required.
 - Stay in the workspace as your agent publishes each update.
 - Preview desktop, tablet, and mobile layouts before production does it for you.
 - Compare revisions and identify the exact moment things went wrong.

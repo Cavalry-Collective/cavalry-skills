@@ -162,13 +162,21 @@ Rules:
 | Field | Meaning |
 | --- | --- |
 | `id` | Pass to `--addressed` |
-| `note` | Requirement text |
+| `kind` | `comment` · `area` · `general` · `move` · `strike` |
+| `note` | Requirement text. Empty is valid on `move` and `strike` |
 | `anchor` | Element identity (tag, id, classes, text, region, selector) |
+| `move` | `move` only — `{ target: { …anchor identity, where }, delta }`, `where` is `inside` · `before` · `after` |
+| `strike` | `strike` only — `{ scope: 'text' \| 'element', text }` |
 | `screenSize` | Layout the comment was made at |
 | `route` | Live only — app path |
 | `status` | `open` · `question` · `addressed` |
 | `replies` | `{ by, text, at }[]` |
 | `reopened` / `wantsRevert` | Returned from Refine / Revert |
+
+A comment carries its requirement in `note`. A `move` and a `strike` carry it in
+their own fields instead, so a reader must not treat an empty `note` as an
+incomplete comment. `move.target` outranks `move.delta`: the element and side
+survive a reflow and the pixel distance does not.
 
 ---
 

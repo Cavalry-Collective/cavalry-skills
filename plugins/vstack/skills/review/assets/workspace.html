@@ -272,6 +272,10 @@ body.panelshut #panelHandle:hover .pbadge{background:#fff;color:var(--brand)}
 .cogmenu .about{align-items:flex-start}
 .cogmenu .abouts{display:grid;gap:3px;justify-items:end}
 .cogmenu .abouts .one{display:flex;gap:8px;align-items:baseline}
+/* An author `display` beats the UA rule for [hidden], so every row that is
+   hidden from script needs its own. A page that never hears a server version
+   showed "server —" for good without this. */
+.cogmenu .abouts .one[hidden]{display:none}
 .cogmenu .abouts em{font-style:normal;font-size:10.5px;letter-spacing:.03em;color:var(--ink-3)}
 .cogmenu .abouts b{font:600 11px/1.3 var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
 .cogmenu .stale{font-size:11px;line-height:1.4;color:var(--brand);justify-content:flex-start}
@@ -457,7 +461,8 @@ body.phase #hiNew{display:inline-flex}
 #stageArea{position:relative;overflow:hidden;background:var(--surface-2);
   background-image:radial-gradient(circle at 1px 1px,var(--line-2) 1px,transparent 0);
   background-size:22px 22px}
-#canvasWrap{position:absolute;inset:0;overflow:auto}
+/* The left inset is the toolbar's strip — see #toolbar below. */
+#canvasWrap{position:absolute;inset:0 0 0 54px;overflow:auto}
 #canvas{padding:26px;display:flex;justify-content:center;min-height:100%;align-items:flex-start}
 
 /* transform-origin is top-left so the negative margins in setZoom() shrink the
@@ -523,6 +528,51 @@ body.phase #hiNew{display:inline-flex}
 .mark.loose{opacity:.5;filter:saturate(.5)}
 #drag{position:absolute;border:2px dashed var(--brand);border-radius:3px;display:none;
   background:color-mix(in srgb,var(--brand) 8%,transparent);pointer-events:none}
+
+/* ── move: an arrow from a thing to where it should go ──
+   The mark itself has no size. It sits at the start of the drag and hangs its
+   parts off that point, so the number and the note stay upright while the shaft
+   between the two ends turns. */
+.mark.move,.mark.strike{width:0;height:0}
+.mark.move .shaft{position:absolute;left:0;top:-1px;height:2px;background:var(--mk);
+  transform-origin:0 50%;pointer-events:auto;cursor:pointer}
+/* Two pixels is nothing to aim at, so the line takes clicks from a band around
+   itself. */
+.mark.move .shaft::before{content:'';position:absolute;inset:-7px 0}
+.mark.move .shaft::after{content:'';position:absolute;right:-1px;top:50%;width:0;height:0;
+  border:5px solid transparent;border-left:9px solid var(--mk);transform:translateY(-50%)}
+.mark.move .tail{position:absolute;left:-3.5px;top:-3.5px;width:7px;height:7px;
+  border-radius:50%;background:var(--mk)}
+/* Where the thing should end up, at the size it is now — the arrow says the
+   direction and this says what will be sitting there. */
+.mark.move .drop{position:absolute;border:1.5px dashed var(--mk);border-radius:3px;opacity:.75;
+  background:color-mix(in srgb,var(--mk) 6%,transparent)}
+
+/* ── delete: struck through and marked for removal ──
+   One bar per line of struck text. Taking a whole element strikes every line
+   written in it and draws the element's edge round the lot. */
+.mark.strike .bar{position:absolute;border-radius:2px;pointer-events:auto;cursor:pointer;
+  background:color-mix(in srgb,var(--mk) 13%,transparent)}
+.mark.strike .bar::after{content:'';position:absolute;left:0;right:0;top:50%;height:2px;
+  margin-top:-1px;background:var(--mk)}
+.mark.strike .box{position:absolute;border:1.5px solid var(--mk);border-radius:3px;
+  background:color-mix(in srgb,var(--mk) 6%,transparent);pointer-events:auto;cursor:pointer}
+.mark.strike .box[hidden]{display:none}
+
+.mark.move .lbl,.mark.strike .lbl{position:absolute;left:9px;top:7px;width:max-content;
+  max-width:280px;background:var(--mk);color:#fff;padding:3px 7px;border-radius:4px;
+  font:500 11.5px/1.35 var(--font);white-space:pre-wrap;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+/* What Move would pick up if the pointer went down here. Move is the one tool
+   whose gesture starts on a specific thing rather than at a place, so it says
+   which thing before the drag rather than after it. */
+#hoverBox{position:absolute;display:none;pointer-events:none;border:1.5px solid var(--brand);
+  border-radius:3px;background:color-mix(in srgb,var(--brand) 7%,transparent)}
+/* The preview drawn while the arrow is being dragged, before there is a mark. */
+#dragArrow{position:absolute;display:none;pointer-events:none}
+#dragArrow .shaft{position:absolute;left:0;top:-1px;height:2px;background:var(--brand);
+  transform-origin:0 50%}
+#dragArrow .shaft::after{content:'';position:absolute;right:-1px;top:50%;width:0;height:0;
+  border:5px solid transparent;border-left:9px solid var(--brand);transform:translateY(-50%)}
 
 /* ── on-canvas composer ── */
 #composer{position:absolute;z-index:30;width:280px;background:var(--surface);border:1px solid var(--line-2);
@@ -797,6 +847,40 @@ body.phase #hiNew{display:inline-flex}
 .banner .btn{height:25px;font-size:11.5px}
 #workBanner .txt,#shareBanner .txt{min-width:0;overflow:hidden;text-overflow:ellipsis}
 
+/* The tools, down the left edge of the canvas. Same shell as the zoom controls
+   in the corner below it — both are things you reach for while working on the
+   page, rather than decisions about the review.
+   It takes its own strip rather than floating over the canvas: a toolbar that
+   covers the top-left corner of the page covers the part of a design people
+   look at first. The strip is there in both modes, so switching to View and
+   back does not move the page. */
+#toolbar{position:absolute;left:12px;top:12px;display:grid;gap:2px;
+  background:var(--surface);border:1px solid var(--line-2);border-radius:8px;padding:3px;
+  box-shadow:var(--shadow-pop);z-index:20}
+#toolbar[hidden]{display:none}
+#toolbar button{position:relative;width:30px;height:30px;border-radius:5px;color:var(--ink-2);
+  display:grid;place-items:center}
+#toolbar button:hover{background:var(--surface-2);color:var(--ink)}
+#toolbar button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+/* In View the pointer is driving the page, so no tool is the one in use.
+   Picking one here is how you come back to annotating with it. */
+body.viewing #toolbar button[aria-pressed=true]{background:var(--surface-2);color:var(--ink)}
+#toolbar svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+/* Icons alone need their names said. The bubble sits off the right edge, clear
+   of the page underneath, and answers the keyboard as well as the pointer. */
+#toolbar .tip{position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);
+  width:max-content;max-width:196px;text-align:left;
+  background:var(--ink);color:var(--surface);font:550 11.5px/1.3 var(--font);
+  padding:6px 9px;border-radius:6px;box-shadow:var(--shadow-pop);pointer-events:none;
+  opacity:0;visibility:hidden;transition:opacity .1s}
+#toolbar button:hover .tip,#toolbar button:focus-visible .tip{opacity:1;visibility:visible}
+#toolbar .tip b{font-weight:600}
+#toolbar .tip kbd{margin-left:6px;font:600 10px/1 var(--mono);opacity:.55}
+/* The gesture, under the name that has already been read. */
+#toolbar .tip em{display:block;margin-top:3px;font-style:normal;font-weight:450;
+  font-size:11px;line-height:1.4;opacity:.72}
+
 #zoombar{position:absolute;left:12px;bottom:12px;display:flex;gap:2px;align-items:center;background:var(--surface);
   border:1px solid var(--line-2);border-radius:8px;padding:3px;box-shadow:var(--shadow-pop);z-index:20}
 #zoombar button{width:26px;height:24px;border-radius:5px;color:var(--ink-2);display:grid;place-items:center;font-size:14px}
@@ -957,11 +1041,42 @@ body.phase #hiNew{display:inline-flex}
               <div id="viewportBox">
                 <div id="scroller">
                   <iframe id="frame" title="Wireframe under review"></iframe>
-                  <div id="overlay"><div id="drag"></div></div>
+                  <div id="overlay"><div id="drag"></div>
+                    <div id="hoverBox"></div>
+                    <div id="dragArrow"><span class="shaft"></span></div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Which tool the pointer draws with, beside the thing being drawn on.
+             Annotate is what the bar decides; this decides what Annotate does. -->
+        <div id="toolbar">
+          <button data-tool="comment" aria-pressed="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4.2 15.4 15.6 4a2.3 2.3 0 0 1 3.2 3.2L7.4 18.6l-4 1.2 0.8-4.4Z"/>
+              <path d="M14.2 5.4l3.2 3.2"/>
+            </svg><span class="tip"></span>
+          </button>
+          <!-- The four-way arrows every tool draws for move. -->
+          <button data-tool="move" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v18M3 12h18"/>
+              <path d="M9.2 6.2 12 3.4l2.8 2.8M9.2 17.8 12 20.6l2.8-2.8"/>
+              <path d="M6.2 9.2 3.4 12l2.8 2.8M17.8 9.2 20.6 12l-2.8 2.8"/>
+            </svg><span class="tip"></span>
+          </button>
+          <!-- Strikethrough: the S with a line through it, the same button every
+               text editor uses for exactly this. -->
+          <button data-tool="delete" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M16.2 7.6c-.7-1.4-2.2-2.2-4-2.2-2.3 0-3.9 1.2-3.9 3 0 1.4 1 2.3 2.8 2.9"/>
+              <path d="M8 15.4c.6 1.9 2.3 3.1 4.5 3.1 2.4 0 4-1.3 4-3.2 0-1-.4-1.8-1.2-2.4"/>
+              <path d="M3.5 12h17"/>
+            </svg><span class="tip"></span>
+          </button>
         </div>
 
         <div class="banner dark" id="histBanner">
@@ -1545,6 +1660,14 @@ const STR = {
   en: {
     viewLabel: 'View', annotateLabel: 'Annotate',
     view: 'View — click through the page (esc)', annotate: 'Annotate — click for a comment, drag for an area (esc)',
+    commentLabel: 'Comment', moveLabel: 'Move', deleteLabel: 'Delete',
+    /* What the gesture is, on the tooltip. An icon says which tool; only this
+       says what to do with it. */
+    commentHow: 'Click for a point, drag for an area',
+    moveHow: 'Drag a thing to where it should go',
+    deleteHow: 'Drag across text, or click a whole element',
+    nothingToMove: 'Start the drag on something',
+    nothingToDelete: 'Nothing there to delete',
     del: 'Delete comment', clearAll: 'Clear all',
     cleared: n => `Cleared ${n} comment${n > 1 ? 's' : ''}`,
     clearDialogTitle: 'Clear all comments?',
@@ -1567,7 +1690,18 @@ const STR = {
        was a moment ago at a wider window. */
     sendShort: 'Send', copyForShort: 'Copy',
     comment: 'Comment', areaComment: 'Area comment', generalComment: 'On the page',
+    moveComment: 'Move', strikeComment: 'Delete', strikeText: 'Delete text',
     addGeneral: 'Add a comment about the page as a whole', notePlaceholder: 'What needs to change?',
+    /* Move and Delete already say what they want. Anything typed on one adds to
+       it, so the box asks for that rather than for the whole instruction. */
+    extraPlaceholder: 'Anything to add? (optional)',
+    moveNote: 'Move this', strikeNote: 'Delete this',
+    dropInside: '→ into', dropBefore: '→ before', dropAfter: '→ after',
+    dropBy: (dx, dy) => {
+      const across = dx === 0 ? '' : `${Math.abs(dx)}px ${dx > 0 ? 'right' : 'left'}`;
+      const down = dy === 0 ? '' : `${Math.abs(dy)}px ${dy > 0 ? 'down' : 'up'}`;
+      return '→ ' + ([across, down].filter(Boolean).join(', ') || 'nowhere');
+    },
     replyPlaceholder: 'Reply…', answerPlaceholder: 'Answer {agent}…',
     statusAddressed: 'addressed', statusAsked: '{agent} asked',
     you: 'You', agent: '{agent}', claude: '{agent}',
@@ -1583,7 +1717,6 @@ const STR = {
     working: n => `Sent ${n} comment${n > 1 ? 's' : ''} — {agent} is working…`,
     hiNew: 'Highlight new', hiNewTitle: 'Outline what this phase adds over the one before it',
     phaseCur: 'the full design', phaseOf: n => `Phase ${n}`,
-    stopTitle: 'Ask {agent} to stop this round at its next checkpoint',
     editing: '{agent} is editing the page…', ready: v => `<b>v${v} is ready</b>`, changed: '<b>The page changed</b> — reload to see it',
     reviewChanges: 'Review changes', later: 'Later', backToCurrent: 'Back to current',
     viewingOld: v => `Viewing v${v} — read only`, readOnly: v => `read-only · v${v}`,
@@ -1648,6 +1781,12 @@ const STR = {
   zh: {
     viewLabel: '查看', annotateLabel: '批注',
     view: '查看 — 直接操作页面（Esc）', annotate: '批注 — 点击留言，拖拽框选区域（Esc）',
+    commentLabel: '批注', moveLabel: '移动', deleteLabel: '删除',
+    commentHow: '点击留言，拖拽框选区域',
+    moveHow: '拖动元素，指向它应该去的位置',
+    deleteHow: '划选文字，或点击整个元素',
+    nothingToMove: '请从某个元素上开始拖动',
+    nothingToDelete: '那里没有可删除的内容',
     del: '删除批注', clearAll: '全部清除',
     cleared: n => `已清除 ${n} 条批注`,
     clearDialogTitle: '清除所有批注？',
@@ -1667,7 +1806,16 @@ const STR = {
     send: '发送给 {agent}', copyFor: '复制给 {agent}',
     sendShort: '发送', copyForShort: '复制',
     comment: '批注', areaComment: '区域批注', generalComment: '关于整个页面',
+    moveComment: '移动', strikeComment: '删除', strikeText: '删除文字',
     addGeneral: '添加一条关于整个页面的批注', notePlaceholder: '需要改什么？',
+    extraPlaceholder: '还有什么要补充的？（可选）',
+    moveNote: '移动这个', strikeNote: '删除这个',
+    dropInside: '→ 移入', dropBefore: '→ 移到之前', dropAfter: '→ 移到之后',
+    dropBy: (dx, dy) => {
+      const across = dx === 0 ? '' : `向${dx > 0 ? '右' : '左'} ${Math.abs(dx)}px`;
+      const down = dy === 0 ? '' : `向${dy > 0 ? '下' : '上'} ${Math.abs(dy)}px`;
+      return '→ ' + ([across, down].filter(Boolean).join('，') || '原地');
+    },
     replyPlaceholder: '回复…', answerPlaceholder: '回答 {agent}…',
     statusAddressed: '已处理', statusAsked: '{agent} 提问',
     you: '你', agent: '{agent}', claude: '{agent}',
@@ -1683,7 +1831,6 @@ const STR = {
     working: n => `已发送 ${n} 条批注 — {agent} 处理中…`,
     hiNew: '高亮新增', hiNewTitle: '标出本阶段相对上一阶段新增的部分',
     phaseCur: '完整设计', phaseOf: n => `阶段 ${n}`,
-    stopTitle: '请求 {agent} 在下一个检查点停止本轮',
     editing: '{agent} 正在修改页面…', ready: v => `<b>v${v} 已就绪</b>`, changed: '<b>页面已更新</b> — 重新加载查看',
     reviewChanges: '查看更新', later: '稍后', backToCurrent: '回到最新版本',
     viewingOld: v => `正在查看 v${v} — 只读`, readOnly: v => `只读 · v${v}`,
@@ -1783,7 +1930,10 @@ const S = {
   html: '', versions: [], reviews: {},
   version: 1, viewing: 1,
   historyClearedAt: null, clearingHistory: false,
-  mode: 'annotate',
+  /* `mode` is what the pointer does right now — View, or one of the annotate
+     tools. `tool` remembers which tool that was, so leaving for View and coming
+     back returns the tool rather than resetting to Comment. */
+  mode: 'annotate', tool: 'comment',
   size: SIZES[1],
   // `fitted` says the zoom is the one that fills the canvas rather than one the
   // reviewer chose, so it is free to follow the canvas when the canvas changes.
@@ -2224,6 +2374,20 @@ function applyLang () {
   $('.lbl', ma).textContent = T('annotateLabel'); ma.title = T('annotate');
   mv.setAttribute('aria-label', T('view'));
   ma.setAttribute('aria-label', T('annotate'));
+  /* The toolbar is icons alone, so each button says on hover what it is, what
+     key picks it, and what gesture it takes — a picture of a pen does not say
+     that clicking leaves a point and dragging leaves a box. Its own bubble
+     rather than the browser's, which arrives a second late and lands wherever
+     it likes; the same three parts go to a screen reader as one sentence. */
+  for (const [tool, name, key, how] of
+       [['comment', 'commentLabel', 'c', 'commentHow'],
+        ['move', 'moveLabel', 'm', 'moveHow'],
+        ['delete', 'deleteLabel', 'd', 'deleteHow']]) {
+    const b = $(`#toolbar [data-tool=${tool}]`);
+    $('.tip', b).innerHTML =
+      `<b>${esc(T(name))}</b><kbd>${key}</kbd><em>${esc(T(how))}</em>`;
+    b.setAttribute('aria-label', `${T(name)} (${key}) — ${T(how)}`);
+  }
   $('#hiNew .lbl').textContent = T('hiNew');
   $('#hiNew').title = T('hiNewTitle');
   $('#btnReload').title = T('reloadTitle');
@@ -2271,6 +2435,7 @@ function measureChrome () {
 
 function wireChrome () {
   $$('#modeSwitch button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  $$('#toolbar button').forEach(b => b.onclick = () => setTool(b.dataset.tool));
   $('#btnClear').onclick = openClearDialog;
   $('#btnCancelClear').onclick = () => $('#clearDialog').close();
   $('#btnConfirmClear').onclick = confirmClearComments;
@@ -2622,7 +2787,10 @@ new ResizeObserver(() => {
   refitTimer = setTimeout(fitZoom, 90);
 }).observe($('#stageArea') || document.body);
 
-/* ───────────────────────── two modes ──────────────────────── */
+/* ──────────────── two modes, and what Annotate draws with ───────────────
+   The bar decides whether the pointer clicks through the page or annotates it.
+   The toolbar down the left decides what annotating leaves behind: a comment, a
+   move, or a strike. */
 
 function setMode (m) {
   S.mode = m;
@@ -2632,12 +2800,25 @@ function setMode (m) {
     if (document.activeElement === b) b.blur();
   });
   overlay.classList.toggle('view', m === 'view');
+  document.body.classList.toggle('viewing', m === 'view');
   overlay.style.cursor = m === 'annotate' ? 'crosshair' : 'default';
+  clearHoverOutline();
   // View mode is where the page gets driven — modals opened, tabs switched.
   // Coming back to Annotate, the marks answer to whatever is on screen now.
   if (m === 'view') closeComposer(); else scheduleSync();
 }
 const toggleMode = () => setMode(S.mode === 'annotate' ? 'view' : 'annotate');
+
+/** Picking a tool is picking what to draw, so it says the pointer is drawing. */
+function setTool (t) {
+  S.tool = t;
+  $$('#toolbar button').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset.tool === t));
+    if (document.activeElement === b) b.blur();
+  });
+  clearHoverOutline();
+  if (S.mode !== 'annotate') setMode('annotate');
+}
 
 function onKey (e) {
   const t = e.target;
@@ -2660,6 +2841,10 @@ function onKey (e) {
   if (typing) return;
   if (e.key === 'ArrowLeft') VSScrub.step(-1);
   if (e.key === 'ArrowRight') VSScrub.step(1);
+  // A tool by its first letter, which also puts the pointer back to annotating.
+  // A tool that is switched off is not reachable this way either.
+  const tool = { c: 'comment', m: 'move', d: 'delete' }[e.key];
+  if (tool && !e.metaKey && !e.ctrlKey && !e.altKey) setTool(tool);
 }
 addEventListener('keydown', onKey);
 /** In View mode the reviewer is clicking inside the page, so keystrokes land
@@ -2702,11 +2887,14 @@ const onOverlay = r => {
 
 const fwin = () => frame.contentWindow;
 const frameScroll = () => { const w = fwin(); return { x: w?.scrollX || 0, y: w?.scrollY || 0 } };
-/** An element's box in the page's own coordinates — the space marks live in. */
-function docRect (el) {
-  const r = el.getBoundingClientRect(), s = frameScroll();
+/** A box from the frame's viewport in the page's own coordinates — the space
+    marks live in. */
+function docBox (r) {
+  const s = frameScroll();
   return { x: r.left + s.x, y: r.top + s.y, w: r.width, h: r.height };
 }
+/** An element's box in the page's own coordinates. */
+const docRect = el => docBox(el.getBoundingClientRect());
 function elAt (p) {
   if (!fdoc) return null;
   const s = frameScroll();
@@ -2788,12 +2976,17 @@ function captureAnchor (p, rect) {
   let el = elAt(rect ? { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 } : p);
   if (!el || el.nodeType !== 1) return null;
   if (rect) while (el && el !== fdoc.body && !boxContains(docRect(el), rect)) el = el.parentElement;
+  return describeAnchor(el, rect || { x: p.x, y: p.y });
+}
+/** The same description, for an element already in hand — a struck range's
+    container, say, which was found by the page's own text layout rather than by
+    a point. `base` is the place on it the mark hangs off. */
+function describeAnchor (el, base) {
   // Anchoring to the page itself anchors nothing — leave those on coordinates,
   // where they are always shown.
-  if (!el || el === fdoc.body || el === fdoc.documentElement) return null;
+  if (!el || el.nodeType !== 1 || el === fdoc.body || el === fdoc.documentElement) return null;
   const r = docRect(el);
   if (!(r.w > 0 && r.h > 0)) return null;
-  const base = rect || { x: p.x, y: p.y, w: 0, h: 0 };
   return {
     sel: selectorFor(el),
     tag: el.tagName.toLowerCase(),
@@ -2852,6 +3045,133 @@ function anchorFor (p, rect) {
     ...(rect && root ? { covers: coversIn(rect, root) } : {}),
   };
 }
+/* ════════════════════ move: this thing, over there ════════════════════
+   The delta is how far the reviewer dragged, and it is the weakest half of the
+   answer: the page reflows and the pixels stop meaning anything. What survives
+   is the element they let go over and which side of it they let go on, so the
+   instruction reads "after the Cancel button" rather than "180px right". */
+
+function captureMove (from, to) {
+  const source = anchorFor(from);
+  if (!source.anchor) return null;
+  const dx = to.x - from.x, dy = to.y - from.y;
+  const landed = captureAnchor(to);
+  // Dropped back on itself, or on nothing but the page: the direction is the
+  // whole instruction, and there is no landmark to name.
+  const target = !landed || landed.sel === source.anchor.sel
+    ? null
+    : { anchor: landed, where: dropSide(landed, dx, dy) };
+  return { kind: 'move', point: from, to, delta: { dx: Math.round(dx), dy: Math.round(dy) }, target, ...source };
+}
+/** Which part of the thing under the drop it was let go on — inside it, or to
+    one side of it along the direction of the drag. */
+function dropSide (an, dx, dy) {
+  const acrossX = Math.abs(dx) >= Math.abs(dy);
+  const span = acrossX ? an.size.w : an.size.h;
+  const along = span > 0 ? (acrossX ? an.rel.x : an.rel.y) / span : 0.5;
+  if (along > 0.3 && along < 0.7) return 'inside';
+  return along <= 0.3 ? 'before' : 'after';
+}
+
+/* ═══════════════ delete: struck out and marked for removal ═══════════════
+   Dragging across words takes exactly those words, through the page's own
+   caret positions — so what goes to the agent is the phrase the reviewer read,
+   not the paragraph it sat in. Clicking takes the whole element, which is the
+   only thing to take when what should go is an image or a button. */
+
+function caretAt (p) {
+  if (!fdoc) return null;
+  const s = frameScroll(), x = p.x - s.x, y = p.y - s.y;
+  try {
+    if (fdoc.caretRangeFromPoint) return fdoc.caretRangeFromPoint(x, y);
+    const pos = fdoc.caretPositionFromPoint?.(x, y);
+    if (!pos) return null;
+    const r = fdoc.createRange();
+    r.setStart(pos.offsetNode, pos.offset);
+    return r;
+  } catch { return null }
+}
+/** The text the drag ran through, whichever way round it was drawn. */
+function rangeBetween (from, to) {
+  const a = caretAt(from), b = caretAt(to);
+  if (!a || !b) return null;
+  const r = fdoc.createRange();
+  try {
+    r.setStart(a.startContainer, a.startOffset);
+    r.setEnd(b.startContainer, b.startOffset);
+    // Setting an end before the start collapses the range, which is how a
+    // right-to-left drag arrives. Turn it round.
+    if (r.collapsed) {
+      r.setStart(b.startContainer, b.startOffset);
+      r.setEnd(a.startContainer, a.startOffset);
+    }
+  } catch { return null }
+  return r.collapsed ? null : r;
+}
+const elementOf = node => node?.nodeType === 1 ? node : node?.parentElement || null;
+
+function captureStrike (from, to) {
+  const range = to ? rangeBetween(from, to) : null;
+  const text = range ? range.toString() : '';
+  if (range && text.trim()) {
+    const host = elementOf(range.commonAncestorContainer);
+    const boxes = [...range.getClientRects()].map(docBox).filter(b => b.w > 0 && b.h > 0);
+    const anchor = host && boxes.length ? describeAnchor(host, boxes[0]) : null;
+    if (anchor) {
+      return {
+        kind: 'strike', scope: 'text', point: { x: boxes[0].x, y: boxes[0].y },
+        text: text.slice(0, 400),
+        // Where in the element's own text it starts, so the same words twice
+        // over are told apart when the strike is drawn again.
+        textOffset: textOffsetOf(host, range),
+        rects: boxes,
+        anchor, anchorText: anchor.text || anchor.label, anchorVersion: S.version,
+      };
+    }
+  }
+  const anchor = captureAnchor(from);
+  if (!anchor) return null;
+  return {
+    kind: 'strike', scope: 'element', point: from,
+    anchor, anchorText: anchor.text || anchor.label, anchorVersion: S.version,
+  };
+}
+/** How far into an element's own text a range starts. */
+function textOffsetOf (host, range) {
+  let at = 0;
+  const walker = fdoc.createTreeWalker(host, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n === range.startContainer) return at + range.startOffset;
+    at += n.data.length;
+  }
+  return 0;
+}
+/** The struck words where they are now. The page may have been rebuilt since,
+    so the text is found again rather than trusted to be where it was. */
+function strikeRange (a, host) {
+  if (!a.text) return null;
+  const nodes = [];
+  let all = '';
+  const walker = fdoc.createTreeWalker(host, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    nodes.push({ node: n, at: all.length });
+    all += n.data;
+  }
+  // Prefer the occurrence nearest where it was struck; fall back to the first.
+  let start = all.indexOf(a.text, Math.max(0, (a.textOffset || 0) - 24));
+  if (start < 0) start = all.indexOf(a.text);
+  if (start < 0) return null;
+  const locate = at => {
+    for (let i = nodes.length - 1; i >= 0; i--) if (nodes[i].at <= at) return { node: nodes[i].node, offset: at - nodes[i].at };
+    return null;
+  };
+  const s = locate(start), e = locate(start + a.text.length);
+  if (!s || !e) return null;
+  const r = fdoc.createRange();
+  try { r.setStart(s.node, s.offset); r.setEnd(e.node, e.offset) } catch { return null }
+  return r;
+}
+
 /** The element a freshly captured anchor describes — it is still under the
     cursor, so the selector is exact. */
 function findAnchorEl (an) {
@@ -2951,6 +3271,29 @@ function anchorState (a) {
       : { x, y, w: 1, h: 1 },
   };
 }
+/** What kind of mark this is, as the composer and the list card name it. */
+const kindLabel = a =>
+  T(a.kind === 'area' ? 'areaComment'
+    : a.kind === 'general' ? 'generalComment'
+    : a.kind === 'move' ? 'moveComment'
+    : a.kind === 'strike' ? (a.scope === 'text' ? 'strikeText' : 'strikeComment')
+    : 'comment');
+
+/** What a card says when nothing has been typed on it. A comment has nothing to
+    say for itself; a move and a strike are the instruction already. */
+const unwritten = a =>
+  a.kind === 'move' ? `${T('moveNote')} ${moveLabel(a)}`
+    : a.kind === 'strike' ? (a.scope === 'text' ? `${T('strikeNote')} — “${trim(a.text, 60)}”` : T('strikeNote'))
+    : T('noNote');
+
+/** Where a move is headed, said the way the composer's anchor line says things:
+    the landmark if it was dropped on one, the direction if it was not. */
+function moveLabel (a) {
+  const t = a.target;
+  if (t?.anchor) return `${T(t.where === 'inside' ? 'dropInside' : t.where === 'before' ? 'dropBefore' : 'dropAfter')} ${anchorLabel(t.anchor)}`;
+  return T('dropBy')(a.delta?.dx || 0, a.delta?.dy || 0);
+}
+
 /** What this comment is on, in words. */
 function anchorLabel (an) {
   if (!an) return '';
@@ -2989,20 +3332,26 @@ function watchFrame () {
   fdoc.addEventListener('animationend', scheduleSync, true);
 }
 
+/* Every tool is the same gesture read three ways: press, drag, release. Comment
+   leaves a point or a box, Move an arrow, Delete a strike. */
 let drag = null;
 overlay.addEventListener('pointerdown', e => {
   if (S.mode !== 'annotate' || e.target.closest('.mark')) return;
   if (isHistory()) { toast(T('historyBlocked')); return }
   if (composerOpen()) { closeComposer(); return }
   overlayRect = overlay.getBoundingClientRect();
-  drag = { start: pt(e), moved: false };
+  // The tool is read once, at the press: a gesture finishes as the thing it
+  // started out as, whatever the toolbar says by the time it ends.
+  drag = { start: pt(e), moved: false, tool: S.tool };
   try { overlay.setPointerCapture(e.pointerId) } catch {}
 });
 overlay.addEventListener('pointermove', e => {
-  if (!drag) return;
+  if (!drag) return hoverOutline(e);
   const p = pt(e);
   if (Math.abs(p.x - drag.start.x) > 4 || Math.abs(p.y - drag.start.y) > 4) drag.moved = true;
   if (!drag.moved) return;
+  if (drag.tool === 'move') return dragArrow(drag.start, p);
+  if (drag.tool === 'delete') return dragSelect(drag.start, p);
   const d = $('#drag');
   const box = onOverlay({
     x: Math.min(drag.start.x, p.x), y: Math.min(drag.start.y, p.y),
@@ -3019,6 +3368,9 @@ overlay.addEventListener('pointerup', e => {
   const p = pt(e), d = drag; drag = null;
   overlayRect = null;
   $('#drag').style.display = 'none';
+  $('#dragArrow').style.display = 'none';
+  if (d.tool === 'move') return endMove(d, p);
+  if (d.tool === 'delete') return endDelete(d, p);
   if (!d.moved) return addComment({ kind: 'comment', point: d.start, ...anchorFor(d.start) });
   const rect = {
     x: Math.min(d.start.x, p.x), y: Math.min(d.start.y, p.y),
@@ -3027,6 +3379,66 @@ overlay.addEventListener('pointerup', e => {
   if (rect.w < 8 || rect.h < 8) return;
   addComment({ kind: 'area', rect, ...anchorFor(null, rect) });
 });
+
+/** Outline the thing under the pointer, so the two tools that take hold of a
+    whole element — Move picking one up, Delete taking one out — say which one
+    before they are asked to. Comment works on the place you press, so it
+    outlines nothing: a box following the pointer everywhere is noise. */
+function hoverOutline (e) {
+  const box = $('#hoverBox');
+  const on = S.mode === 'annotate' && (S.tool === 'move' || S.tool === 'delete')
+    && !isHistory() && !composerOpen();
+  const el = on && !e.target.closest('.mark') ? elAt(pt(e)) : null;
+  if (!el || el === fdoc?.body || el === fdoc?.documentElement) { box.style.display = 'none'; return }
+  const r = onOverlay(docRect(el));
+  box.style.display = 'block';
+  box.style.left = r.x + 'px';
+  box.style.top = r.y + 'px';
+  box.style.width = r.w + 'px';
+  box.style.height = r.h + 'px';
+}
+function clearHoverOutline () { $('#hoverBox').style.display = 'none' }
+overlay.addEventListener('pointerleave', clearHoverOutline);
+
+/** The arrow as it is being drawn, before there is anything to save. */
+function dragArrow (from, to) {
+  const a = $('#dragArrow'), o = onOverlay(from);
+  const dx = to.x - from.x, dy = to.y - from.y;
+  a.style.display = 'block';
+  a.style.left = o.x + 'px';
+  a.style.top = o.y + 'px';
+  const shaft = $('.shaft', a);
+  shaft.style.width = Math.max(0, Math.hypot(dx, dy) - 9) + 'px';
+  shaft.style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
+}
+/* The overlay has the pointer, so the page never sees the drag and never
+   highlights anything by itself. Put the selection on it as the pointer moves
+   and the reviewer reads the words they are striking in the page's own
+   highlight, rather than in an approximation drawn over the top. */
+function dragSelect (from, to) {
+  const sel = fwin()?.getSelection();
+  if (!sel) return;
+  const range = rangeBetween(from, to);
+  sel.removeAllRanges();
+  if (range) sel.addRange(range);
+}
+/* A move is a drag and nothing else: releasing where you pressed says nothing,
+   and neither does dragging from a place with nothing under it. */
+function endMove (d, p) {
+  if (!d.moved || Math.hypot(p.x - d.start.x, p.y - d.start.y) < 12) return;
+  const move = captureMove(d.start, p);
+  if (!move) { toast(T('nothingToMove')); return }
+  addComment(move);
+}
+function endDelete (d, p) {
+  const strike = captureStrike(d.start, d.moved ? p : null);
+  // The selection did its job while the pointer was down. Leaving it highlighted
+  // would be two marks for one instruction — or, where nothing was captured, a
+  // highlight standing in for a mark that was never made.
+  try { fwin()?.getSelection()?.removeAllRanges() } catch {}
+  if (!strike) { toast(T('nothingToDelete')); return }
+  addComment(strike);
+}
 
 function addComment (a) {
   const c = normalise({ id: uid(), size: S.size.id, ...(live() ? { route: S.route } : {}), ...a });
@@ -3059,7 +3471,10 @@ const annById = id => S.ann.find(a => a.id === id) || S.carried.find(a => a.id =
  * A comment is its words. Never typing any, or clearing the ones that were
  * there, means there is no comment — dismissing it takes it away.
  */
-const hasSubstance = a => !!(a.note || '').trim();
+/* Move and Delete are already an instruction — an arrow to a place, or words
+   struck out. Words on top of one are welcome and never required. */
+const SELF_EVIDENT = new Set(['move', 'strike']);
+const hasSubstance = a => !!(a.note || '').trim() || SELF_EVIDENT.has(a.kind);
 /** Everything the current panel can actually clear. Carried comments are just
     as present as current-version comments, despite living in an older file. */
 const activeComments = () => S.ann.concat(S.carried)
@@ -3120,7 +3535,7 @@ function openComposer (id, focus) {
   composer.classList.add('on');
   composer.style.setProperty('--mk', markColour(a));
   composer.querySelector('.cnum').textContent = num(a);
-  composer.querySelector('.ckind').textContent = T(a.kind === 'area' ? 'areaComment' : 'comment');
+  composer.querySelector('.ckind').textContent = kindLabel(a);
 
   const st = composer.querySelector('.cstatus');
   st.className = 'cstatus' + (a.status === 'open' ? '' : ' ' + a.status);
@@ -3130,7 +3545,11 @@ function openComposer (id, focus) {
   // while the note is being written rather than after the next round.
   const anc = composer.querySelector('.canchor');
   const covers = a.covers?.length ? T('coversN')(a.covers.length) : '';
-  const desc = [anchorLabel(a.anchor), covers].filter(Boolean).join(' · ');
+  // A move says where it is going, a text strike says what it takes out. Both
+  // are the instruction itself, so they are read back before anything is typed.
+  const intent = a.kind === 'move' ? moveLabel(a)
+    : a.scope === 'text' ? `“${trim(a.text, 60)}”` : '';
+  const desc = [anchorLabel(a.anchor), intent, covers].filter(Boolean).join(' · ');
   const shown = anchorState(a).show;
   anc.classList.toggle('on', !!desc || !shown);
   anc.classList.toggle('gone', !shown);
@@ -3143,7 +3562,7 @@ function openComposer (id, focus) {
   const note = composer.querySelector('.cnote');
   note.value = a.note || '';
   note.disabled = isHistory();
-  note.placeholder = T('notePlaceholder');
+  note.placeholder = T(SELF_EVIDENT.has(a.kind) ? 'extraPlaceholder' : 'notePlaceholder');
 
   // The thread turns a comment into a conversation: Claude answers or asks,
   // you reply, and the whole exchange goes back with the next round.
@@ -3442,14 +3861,24 @@ function drawMark (a) {
     + (a.status === 'addressed' ? ' addressed' : '');
   const area = a.kind === 'area' && a.rect;
   if (!area && !a.point) return;
+  const shape = area ? 'area'
+    : a.kind === 'move' ? 'move'
+    : a.kind === 'strike' ? 'strike' + (a.scope === 'text' ? '' : ' el')
+    : 'pin';
   const d = document.createElement('div');
-  d.className = 'mark ' + (area ? 'area' : 'pin') + cls;
+  d.className = 'mark ' + shape + cls;
   d.dataset.id = a.id;
   d.style.setProperty('--mk', markColour(a));
-  d.innerHTML = area
-    ? `<span class="num">${n}</span>` + (a.note ? `<span class="lbl">${esc(a.note)}</span>` : '')
-    : esc(String(n)) + (a.note ? `<span class="lbl">${esc(a.note)}</span>` : '');
-  if (!area) d.title = a.note || T('comment');
+  // A tool that says its own thing carries that as its label when nothing has
+  // been typed on it, so hovering never turns up an empty box.
+  const words = a.note || (a.kind === 'move' ? T('moveNote') : a.kind === 'strike' ? T('strikeNote') : '');
+  const label = words ? `<span class="lbl">${esc(words)}</span>` : '';
+  d.innerHTML =
+      a.kind === 'move' ? `<span class="tail"></span><span class="shaft"></span><span class="drop"></span><span class="num">${n}</span>${label}`
+    : a.kind === 'strike' ? `<span class="box" hidden></span><span class="num">${n}</span>${label}`
+    : area ? `<span class="num">${n}</span>${label}`
+    : esc(String(n)) + label;
+  if (!area && a.kind !== 'move' && a.kind !== 'strike') d.title = a.note || T('comment');
   d.onclick = ev => { ev.stopPropagation(); openComposer(a.id) };
   overlay.appendChild(d);
 }
@@ -3467,6 +3896,12 @@ function positionMarks () {
     const r = onOverlay(st.rect);
     node.style.left = r.x + 'px';
     node.style.top = r.y + 'px';
+    if (a.kind === 'move') placeArrow(node, a, st);
+    else if (a.kind === 'strike' && !placeStrike(node, a, st)) {
+      node.classList.add('gone');
+      off.add(a.id);
+      continue;
+    }
     if (node.classList.contains('area')) {
       node.style.width = r.w + 'px';
       node.style.height = r.h + 'px';
@@ -3477,6 +3912,106 @@ function positionMarks () {
   S.offscreen = off;
   placeComposer();
   if (changed) renderPanel();
+}
+
+/** Where a move points now: the thing it was dropped on, wherever that has got
+    to since, or — dropped on open page — the same distance away it was drawn. */
+function moveEnd (a, from) {
+  if (a.target?.anchor) {
+    const st = anchorState({ id: a.id + ':to', anchor: a.target.anchor, point: a.to, anchorVersion: a.anchorVersion });
+    if (st.show) return st.rect;
+  }
+  return { x: from.x + (a.delta?.dx || 0), y: from.y + (a.delta?.dy || 0) };
+}
+/** The arrow, and the outline of where the thing would sit at the end of it. */
+function placeArrow (node, a, st) {
+  const from = st.rect, to = moveEnd(a, from);
+  const dx = to.x - from.x, dy = to.y - from.y;
+  const shaft = $('.shaft', node);
+  // Stop short of the drop so the head lands on it rather than through it.
+  shaft.style.width = Math.max(0, Math.hypot(dx, dy) - 9) + 'px';
+  shaft.style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
+  const drop = $('.drop', node);
+  const size = st.el ? docRect(st.el) : a.anchor?.size;
+  const rel = a.anchor?.rel || { x: 0, y: 0 };
+  drop.style.left = (dx - rel.x) + 'px';
+  drop.style.top = (dy - rel.y) + 'px';
+  drop.style.width = (size?.w || 0) + 'px';
+  drop.style.height = (size?.h || 0) + 'px';
+}
+/** Every line of text inside an element. Striking an element means striking
+    what is written in it — a box drawn round a paragraph leaves the words
+    standing, which is not what was asked for. */
+const STRIKE_LINE_MAX = 60;
+function textLineBoxes (el) {
+  const out = [];
+  const walker = fdoc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!n.data.trim()) continue;
+    const range = fdoc.createRange();
+    range.selectNodeContents(n);
+    for (const rect of range.getClientRects()) {
+      const box = docBox(rect);
+      if (box.w > 1 && box.h > 1) out.push(box);
+    }
+    // A whole page of text struck line by line is a wall of bars nobody can
+    // read past. Past this the outline alone says it.
+    if (out.length > STRIKE_LINE_MAX) return [];
+  }
+  return out;
+}
+/** Strike bars are measured fresh every time the page moves: the words where
+    they are now, or every line inside the element. */
+function placeStrike (node, a, st) {
+  let boxes = [], outline = null;
+  if (st.el) {
+    if (a.scope === 'text') {
+      const range = strikeRange(a, st.el);
+      if (range) boxes = [...range.getClientRects()].map(docBox).filter(b => b.w > 0 && b.h > 0);
+      // The words are gone from an element that is still there. Falling back to
+      // the element would strike a paragraph the reviewer never struck.
+      node.classList.toggle('loose', !boxes.length);
+    } else {
+      outline = docRect(st.el);
+      boxes = textLineBoxes(st.el);
+      // Nothing written in it — an image, a spacer, a page of prose too long to
+      // stripe. One bar across the middle says the same thing.
+      if (!boxes.length) boxes = [outline];
+    }
+  }
+  if (!boxes.length) boxes = a.rects || [];
+  if (!boxes.length) return false;
+  const origin = onOverlay(outline || boxes[0]);
+  node.style.left = origin.x + 'px';
+  node.style.top = origin.y + 'px';
+  const box = $('.box', node);
+  if (box) {
+    box.hidden = !outline;
+    if (outline) {
+      box.style.left = '0px';
+      box.style.top = '0px';
+      box.style.width = outline.w + 'px';
+      box.style.height = outline.h + 'px';
+    }
+  }
+  let bars = $$('.bar', node);
+  while (bars.length < boxes.length) {
+    const bar = document.createElement('span');
+    bar.className = 'bar';
+    node.appendChild(bar);
+    bars.push(bar);
+  }
+  bars.forEach((bar, i) => {
+    const box = boxes[i];
+    bar.hidden = !box;
+    if (!box) return;
+    const p = onOverlay(box);
+    bar.style.left = (p.x - origin.x) + 'px';
+    bar.style.top = (p.y - origin.y) + 'px';
+    bar.style.width = box.w + 'px';
+    bar.style.height = box.h + 'px';
+  });
+  return true;
 }
 
 /* ───────────────────── panel: the index ───────────────────── */
@@ -3612,7 +4147,7 @@ function itemNode (a, { ghost, otherSize, done, asked } = {}) {
   el.innerHTML = `
     <div class="ih">
       <span class="n">${num(a)}</span>
-      <span class="kind">${T(a.kind === 'area' ? 'areaComment' : a.kind === 'general' ? 'generalComment' : 'comment')}${otherSize ? ' · ' + sizeLabel(a.size) : ''}${raised}${off ? ` · <span class="offtag">${esc(elsewhere ? T('otherScreen') : T('offscreen'))}</span>` : ''}${queued ? ` · <span class="offtag">${esc(T('queuedTag'))}</span>` : ''}</span>
+      <span class="kind">${kindLabel(a)}${otherSize ? ' · ' + sizeLabel(a.size) : ''}${raised}${off ? ` · <span class="offtag">${esc(elsewhere ? T('otherScreen') : T('offscreen'))}</span>` : ''}${queued ? ` · <span class="offtag">${esc(T('queuedTag'))}</span>` : ''}</span>
       ${!isHistory() && !sent(a) && !S.held.has(a.id) && hasSubstance(a) && a.status !== 'addressed' && !ghost
         ? `<button class="isend" title="${esc(T('sendOne'))}" aria-label="${esc(T('sendOne'))}">
              <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor"
@@ -3631,7 +4166,7 @@ function itemNode (a, { ghost, otherSize, done, asked } = {}) {
     ${live() && a.route ? `<div class="route" title="${esc(T('routeTitle'))}">${esc(a.route)}</div>` : ''}
     ${a.kind === 'general' && !isHistory() && !sent(a)
       ? `<textarea class="gnote" rows="2" placeholder="${esc(T('notePlaceholder'))}">${esc(a.note || '')}</textarea>`
-      : `<div class="note${a.note ? '' : ' blank'}">${esc(a.note || T('noNote'))}</div>`}
+      : `<div class="note${a.note || SELF_EVIDENT.has(a.kind) ? '' : ' blank'}">${esc(a.note || unwritten(a))}</div>`}
     ${threadNote(a, open)}
     ${open ? threadBox(a) : ''}
     ${done ? '<div class="donebar"></div>' : ''}
@@ -3999,15 +4534,35 @@ function whereLine (a) {
     : `at ${Math.round(a.point?.x || 0)},${Math.round(a.point?.y || 0)}`;
   const an = a.anchor;
   if (!an) return `${geo}${a.anchorText ? ` — on “${a.anchorText}”` : ''}`;
-  const el = '`<' + an.tag + (an.id ? ` id="${an.id}"` : '') + (an.cls ? ` class="${an.cls}"` : '') +
-    (an.role ? ` role="${an.role}"` : '') + '>`';
   const words = an.text || an.label;
   const reg = an.region;
   const region = !reg ? ''
     : reg.kind === 'region' ? (reg.label ? ` inside “${reg.label}”,` : '')
     : ` inside ${reg.kind}${reg.label ? ` “${reg.label}”` : ''},`;
-  return `on ${el}${words ? ` “${words}”` : ''},${region} ${geo}`;
+  return `on ${elLine(an)}${words ? ` “${words}”` : ''},${region} ${geo}`;
 }
+/** An element written as its own opening tag — what to search the source for. */
+const elLine = an => '`<' + an.tag + (an.id ? ` id="${an.id}"` : '') +
+  (an.cls ? ` class="${an.cls}"` : '') + (an.role ? ` role="${an.role}"` : '') + '>`';
+
+/**
+ * A move, said as a place rather than as a distance. The pixels are the weakest
+ * part of it — a page that reflows makes them wrong — so the element it was
+ * dropped on leads, and the drag is what is left when there was nothing there.
+ */
+function moveLine (a) {
+  const d = a.delta || { dx: 0, dy: 0 };
+  const dragged = `dragged ${Math.abs(d.dx)}px ${d.dx >= 0 ? 'right' : 'left'} and ${Math.abs(d.dy)}px ${d.dy >= 0 ? 'down' : 'up'}`;
+  const t = a.target;
+  if (!t?.anchor) return `somewhere else on the page — ${dragged}. Nothing was under the drop, so the direction is all they gave you.`;
+  const words = t.anchor.text || t.anchor.label;
+  const place = t.where === 'inside' ? 'into' : t.where === 'before' ? 'before' : 'after';
+  return `${place} ${elLine(t.anchor)}${words ? ` “${words}”` : ''} (${dragged})`;
+}
+/** A strike: the exact words to take out, or the element to take out whole. */
+const strikeLine = a => a.scope === 'text'
+  ? `the text “${trim(a.text, 160)}” — remove those words, leave the rest of the element`
+  : 'this element and everything in it';
 
 /** Everything the box was drawn around, in the order it appears on the page. */
 const coversLine = a => a.covers.map(c => `\`<${c.tag}>\` “${c.text}”`).join(' · ') +
@@ -4049,6 +4604,17 @@ function buildFeedback () {
   } else {
     L.push(`Apply these to \`${S.fileName}\`, then publish the next version.`);
   }
+  /* Two of the marks are drawn instead of written, so a brief that carries one
+     has to say what the drawing meant — a comment with no words is otherwise
+     read as a comment nobody finished. */
+  const drawn = items.concat(carried).filter(a => a.kind === 'move' || a.kind === 'strike');
+  if (drawn.length) {
+    L.push('');
+    L.push('Some of these were drawn on the page rather than written: **Move it** is an arrow ' +
+      'from a thing to where it should go, and **Delete** is something struck out. They are ' +
+      'instructions in their own right — a note on one adds to it, and no note means there was ' +
+      'nothing to add.');
+  }
   if (reverts.length || reopened.length) {
     L.push('');
     L.push('Some of these you already marked addressed and they were sent back: ' +
@@ -4078,6 +4644,8 @@ function buildFeedback () {
       if (a.revert) L.push('**They asked for your last change here to be undone** — restore what was there before, then apply the note again only if it still stands.');
       if (live() && a.route) L.push(`**Route** \`${a.route}\``);
       L.push(`**Where** ${whereLine(a)}`);
+      if (a.kind === 'move') L.push(`**Move it** ${moveLine(a)}`);
+      if (a.kind === 'strike') L.push(`**Delete** ${strikeLine(a)}`);
       if (a.covers?.length) L.push(`**Covers** ${coversLine(a)}`);
       if (a.note) L.push(a.note);
       for (const m of a.replies || []) {
@@ -4128,6 +4696,23 @@ function buildFeedback () {
       } : null,
       // For an area: what was inside the box when it was drawn.
       covers: a.covers?.length ? a.covers : null,
+      /* For a move: `anchor` is the thing to move, and this is where to. Take
+         `target` over `delta` — the element it was dropped on and which side of
+         it survive a reflow, and the pixel distance does not. `where` is
+         `inside`, `before` or `after` that element. */
+      move: a.kind === 'move' ? {
+        target: a.target?.anchor ? {
+          selector: a.target.anchor.sel, tag: a.target.anchor.tag,
+          id: a.target.anchor.id || null, classes: a.target.anchor.cls || null,
+          label: a.target.anchor.label || null, text: a.target.anchor.text || null,
+          region: a.target.anchor.region || null,
+          where: a.target.where,
+        } : null,
+        delta: a.delta || null,
+      } : null,
+      /* For a delete: `text` scope means remove exactly those words from the
+         anchored element; `element` means remove the anchored element whole. */
+      strike: a.kind === 'strike' ? { scope: a.scope, text: a.scope === 'text' ? a.text : null } : null,
       screenSize: a.size || 'desktop',
       // Live: the screen of the app this was said about.
       route: a.route || null,

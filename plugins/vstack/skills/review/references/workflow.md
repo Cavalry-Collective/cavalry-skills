@@ -181,10 +181,12 @@ bottom is the same data structured. Each comment:
 | field | meaning |
 |---|---|
 | `id` | pass back via `--addressed` once handled |
-| `kind` | `comment` (a point) or `area` (a region) |
-| `note` | the reviewer's words — the actual requirement. **Every comment is a must**; there is no severity to triage by |
+| `kind` | `comment` (a point), `area` (a region), `general` (the page as a whole), `move` (an arrow), `strike` (something marked for removal) |
+| `note` | the reviewer's words — the actual requirement. **Every comment is a must**; there is no severity to triage by. Empty on a `move` or a `strike`, which say what they want by themselves |
 | `anchor` | the element the comment was made on: `tag`, `id`, `classes`, `role`, `text`, `label`, the `region` it sits in, and the `selector` that found it |
 | `covers` | area comments only — every named element the box was drawn around, in page order |
+| `move` | `move` comments only — `target` (the element it was dropped on, plus `where`: `inside`, `before` or `after` it) and `delta` (how far it was dragged) |
+| `strike` | `strike` comments only — `scope: 'text'` with the exact `text` to remove, or `scope: 'element'` to remove the anchored element whole |
 | `anchorText` | the words on screen under the mark — the short form of `anchor.text` |
 | `screenSize` | `ultrawide` / `desktop` / `tablet` / `phone` — the layout it was made at |
 | `route` | live review only — the screen of the app it was made on. The way back to it, and half the answer to which component renders it |
@@ -205,6 +207,21 @@ named things. `anchor.region` is the part of the page it lives in, which is ofte
 the whole answer: a comment `inside dialog “Add a role”` is about that modal,
 whatever the numbers say. When `anchor` is null the mark landed on blank space,
 which is usually itself the point ("this gap is too big").
+
+A `move` and a `strike` are drawn rather than written, so the mark is the whole
+instruction and `note` is usually empty. Do not read that as an unfinished
+comment.
+
+For a `move`, act on `move.target` and ignore `move.delta` unless there is no
+target. The target is the element the reviewer let go over and `where` says
+which side of it — `after` a sibling means reorder, `inside` a container means
+reparent. The delta is pixels measured on one layout at one screen size, so it
+stops meaning anything the moment the page reflows; it is there for the case
+where nothing was under the drop and direction is all they gave you.
+
+For a `strike` with `scope: 'text'`, remove exactly the words in `strike.text`
+from the anchored element and leave the rest of it standing. `scope: 'element'`
+removes the anchored element and its contents.
 
 `anchor.selector` is how the workspace finds the element again to keep the mark
 on it — a hint, not a contract. **Keep ids and distinctive classes stable when

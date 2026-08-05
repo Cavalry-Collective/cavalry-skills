@@ -212,6 +212,10 @@
 .cogmenu .about{align-items:flex-start}
 .cogmenu .abouts{display:grid;gap:3px;justify-items:end}
 .cogmenu .abouts .one{display:flex;gap:8px;align-items:baseline}
+/* An author `display` beats the UA rule for [hidden], so every row that is
+   hidden from script needs its own. A page that never hears a server version
+   showed "server —" for good without this. */
+.cogmenu .abouts .one[hidden]{display:none}
 .cogmenu .abouts em{font-style:normal;font-size:10.5px;letter-spacing:.03em;color:var(--ink-3)}
 .cogmenu .abouts b{font:600 11px/1.3 var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
 .cogmenu .stale{font-size:11px;line-height:1.4;color:var(--brand);justify-content:flex-start}
