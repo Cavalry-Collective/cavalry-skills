@@ -8,6 +8,33 @@ The version in `plugins/vstack/.claude-plugin/plugin.json` is what your host
 compares against to decide an update is available. See the release checklist in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## 4.9.0 — 2026-08-05
+
+- **Two new ways to mark up a page: Move and Delete.** A toolbar beside the page
+  holds Comment, Move and Delete — what Annotate draws with, on keys `c`, `m`
+  and `d`. Neither new tool needs a note: the mark is the instruction, and
+  anything you type adds to it. Both outline whatever the pointer is over, so
+  the element the gesture will take is settled before you press.
+  - **Move** draws an arrow from a thing to where it should go. It records the
+    element you dropped it on and which side of it — inside, before, or after —
+    so your agent is told "after the Cancel button" rather than "180px right",
+    which stops meaning anything the moment the page reflows.
+  - **Delete** strikes out what should go. Drag across text and exactly those
+    words are marked for removal; the strike finds them again by their text when
+    the page is rebuilt, so it stays on them. Click an element instead and the
+    whole thing is marked.
+- **A watcher finds a review whose page lives outside the directory it was
+  started from.** A review's files sit beside the page under review, and
+  `watch --all` found them by walking the directory it ran in. A page written to
+  a temp directory took its files with it, so the watcher walked straight past a
+  running review and the workspace said Unlinked while a session was in fact
+  listening. Serving now leaves a pointer where it was run from, and the watcher
+  follows it.
+- **A watcher that covers no review says so.** It reports `UNLINKED` instead of
+  `LINKED`, because nothing is listening to any workspace at that point whatever
+  the handshake proved. A handshake also carries the token it printed, so one
+  watcher's answer no longer brings a different watcher live.
+
 ## 4.8.1 — 2026-08-05
 
 - **The comment composer's send button is readable in dark mode.** Its label was
