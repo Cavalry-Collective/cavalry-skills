@@ -19,6 +19,24 @@ In scope:
 
 Out of scope: vulnerabilities in Claude Code itself — report those to Anthropic.
 
+## What runs on every change
+
+`.github/workflows/security.yml` runs these scans on every pull request, on every push to `main`, and weekly. The `Security gates` job fails unless all four report success, so a scan that is skipped or cancelled blocks the merge in the same way a failing one does.
+
+| Scan | Tool | What it enforces |
+|---|---|---|
+| Static analysis | CodeQL, `security-and-quality` suite | Injection, path traversal, and unsafe DOM construction in the servers and the pages. Findings land in the repository's Security tab. |
+| Secret scan | Gitleaks | No credential in any commit. It reads the full history, not the working tree, because anything ever committed is compromised. |
+| Workflow audit | zizmor | The workflows themselves: token permissions, credential persistence, and untrusted input reaching a `run` block. |
+| Code quality | SonarQube Cloud | Bugs, security hotspots, and maintainability on new code. Free for public projects. The scan reports a skip rather than failing where `SONAR_TOKEN` is unavailable, which is every pull request from a fork. |
+
+`.github/workflows/scorecard.yml` runs OpenSSF Scorecard weekly and on `main`. It rates the repository rather than the code — branch protection, pinned actions, token permissions — and publishes the score the README badge reads.
+
+Two rules keep those gates meaningful:
+
+- Fix a finding rather than silencing it. A suppression carries a comment saying why it cannot be fixed, next to the line it applies to.
+- Actions are pinned by commit SHA with the version in a trailing comment. A tag moves, and a moved tag runs code nobody reviewed. Dependabot proposes the bumps weekly.
+
 ## Supported versions
 
 `main` only. There are no maintained release branches.

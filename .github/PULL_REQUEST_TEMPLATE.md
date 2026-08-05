@@ -19,3 +19,5 @@ drove it on.
 - [ ] Edited `lib/shell/` rather than a stamped region, ran `node plugins/vstack/lib/build-shell.mjs stamp`, and committed both.
 - [ ] Added or renamed a plugin, and updated `.claude-plugin/marketplace.json` in the same commit.
 - [ ] Renamed a tool, and added its former directory name to the `LEGACY` map in `lib/workdir.mjs`.
+- [ ] Every security scan passes, and no finding was silenced instead of fixed.
+- [ ] Added a step that uses an action, and pinned it by commit SHA with the version in a trailing comment.
