@@ -23,7 +23,7 @@ wireframes/
         feedback.json            the same, structured
       rounds/r1.json             durable membership, revisions and outcomes
       pending                    notification — written on send, cleared by claim
-      cancel                     sentinel — the reviewer called this round off
+      handshake                  a stream watcher waiting to be told its events land
       approved                   sentinel — signed off; the review is over
       share                      sentinel — they want a shareable Artifact link
       url                        the live URL — exists only while serving
@@ -42,13 +42,10 @@ commenting on when they sent round *n* — the timeline scrubs to it, and it is
 what `share` publishes. A round nobody sent a review from has no capture, which
 the workspace says in the frame rather than showing an error.
 
-`pending`, `cancel`, `approved` and `share` are the four ways the workspace
-reaches you, and only one is ever meaningful at a time: sending clears `cancel`,
-cancelling clears `pending`, approving clears both, publishing clears `cancel`,
-and `serve` clears `approved` and `share` at startup. It clears `cancel` only
-when no active round needs to recover, so a restart cannot bypass Stop. Do not delete protocol files manually: `claim`
-clears `pending`, `cancelled` clears `cancel`, and `share --url` clears `share`.
-The round record remains as the validation and recovery ledger.
+`pending`, `approved` and `share` are the three ways the workspace reaches you.
+Approving clears `pending`, and `serve` clears `approved` and `share` at startup.
+Do not delete protocol files manually: `claim` clears `pending` and `share --url`
+clears `share`. The round record remains as the validation and recovery ledger.
 
 ## Commands
 
@@ -63,19 +60,19 @@ node "$SKILL/assets/review-server.mjs" publish --file "$FILE" \
 node "$SKILL/assets/review-server.mjs" reply --file "$FILE" \
   --round r1 --comment c7f2a1 --text "Every overdue row, or only the ones assigned to you?"
 
-# acknowledge Stop without publishing the partial round
-node "$SKILL/assets/review-server.mjs" cancelled --file "$FILE" --round r1
-
 # serve (Host op background) — opens the workspace in the browser, closes itself 90s after the tab does
 # --host / VSTACK_HOST selects UI labels (claude | codex | grok); see contracts/host.md
 node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788 --host "$VSTACK_HOST"
 node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --idle-timeout 0 --host "$VSTACK_HOST"  # stay up until stopped
 node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --no-open                               # leave the browser alone
 
+# answer a stream watcher's handshake — until this lands it claims no presence
+node "$SKILL/assets/review-server.mjs" ack --all --token 7f3a91
+
 # hand back a public URL when Host capabilities.share is artifact
 node "$SKILL/assets/review-server.mjs" share --file "$FILE" --url "https://example.com/…"
 
-# where are we — current version, a waiting review, a cancel, a sign-off, a share request
+# where are we — current version, a waiting review, a sign-off, a share request
 node "$SKILL/assets/review-server.mjs" status --file "$FILE"
 
 # shareable single file
@@ -133,30 +130,45 @@ between rounds:
 
 ```text
 WATCHING  2 review(s): wireframe, spec-tree
+HANDSHAKE this stream is not live until you answer it. Run now:
+          node …/review-server.mjs ack --all --token 7f3a91
+LINKED    handshake answered — the workspace says Linked from here
 REVIEW    wireframe · r17 · 3 comment(s) · …/reviews/v12/feedback.md
 REPLIED   wireframe · v12/c7h0zh0 · "let's align it to the bottom"
-CANCELLED wireframe · read …/cancel
 OPENED    story-map-template · now watching 3 review(s)
 CLOSED    spec-tree · the tab went away
 ```
 
 `--all` covers every review with a live server under the project, including ones
-opened after the watcher started; `--file` can be repeated, and combines with
-`--all` for a page living outside the project. While it runs each page shows
-**Linked**; with no watcher they show **Unlinked**, in amber.
+opened after the watcher started, and any review whose server you started from
+this directory — a page written to a temp directory keeps its store beside
+itself, and the server leaves a pointer here so the watcher still finds it.
+`--file` can be repeated, and combines with `--all` for a server started
+somewhere else entirely. While it runs each page shows **Linked**; with no
+watcher they show **Unlinked**, in amber.
+
+A watcher that covers no review at all says `UNLINKED` in place of `LINKED` once
+its handshake is answered. Nothing is listening to any workspace at that point,
+whatever the handshake proved: start it again with `--file <page.html>`.
+
+**Linked** also needs the rounds to move: a round left unclaimed for 90 seconds
+flips the page back to **Unlinked** and marks the sent comments "not picked up
+yet". If that happens while your watcher is running, its events are not reaching
+you — check how it was started against the Host adapter, then claim the round.
 
 First thing after a `REVIEW`: run `claim --round <id>` using the id in the event.
-It clears the notification but preserves the durable ledger. Use
-`cancelled --round <id>` after honoring Stop, and `share --url` after publishing a link.
+It clears the notification but preserves the durable ledger. Use `share --url`
+after publishing a link.
 
 A one-shot form (`watch` without `--stream`) still exists: it exits on the first
 event and prints the command to restart itself. Nothing points at it any more —
 it is there for scripting, not for the loop.
 
-**Cancel is a request, not a kill.** Nothing can reach into a turn you are
-already running — the sentinel is how the reviewer says *stop*, and you answer
-for whatever you had already changed. If you are working a long round, check for
-`$STORE/cancel` before you publish.
+**Answer the handshake.** The stream opens by asking whether anyone receives it,
+because nothing in the process can tell which tool started it. The heartbeat
+starts when `ack` lands and the page says Linked from then on. Answer within two
+minutes (`--handshake-timeout <seconds>`), or the watcher prints `UNWIRED` and
+exits `3`.
 
 **Arm exactly one waiter per review.** Re-arming without stopping the previous
 one leaves loops polling paths that no longer exist.
@@ -169,10 +181,12 @@ bottom is the same data structured. Each comment:
 | field | meaning |
 |---|---|
 | `id` | pass back via `--addressed` once handled |
-| `kind` | `comment` (a point) or `area` (a region) |
-| `note` | the reviewer's words — the actual requirement. **Every comment is a must**; there is no severity to triage by |
+| `kind` | `comment` (a point), `area` (a region), `general` (the page as a whole), `move` (an arrow), `strike` (something marked for removal) |
+| `note` | the reviewer's words — the actual requirement. **Every comment is a must**; there is no severity to triage by. Empty on a `move` or a `strike`, which say what they want by themselves |
 | `anchor` | the element the comment was made on: `tag`, `id`, `classes`, `role`, `text`, `label`, the `region` it sits in, and the `selector` that found it |
 | `covers` | area comments only — every named element the box was drawn around, in page order |
+| `move` | `move` comments only — `target` (the element it was dropped on, plus `where`: `inside`, `before` or `after` it) and `delta` (how far it was dragged) |
+| `strike` | `strike` comments only — `scope: 'text'` with the exact `text` to remove, or `scope: 'element'` to remove the anchored element whole |
 | `anchorText` | the words on screen under the mark — the short form of `anchor.text` |
 | `screenSize` | `ultrawide` / `desktop` / `tablet` / `phone` — the layout it was made at |
 | `route` | live review only — the screen of the app it was made on. The way back to it, and half the answer to which component renders it |
@@ -194,6 +208,21 @@ the whole answer: a comment `inside dialog “Add a role”` is about that modal
 whatever the numbers say. When `anchor` is null the mark landed on blank space,
 which is usually itself the point ("this gap is too big").
 
+A `move` and a `strike` are drawn rather than written, so the mark is the whole
+instruction and `note` is usually empty. Do not read that as an unfinished
+comment.
+
+For a `move`, act on `move.target` and ignore `move.delta` unless there is no
+target. The target is the element the reviewer let go over and `where` says
+which side of it — `after` a sibling means reorder, `inside` a container means
+reparent. The delta is pixels measured on one layout at one screen size, so it
+stops meaning anything the moment the page reflows; it is there for the case
+where nothing was under the drop and direction is all they gave you.
+
+For a `strike` with `scope: 'text'`, remove exactly the words in `strike.text`
+from the anchored element and leave the rest of it standing. `scope: 'element'`
+removes the anchored element and its contents.
+
 `anchor.selector` is how the workspace finds the element again to keep the mark
 on it — a hint, not a contract. **Keep ids and distinctive classes stable when
 you rewrite the page.** Change them and open comments lose their grip: they fall
@@ -213,7 +242,7 @@ the desktop one.
 The reviewer has no resolve button — a validated
 `publish --round <id> --addressed <ids>` is the only thing that closes a comment out. The command
 fails without creating a version when any round member is left open, an id or
-revision is stale, the round was not claimed, or Stop is outstanding.
+revision is stale, or the round was not claimed.
 They can delete a comment or clear the lot, but they cannot mark one done.
 Emptying a comment's text deletes it, so an empty comment never reaches you.
 

@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 866" width="1120" height="866" role="img" aria-label="Sequence diagram of a review round, between you in the workspace, the review server, and the agent session. Send: your comments are submitted as one review round. Review: the agent claims the round and reads its brief. If a comment is unclear, Question: the agent asks for clarification, and Reply: your answer is added to the comment. If you comment mid-round, Send again: new comments join the current round, and Review again: the agent reads them at the next checkpoint. Publish: publishing is blocked until every comment has been applied, answered, or dismissed. New version: the published version appears in the same workspace. Approve: the review server closes after approval.">
+  <rect x="0.5" y="0.5" width="1119" height="865" rx="16" fill="#0d0e13" stroke="#1c1e25"/>
+
+  <text x="60" y="52" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="11" letter-spacing="2.4" fill="#8b8e97">REVIEW LIFECYCLE</text>
+  <text x="60" y="86" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="19" font-weight="600" fill="#f1f2f4">A review round, from submission to the next version</text>
+
+  <!-- participants -->
+  <rect x="80.5" y="112.5" width="219" height="37" rx="10" fill="#17191e" stroke="#282a31"/>
+  <text x="190" y="136" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="14" font-weight="600" fill="#f1f2f4">You, in the workspace</text>
+  <rect x="450.5" y="112.5" width="219" height="37" rx="10" fill="#17191e" stroke="#282a31"/>
+  <text x="560" y="136" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="14" font-weight="600" fill="#f1f2f4">Review server</text>
+  <rect x="820.5" y="112.5" width="219" height="37" rx="10" fill="#17191e" stroke="#282a31"/>
+  <text x="930" y="136" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="14" font-weight="600" fill="#f1f2f4">Agent session</text>
+
+  <line x1="190" y1="150" x2="190" y2="836" stroke="#282a31" stroke-width="1" stroke-dasharray="4 5"/>
+  <line x1="560" y1="150" x2="560" y2="836" stroke="#282a31" stroke-width="1" stroke-dasharray="4 5"/>
+  <line x1="930" y1="150" x2="930" y2="836" stroke="#282a31" stroke-width="1" stroke-dasharray="4 5"/>
+
+  <!-- the round, repeated -->
+  <rect x="40.5" y="176.5" width="1039" height="590" rx="10" fill="none" stroke="#282a31"/>
+  <rect x="40.5" y="176.5" width="120" height="24" rx="8" fill="#17191e"/>
+  <text x="56" y="193" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="10" letter-spacing="1.6" fill="#8b8e97">EVERY ROUND</text>
+
+  <!-- the agent holds the round -->
+  <rect x="923.5" y="288.5" width="13" height="398" rx="2" fill="#241416" stroke="#4a4d57"/>
+
+  <text x="375" y="202" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#f1f2f4">Send</text>
+  <text x="375" y="219" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">Your comments are submitted as one review round.</text>
+  <line x1="190" y1="228" x2="553" y2="228" stroke="#363942" stroke-width="2"/>
+  <path d="M551,223 L560,228 L551,233 Z" fill="#4a4d57"/>
+
+  <text x="745" y="262" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#f1f2f4">Review</text>
+  <text x="745" y="279" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">The agent claims the round and reads its brief.</text>
+  <line x1="560" y1="288" x2="916" y2="288" stroke="#363942" stroke-width="2"/>
+  <path d="M914,283 L923,288 L914,293 Z" fill="#4a4d57"/>
+
+  <!-- an unclear comment -->
+  <rect x="100.5" y="316.5" width="920" height="136" rx="10" fill="none" stroke="#282a31"/>
+  <rect x="100.5" y="316.5" width="210" height="24" rx="8" fill="#17191e"/>
+  <text x="116" y="333" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="10" letter-spacing="1.6" fill="#8b8e97">IF A COMMENT IS UNCLEAR</text>
+
+  <text x="745" y="346" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#f1f2f4">Question</text>
+  <text x="745" y="363" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">The agent asks for clarification on that comment.</text>
+  <line x1="923" y1="372" x2="567" y2="372" stroke="#363942" stroke-width="2"/>
+  <path d="M569,367 L560,372 L569,377 Z" fill="#4a4d57"/>
+
+  <text x="375" y="402" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#f1f2f4">Reply</text>
+  <text x="375" y="419" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">Your answer is added to the comment.</text>
+  <line x1="190" y1="428" x2="553" y2="428" stroke="#363942" stroke-width="2"/>
+  <path d="M551,423 L560,428 L551,433 Z" fill="#4a4d57"/>
+
+  <!-- more comments mid-round -->
+  <rect x="100.5" y="478.5" width="920" height="146" rx="10" fill="none" stroke="#282a31"/>
+  <rect x="100.5" y="478.5" width="216" height="24" rx="8" fill="#17191e"/>
+  <text x="116" y="495" font-family="ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace" font-size="10" letter-spacing="1.6" fill="#8b8e97">IF YOU COMMENT MID-ROUND</text>
+
+  <text x="375" y="518" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#f1f2f4">Send again</text>
+  <text x="375" y="535" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">New comments join the current round.</text>
+  <line x1="190" y1="544" x2="553" y2="544" stroke="#363942" stroke-width="2"/>
+  <path d="M551,539 L560,544 L551,549 Z" fill="#4a4d57"/>
+
+  <text x="745" y="574" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#f1f2f4">Review again</text>
+  <text x="745" y="591" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">The agent reads them at the next checkpoint.</text>
+  <line x1="560" y1="600" x2="916" y2="600" stroke="#363942" stroke-width="2"/>
+  <path d="M914,595 L923,600 L914,605 Z" fill="#4a4d57"/>
+
+  <text x="745" y="644" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#f1f2f4">Publish</text>
+  <text x="745" y="661" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">Blocked until every comment has been</text>
+  <text x="745" y="678" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">applied, answered, or dismissed.</text>
+  <line x1="923" y1="686" x2="567" y2="686" stroke="#363942" stroke-width="2"/>
+  <path d="M569,681 L560,686 L569,691 Z" fill="#4a4d57"/>
+
+  <text x="375" y="714" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#f1f2f4">New version</text>
+  <text x="375" y="731" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">The published version appears in the same workspace.</text>
+  <line x1="560" y1="740" x2="197" y2="740" stroke="#363942" stroke-width="2"/>
+  <path d="M199,735 L190,740 L199,745 Z" fill="#4a4d57"/>
+
+  <text x="375" y="794" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#f0685c">Approve</text>
+  <text x="375" y="811" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="12" fill="#8b8e97">The review server closes after approval.</text>
+  <line x1="190" y1="820" x2="553" y2="820" stroke="#4a3230" stroke-width="2"/>
+  <path d="M551,815 L560,820 L551,825 Z" fill="#f0685c"/>
+</svg>

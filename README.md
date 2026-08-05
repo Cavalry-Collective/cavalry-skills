@@ -57,6 +57,7 @@ $vstack:review Wireframe a desktop personal task manager with minimal aesthetics
 
 - Work in a familiar, Figma-like interface.
 - Click any element and leave feedback exactly where the problem is hiding.
+- Drag a thing to where it belongs, or strike out what should go — no note required.
 - Stay in the workspace as your agent publishes each update.
 - Preview desktop, tablet, and mobile layouts before production does it for you.
 - Compare revisions and identify the exact moment things went wrong.
@@ -79,6 +80,18 @@ No archaeology through 200 messages. No screenshot named `final-final-v2-actuall
 - Git
 - A local web browser
 - At least one strong opinion about border radius
+
+## Technical Details
+
+### Live Link
+
+Each workspace is linked to one agent session. The link holds while that session is active, its heartbeat is less than 15 seconds old, and every submitted review round has been claimed.
+
+![The workspace page in a browser tab talks over http and SSE to the review server on 127.0.0.1. The server reads and writes a store on disk holding the state, the versions, the comments, the rounds, and the files that carry the link. The agent session watches and writes the same store.](docs/assets/live-link.svg)
+
+### Review Lifecycle
+
+![Your comments are submitted as one review round. The agent claims the round and reads its brief, asking for clarification when a comment is unclear. Comments sent while the round is in progress join it. Publishing is blocked until every comment has been applied, answered, or dismissed, and the published version appears in the same workspace.](docs/assets/review-lifecycle.svg)
 
 ## Contribute
 

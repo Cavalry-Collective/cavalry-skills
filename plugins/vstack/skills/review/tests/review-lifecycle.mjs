@@ -65,7 +65,7 @@ async function sendRound (version, comments) {
   })
 }
 
-let server
+let server, awayServer
 try {
   fs.writeFileSync(page, '<!doctype html><title>Round test</title><p>Initial</p>')
   assert.equal(cli('publish', '--label', 'Initial').status, 0)
@@ -76,12 +76,147 @@ try {
   assert.equal(first.response.status, 200)
   assert.equal(first.body.roundId, 'r1')
 
-  let result = cli('publish', '--round', 'r1', '--label', 'Too soon', '--addressed', 'c1,c2')
+  // "carry on" alone is how queued comments go unread: an unclaimed round is
+  // named on every check, and the exit code still says continue.
+  let result = cli('check')
+  assert.equal(result.status, 0, 'check always carries on')
+  assert.match(result.stdout, /r1 .* waiting unclaimed/)
+  assert.match(result.stdout, /claim .*--round r1/)
+
+  // A fresh watcher heartbeat with the round still young reads as linked …
+  fs.writeFileSync(path.join(store, 'watching'), String(Date.now()))
+  let project = await request('/api/project')
+  assert.equal(project.body.watching, true)
+  assert.equal(project.body.activeReview.stalled, false)
+
+  // … but past the claim window the heartbeat no longer counts: a watcher
+  // nobody reads and no watcher at all must look the same to the reviewer.
+  const roundFile = path.join(store, 'rounds', 'r1.json')
+  const backdated = JSON.parse(fs.readFileSync(roundFile))
+  backdated.createdAt = new Date(Date.now() - 120_000).toISOString()
+  fs.writeFileSync(roundFile, JSON.stringify(backdated))
+  project = await request('/api/project')
+  assert.equal(project.body.watching, false, 'a round unclaimed past the window must drop the linked state')
+  assert.equal(project.body.activeReview.stalled, true)
+
+  result = cli('publish', '--round', 'r1', '--label', 'Too soon', '--addressed', 'c1,c2')
   assert.equal(result.status, 2, 'an unclaimed round must not publish')
   assert.match(result.stderr, /claim r1/i)
   assert.equal(JSON.parse(fs.readFileSync(path.join(store, 'state.json'))).version, 1)
 
   assert.equal(cli('claim', '--round', 'r1').status, 0)
+  project = await request('/api/project')
+  assert.equal(project.body.watching, true, 'claiming the round restores the linked state')
+  assert.match(cli('check').stdout, /^carry on\s*$/, 'a claimed round needs no warning')
+
+  /* A stream watcher asks for the one thing only a live session can do, because
+     nothing in the process can tell which tool started it. Presence begins when
+     the handshake is answered; unanswered, the watcher exits saying so, which on
+     hosts that re-invoke on exit delivers itself to whoever started it. */
+  const watcher = (...extra) => {
+    const child = spawn(process.execPath, [SERVER, 'watch', '--file', page, '--stream', ...extra], {
+      cwd: temp, stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    let out = ''
+    child.stdout.on('data', chunk => { out += chunk })
+    return { child, read: () => out, ended: new Promise(resolve => child.once('exit', resolve)) }
+  }
+  fs.rmSync(path.join(store, 'watching'), { force: true })
+  const ignored = watcher('--handshake-timeout', '2')
+  assert.equal(await ignored.ended, 3, 'an unanswered watcher must exit non-zero')
+  assert.match(ignored.read(), /HANDSHAKE/)
+  assert.match(ignored.read(), /UNWIRED/)
+  assert.equal(fs.existsSync(path.join(store, 'watching')), false,
+    'a watcher nobody answered must never claim presence')
+
+  const wired = watcher('--handshake-timeout', '30')
+  for (let i = 0; i < 50 && !fs.existsSync(path.join(store, 'handshake')); i++) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  const token = JSON.parse(fs.readFileSync(path.join(store, 'handshake'), 'utf8')).token
+  assert.equal(cli('ack', '--token', 'wrong').status, 2, 'a wrong token must not answer the handshake')
+  assert.equal(cli('ack', '--token', token).status, 0)
+  for (let i = 0; i < 50 && !fs.existsSync(path.join(store, 'watching')); i++) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  assert.ok(fs.existsSync(path.join(store, 'watching')), 'an answered watcher starts beating')
+  assert.match(wired.read(), /LINKED/)
+  wired.child.kill('SIGTERM')
+  await wired.ended
+  assert.equal(cli('ack', '--token', token).status, 0, 'answering twice is not an error')
+
+  /* Starting a second watcher overwrites the first one's handshake, so an
+     answer names which one it is for. A watcher that read a missing handshake
+     as its own answer would go live on someone else's — and keep beating after
+     the answered one stopped, which is presence claiming exactly what it cannot
+     see. */
+  fs.rmSync(path.join(store, 'watching'), { force: true })
+  const ignoredWatcher = watcher('--handshake-timeout', '4')
+  for (let i = 0; i < 50 && !fs.existsSync(path.join(store, 'handshake')); i++) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  const firstToken = JSON.parse(fs.readFileSync(path.join(store, 'handshake'), 'utf8')).token
+  const answeredWatcher = watcher('--handshake-timeout', '30')
+  for (let i = 0; i < 50 && JSON.parse(fs.readFileSync(path.join(store, 'handshake'), 'utf8')).token === firstToken; i++) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  const secondToken = JSON.parse(fs.readFileSync(path.join(store, 'handshake'), 'utf8')).token
+  assert.notEqual(secondToken, firstToken, 'the second watcher asks in its own name')
+  assert.equal(cli('ack', '--token', secondToken).status, 0)
+  assert.equal(await ignoredWatcher.ended, 3, 'a watcher answered in another name must still time out')
+  assert.match(ignoredWatcher.read(), /UNWIRED/)
+  assert.doesNotMatch(ignoredWatcher.read(), /LINKED/, 'only the watcher that was answered may claim presence')
+  assert.match(answeredWatcher.read(), /LINKED/)
+  assert.ok(fs.existsSync(path.join(store, 'watching')),
+    'the answered watcher keeps beating through the other one exiting')
+  answeredWatcher.child.kill('SIGTERM')
+  await answeredWatcher.ended
+
+  /* A page an agent generates lands in a temp directory, and its store lands
+     beside it — outside the directory the session runs `watch --all` from. The
+     walk cannot reach it, so the serve leaves a pointer in the directory both
+     processes do share, and the watcher heartbeats the review it names. Without
+     that, the handshake is answered, the stream says Linked, and the workspace
+     sits on Unlinked with nobody able to see why. */
+  const away = fs.mkdtempSync(path.join(os.tmpdir(), 'vstack-away-test-'))
+  const awayPage = path.join(away, 'elsewhere.html')
+  const awayStore = path.join(away, '.vstack', 'local', 'review', 'elsewhere')
+  fs.writeFileSync(awayPage, '<!doctype html><title>Elsewhere</title><p>Away</p>')
+  awayServer = spawn(process.execPath, [SERVER, 'serve', '--file', awayPage,
+    '--port', String(port + 1), '--idle-timeout', '0', '--no-open'], { cwd: temp, stdio: 'ignore' })
+  for (let i = 0; i < 60 && !fs.existsSync(path.join(awayStore, 'url')); i++) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  assert.ok(fs.existsSync(path.join(awayStore, 'url')), 'the second review must come up')
+
+  const everywhere = spawn(process.execPath, [SERVER, 'watch', '--all', '--stream', '--handshake-timeout', '30'],
+    { cwd: temp, stdio: ['ignore', 'pipe', 'pipe'] })
+  let heard = ''
+  everywhere.stdout.on('data', chunk => { heard += chunk })
+  const allHandshake = path.join(temp, '.vstack', 'local', 'review', 'handshake')
+  for (let i = 0; i < 50 && !fs.existsSync(allHandshake); i++) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  assert.equal(spawnSync(process.execPath, [SERVER, 'ack', '--all',
+    '--token', JSON.parse(fs.readFileSync(allHandshake, 'utf8')).token], { cwd: temp, encoding: 'utf8' }).status, 0)
+  for (let i = 0; i < 50 && !fs.existsSync(path.join(awayStore, 'watching')); i++) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  assert.ok(fs.existsSync(path.join(awayStore, 'watching')),
+    'a review outside the watcher\'s directory must still be heartbeaten')
+  assert.match(heard, /LINKED/)
+  everywhere.kill('SIGTERM')
+  await new Promise(resolve => everywhere.once('exit', resolve))
+
+  const pointer = path.join(temp, '.vstack', 'local', 'review', '.serving')
+  assert.equal(fs.readdirSync(pointer).length, 2, 'each live serve points at its own store')
+  awayServer.kill('SIGTERM')
+  await new Promise(resolve => awayServer.once('exit', resolve))
+  awayServer = null
+  assert.equal(fs.readdirSync(pointer).length, 1, 'a serve that ends takes its pointer with it')
+  fs.rmSync(away, { recursive: true, force: true })
+
+  fs.writeFileSync(path.join(store, 'watching'), String(Date.now()))
   result = cli('publish', '--round', 'r1', '--label', 'Incomplete', '--addressed', 'c1')
   assert.equal(result.status, 2, 'an unresolved comment must block publication')
   assert.match(result.stderr, /c2 is still open/)
@@ -128,17 +263,13 @@ try {
   })])
   assert.equal(second.body.roundId, 'r2')
   assert.equal(cli('claim', '--round', 'r2').status, 0)
-  await request('/api/cancel', {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ version: 2, comments: ['c2'], reason: 'Stop now' }),
-  })
+  // A restart is recovery, not a new review: the claimed round has to survive it.
   server.kill('SIGTERM')
   await new Promise(resolve => server.once('exit', resolve))
   await startServer()
-  result = cli('publish', '--round', 'r2', '--label', 'Must not land', '--addressed', 'c2')
-  assert.equal(result.status, 2, 'Stop must remain a hard publication gate after restart')
-  assert.match(result.stderr, /asked to stop/)
-  assert.equal(cli('cancelled', '--round', 'r2').status, 0)
+  const recovered = await request('/api/project')
+  assert.equal(recovered.body.activeReview.id, 'r2', 'an active round must survive a restart')
+  assert.equal(recovered.body.activeReview.status, 'active')
 
   let approval = await request('/api/approve', {
     method: 'POST', headers: { 'content-type': 'application/json' },
@@ -188,8 +319,10 @@ try {
   assert.equal(cli('reply', '--comment', 'c404', '--text', 'Nobody home').status, 1,
     'a comment in no version at all must fail loudly')
 
+
   console.log('review lifecycle integration: ok')
 } finally {
   server?.kill('SIGTERM')
+  awayServer?.kill('SIGTERM')
   fs.rmSync(temp, { recursive: true, force: true })
 }

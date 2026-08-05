@@ -1,7 +1,8 @@
 # Host adapter: Grok Build
 
 Implements [contracts/host.md](../../../contracts/host.md) for **Grok Build**
-(and the Grok coding TUI). Profile: `plugins/vstack/hosts/grok.json` (`id: grok`).
+(and the Grok coding TUI). Profile: `plugins/vstack/host-profiles/grok.json`
+(`id: grok`). That JSON is UI data only — the op-to-tool map is this file.
 
 **Always** set the host so the workspace says “Grok”, not the default:
 
@@ -19,7 +20,7 @@ export VSTACK_HOST=grok
 | `background(cmd)` | `run_terminal_command` with `background: true` | `serve` must outlive the turn |
 | `watch_stream(cmd)` | **`monitor`** tool, `persistent: true` | `watch --all --stream` — each stdout line is a chat event |
 | `stop(handle)` | `kill_command_or_subagent` with the task id | After approve or when ending the review |
-| `run(cmd)` | `run_terminal_command` (foreground) | `publish`, `claim`, `reply`, `check`, `cancelled`, `status` |
+| `run(cmd)` | `run_terminal_command` (foreground) | `publish`, `claim`, `reply`, `ack`, `check`, `status` |
 | `edit` | file edit tools (`search_replace`, `write`, …) | HTML wireframe or app source |
 | `share(file)` | **Not available** as a public Artifact | Profile `capabilities.share: copy` — do not run the share-URL flow; UI hides “Publish a link” |
 | `browser_capture` | Browser MCP / chrome-devtools when connected | Otherwise use user screenshots per skill §2 |
@@ -39,7 +40,13 @@ node "$SKILL/assets/review-server.mjs" serve --file "$FILE" --port 7788 --host g
 
 # monitor, persistent: true
 node "$SKILL/assets/review-server.mjs" watch --all --stream
+
+# then answer the HANDSHAKE line it prints, with run_terminal_command
+node "$SKILL/assets/review-server.mjs" ack --all --token <token from that line>
 ```
+
+The `HANDSHAKE` line arrives as soon as `monitor` has it. Answer it with `ack`,
+and the watcher is live from then on.
 
 Tell the user **http://localhost:7788/** (or `/__review/` for live `--app`).
 
@@ -51,9 +58,9 @@ When `monitor` delivers a line:
 
 | Line prefix | Action (same as [review-loop.md](../../../contracts/review-loop.md)) |
 | --- | --- |
+| `HANDSHAKE` | Run the `ack` command it prints, immediately — the watcher goes live once you do |
 | `REVIEW` | `claim` the round, read `feedback.md`, apply, `publish` / `reply` — never delete protocol files |
 | `REPLIED` | Continue that comment’s thread |
-| `CANCELLED` | Do not publish half-work; run `cancelled --round <id>`; report |
 | `SHARE` | Host has no artifact share — tell the user to copy/export the HTML, or use `bundle-artifact.mjs` for a file they can send |
 | `APPROVED` | Confirm; offer next pipeline stage if applicable |
 | `CLOSED` | Note the review ended |
@@ -61,10 +68,10 @@ When `monitor` delivers a line:
 During a long round, `check` before publish:
 
 ```bash
-node "$SKILL/assets/review-server.mjs" check --file "$FILE" || echo STOP
+node "$SKILL/assets/review-server.mjs" check --file "$FILE"
 ```
 
-Exit 2 means stop.
+It always exits 0. If it names a round waiting unclaimed, claim that round first.
 
 ---
 

@@ -57,7 +57,7 @@ import path from 'node:path'
 import http from 'node:http'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
-import { checkForUpdate, dismissUpdate, withUpdate } from './update-check.mjs'
+import { checkForUpdate, dismissUpdate, withUpdate, withVersion } from './update-check.mjs'
 import { loadHost, resolveHostId, withHost } from './host.mjs'
 import { workDir, findWorkDir, TOOL } from './workdir.mjs'
 import { writeAtomic, watchingRecently, startHeartbeat, startPresence, openInBrowser } from './live-link.mjs'
@@ -237,7 +237,7 @@ function page () {
   const doc = /^\s*<!doctype/i.test(body)
     ? body.replace(/(<head[^>]*>)/i, `$1\n${handle}`)
     : `<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n${handle}${body}`
-  return withUpdate(withHost(doc, HOST), update)
+  return withUpdate(withVersion(withHost(doc, HOST)), update)
 }
 
 const send = (res, code, type, body) => {

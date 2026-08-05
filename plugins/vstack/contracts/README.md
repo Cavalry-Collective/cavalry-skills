@@ -16,7 +16,7 @@ particular agent product.
 ```
 plugins/vstack/
   contracts/           ← this directory (the specs)
-  hosts/               ← profiles that implement Host (claude.json, codex.json, grok.json)
+  host-profiles/       ← profiles that implement Host (claude.json, codex.json, grok.json)
   lib/host.mjs         ← loads a profile; used by servers
   skills/review/
     SKILL.md           ← loop in contract terms (no host-specific tools)
@@ -29,10 +29,10 @@ plugins/vstack/
 
 1. **Engine speaks contracts.** `review-server.mjs`, the workspace, and shared
    shell never name a product except as data from a Host profile.
-2. **Adapters speak hosts.** Only `hosts/*.md` (and the Host profile JSON) may
-   mention Monitor, Artifact, `monitor`, etc.
+2. **Adapters speak hosts.** Only `skills/review/hosts/*.md` (and the Host
+   profile JSON) may mention Monitor, Artifact, `monitor`, etc.
 3. **Profiles are data.** UI labels, install steps, and capability flags come
-   from `hosts/<id>.json`, injected as `window.__VSTACK_HOST__` and selected by
+   from `host-profiles/<id>.json`, injected as `window.__VSTACK_HOST__` and selected by
    `VSTACK_HOST` / `--host`.
 4. **On-disk roles are stable.** Review threads use `by: "agent" | "reviewer"`.
    Older files may still say `"claude"`; readers treat that as `"agent"`.

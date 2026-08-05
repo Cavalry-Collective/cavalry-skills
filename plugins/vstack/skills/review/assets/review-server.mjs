@@ -21,10 +21,10 @@
  *   node review-server.mjs claim   --file <page.html> --round r1
  *   node review-server.mjs publish --file <page.html> --round r1 --label "…" [--addressed c1,c3]
  *   node review-server.mjs reply   --file <page.html> --round r1 --comment <id> --text "…"
- *   node review-server.mjs cancelled --file <page.html> --round r1
+ *   node review-server.mjs ack     --file <page.html> --token <token>
  *   node review-server.mjs share   --file <page.html> --url <artifact-url>
  *   node review-server.mjs status  --file <page.html>
- *   node review-server.mjs check   --file <page.html>   (exit 2 = stop asked)
+ *   node review-server.mjs check   --file <page.html>   (names a round nobody has claimed)
  *   node review-server.mjs watch   --file <page.html>   (blocks until there is something to do)
  *
  * Every command takes `--app <url>` or `--name <slug>` in place of `--file` when
@@ -38,12 +38,16 @@
  *     versions/v<n>.meta.json  label, date, what it addressed
  *     reviews/v<n>/         annotations.json · feedback.json · feedback.md
  *     pending               sentinel written on send, watched by the agent
+ *     handshake             a stream watcher waiting to be told its events land
  *     rounds/r<n>.json       durable round membership and completion record
- *     cancel                sentinel written when the reviewer calls a round off
  *     approved              sentinel written on sign-off — the review is over
  *     share                 sentinel — they want a shareable public link
  *     url                   the live URL — present only while the server runs
  *     watching              heartbeat — an agent session is waiting on this review
+ *
+ * A serve also leaves a pointer to that store under the directory it was run
+ * from — `<cwd>/.vstack/local/review/.serving/<key>` — so `watch --all`, run
+ * from the same place, finds a review whose page lives somewhere else entirely.
  *
  * Serving opens the workspace in the machine's default browser as soon as it is
  * up — `--no-open`, or VSTACK_NO_OPEN=1, for a run that should not.
@@ -63,9 +67,9 @@ import https from 'node:https'
 import zlib from 'node:zlib'
 import fs from 'node:fs'
 import path from 'node:path'
-import { createHash } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
-import { checkForUpdate, dismissUpdate, withUpdate } from '../../../lib/update-check.mjs'
+import { checkForUpdate, currentVersion, dismissUpdate, withUpdate, withVersion } from '../../../lib/update-check.mjs'
 import { resolveHostId, loadHost, withHost, AGENT_ROLE, REVIEWER_ROLE } from '../../../lib/host.mjs'
 import { workDir, subjectDir, toolNames, LOCAL, TOOL } from '../../../lib/workdir.mjs'
 import { writeAtomic, watchingRecently, startHeartbeat, startPresence, openInBrowser } from '../../../lib/live-link.mjs'
@@ -127,7 +131,7 @@ if (LIVE) {
     console.error('      are rewritten to stay inside the proxy, but bot protection, a login wall or a')
     console.error('      strict CSRF check can still refuse it. If the site misbehaves, say so.')
   }
-} else if (args._ === 'watch' && (args.all === true || args.all === 'true')) {
+} else if (['watch', 'ack'].includes(args._) && (args.all === true || args.all === 'true')) {
   /* `watch --all` names no subject on purpose — it finds the live ones itself,
      so a session with several pages open arms one waiter instead of one each. */
   DIR = process.cwd(); NAME = 'all'; STORE = workDir(DIR, TOOL.review)
@@ -160,7 +164,7 @@ const P = {
   round: id => path.join(STORE, 'rounds', `${id}.json`),
   lock: () => path.join(STORE, 'transition.lock'),
   pending: () => path.join(STORE, 'pending'),
-  cancel: () => path.join(STORE, 'cancel'),
+  handshake: () => path.join(STORE, 'handshake'),
   approved: () => path.join(STORE, 'approved'),
   share: () => path.join(STORE, 'share'),
   url: () => path.join(STORE, 'url'),
@@ -300,6 +304,9 @@ function commentRevision (comment) {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex').slice(0, 16)
 }
 
+/* `cancelled` is still terminal here although nothing writes it any more: a
+   store filled before the Stop control was withdrawn can hold one, and reading
+   it as live would hand the agent a round the reviewer called off. */
 function loadActiveRound (state = loadState()) {
   if (!state.activeRound) return null
   const round = readJSON(P.round(state.activeRound))
@@ -344,7 +351,6 @@ function nextRound (version, comments, feedback) {
   round.comments = [...members.values()]
   round.feedback = feedback
   round.updatedAt = new Date().toISOString()
-  if (fs.existsSync(P.cancel())) round.status = 'queued'
   return saveActiveRound(round)
 }
 
@@ -375,12 +381,26 @@ function migrateLegacyPending () {
   return round
 }
 
+/* "Linked" must mean someone will act on what the reviewer sends, not that a
+   watch process is alive. The heartbeat proves the process; a round nobody
+   claims within this window proves its events go unread — a watcher started
+   with the wrong host op, a dead session, and a killed watcher all look the
+   same from here. 90s gives an agent mid-turn time to reach the claim. */
+/* A round leaves the queue only by being claimed, so its wait is measured from
+   when it was created. Nothing else about the round decides this: a heartbeat
+   with a round nobody has picked up is the state this exists to catch. */
+const CLAIM_STALL_MS = 90_000
+const roundStalled = round => !!round && round.status === 'queued' &&
+  Date.now() - Date.parse(round.createdAt || '') > CLAIM_STALL_MS
+const agentListening = () => someoneWatching() && !roundStalled(loadActiveRound())
+
 function roundSummary (round) {
   if (!round) return null
   return {
     id: round.id, status: round.status, baseVersion: round.baseVersion,
     comments: (round.comments || []).map(comment => comment.id),
     createdAt: round.createdAt, claimedAt: round.claimedAt || null,
+    stalled: roundStalled(round),
   }
 }
 
@@ -438,7 +458,6 @@ function cmdPublish (quiet) {
     else if (requestedRound !== active.id) errors.push(`active round is ${active.id}, not ${requestedRound}`)
     if (active.status !== 'active') errors.push(`claim ${active.id} before publishing it`)
     if (args.replace === true || args.replace === 'true') errors.push('--replace cannot complete an active review round')
-    if (fs.existsSync(P.cancel())) errors.push('the reviewer asked to stop this round')
 
     const members = new Map((active.comments || []).map(comment => [comment.id, comment]))
     for (const id of addressed) if (!members.has(id)) errors.push(`${id} does not belong to ${active.id}`)
@@ -466,9 +485,6 @@ function cmdPublish (quiet) {
     }
   } else if (addressed.length) {
     console.error('Cannot mark comments addressed without an active review round')
-    process.exit(2)
-  } else if (fs.existsSync(P.cancel())) {
-    console.error('Cannot publish: the reviewer asked to stop')
     process.exit(2)
   }
 
@@ -591,25 +607,6 @@ function cmdClaim () {
   touch()
 }
 
-/** Acknowledge that a requested stop was honored. Publish remains blocked until
- * this explicit transition closes the active round and clears the request. */
-function cmdCancelled () {
-  const request = readJSON(P.cancel())
-  if (!request) { console.error('No cancel request to acknowledge'); process.exit(2) }
-  const round = loadActiveRound()
-  const requested = args.round && args.round !== true ? String(args.round) : null
-  if (round && (!requested || requested !== round.id)) {
-    if (!requested) console.error(`Include --round ${round.id}`)
-    else console.error(`Active round is ${round.id}, not ${requested}`)
-    process.exit(2)
-  }
-  if (round) finishActiveRound(round, 'cancelled', { reason: request.reason || null })
-  fs.rmSync(P.pending(), { force: true })
-  fs.rmSync(P.cancel(), { force: true })
-  console.log(`Cancelled ${round?.id || 'the current review round'} — open comments were left open`)
-  touch()
-}
-
 /**
  * Hand the published Artifact's URL back to the workspace. It appears under the
  * ▾ beside Send, tagged with the version it was published from — so a link that
@@ -631,28 +628,18 @@ function cmdShare () {
 }
 
 /**
- * "Should I still be doing this?" — one cheap call, made between steps of a
- * round. Exit 2 means the reviewer pressed Stop while you were working.
- *
- * This is the whole mechanism behind Stop, and it only works if it is actually
- * called: nothing here can interrupt a turn that is already running, so a round
- * that never checks cannot be stopped until it ends.
+ * "Is anything waiting on me?" — one cheap call, made between steps of a round.
+ * A round sitting in the queue is named here and nothing suppresses it: an agent
+ * asking and being told nothing, twice, while six comments sat queued is exactly
+ * how a broken watcher stays broken. Exit is always 0.
  */
 function cmdCheck () {
-  const req = fs.existsSync(P.cancel()) ? readJSON(P.cancel(), {}) : null
-  if (!req) {
-    if (!args.quiet) console.log('carry on')
-    process.exit(0)
-  }
-  console.log('STOP — the reviewer asked you to stop this round.')
-  console.log(`  asked at   ${req.at || 'unknown'}`)
-  if (req.comments?.length) console.log(`  in flight  ${req.comments.join(', ')}`)
-  console.log(`  reason     ${req.reason || '(none given)'}`)
-  console.log('\nStop where you are. Do not publish a half-applied version. Tell the')
-  console.log('reviewer what you had already changed and what you left alone, then acknowledge it:')
-  const round = loadActiveRound()
-  console.log(`  node review-server.mjs cancelled ${SUBJECT}${round ? ` --round ${round.id}` : ''}`)
-  process.exit(2)
+  const waiting = loadActiveRound()
+  if (waiting?.status === 'queued') {
+    console.log(`carry on — but ${waiting.id} (${(waiting.comments || []).length} comment(s), sent ${waiting.createdAt}) is waiting unclaimed.`)
+    console.log(`Claim it:  node review-server.mjs claim ${SUBJECT} --round ${waiting.id}`)
+  } else console.log('carry on')
+  process.exit(0)
 }
 
 /**
@@ -676,6 +663,44 @@ const storeFor = f => {
   return subjectDir(path.dirname(abs), TOOL.review, path.basename(abs).replace(/\.html?$/i, ''))
 }
 const inStore = (store, name) => path.join(store, name)
+
+/* Where a server records the store it is serving, for the benefit of a watcher
+   that cannot walk to it.
+
+   A review's store sits beside the page under review, and `watch --all` finds
+   stores by walking the directory it was run from. A page written outside that
+   directory — a temp directory is the usual one, since that is where an agent
+   puts a file it just generated — takes its store with it, and the watcher
+   walks right past a review that is running. It then heartbeats into nothing
+   while the workspace says Unlinked, which is the one failure this protocol
+   must not have.
+   The directory both processes share is the one the session ran them from, so
+   the server leaves a pointer there naming its real store. Keyed by the store
+   path, so a second serve from the same place adds a pointer rather than
+   overwriting one. */
+const servingDir = from => path.join(workDir(from, TOOL.review), '.serving')
+const servingFile = (from, store) =>
+  path.join(servingDir(from), createHash('sha1').update(store).digest('hex').slice(0, 12))
+
+/** Stores pointed at from `from`, minus any whose server is gone. */
+function pointedStores (from) {
+  const found = []
+  for (const tool of toolNames(TOOL.review)) {
+    const dir = path.join(workDir(from, tool), '.serving')
+    let entries = []
+    try { entries = fs.readdirSync(dir) } catch { continue }
+    for (const name of entries) {
+      const pointer = path.join(dir, name)
+      let store = ''
+      try { store = fs.readFileSync(pointer, 'utf8').trim() } catch { continue }
+      // The pointer is written after `url` and removed with it, so a pointer
+      // with no `url` behind it belongs to a server that was killed outright.
+      if (store && fs.existsSync(path.join(store, 'url'))) found.push(store)
+      else fs.rmSync(pointer, { force: true })
+    }
+  }
+  return found
+}
 
 /** Every store with a server behind it — `url` exists only while one runs. */
 function liveStores (from = process.cwd(), depth = 5) {
@@ -715,7 +740,48 @@ function liveStores (from = process.cwd(), depth = 5) {
     }
   }
   walk(from, depth)
-  return found
+  // A store found both ways is one review, so compare resolved paths.
+  return [...new Set([...found, ...pointedStores(from)].map(store => path.resolve(store)))]
+}
+
+/* How long a stream watcher waits to be told its events are being read. Long
+   enough that a session which started it mid-turn still gets there;
+   `--handshake-timeout <seconds>` for a host that needs longer. */
+const HANDSHAKE_MS = Math.max(1, Number(args['handshake-timeout']) || 120) * 1000
+/* Live only once a stream watcher has been answered, or straight away for the
+   one-shot watch, which proves itself by exiting. */
+let heartbeat = null
+const stopBeating = () => { heartbeat?.stop(); heartbeat = null }
+
+/**
+ * Answer a stream watcher's handshake. Only a session that can run commands can
+ * do this, which is exactly what the watcher needs to know about itself.
+ */
+function cmdAck () {
+  const waiting = readJSON(P.handshake())
+  if (!waiting) {
+    // Naming the directory it looked in, because the usual reason to find
+    // nothing is being somewhere else: `--all` resolves the handshake from the
+    // working directory, and an ack run from a different one reads a file that
+    // was never there rather than the one the watcher wrote.
+    console.log('Nothing to answer — no watcher is waiting on a handshake for this review.')
+    console.log(`Looked in ${STORE}`)
+    return
+  }
+  const token = args.token && args.token !== true ? String(args.token) : null
+  if (token !== waiting.token) {
+    console.error('That is not the token the waiting watcher printed — read its HANDSHAKE line again.')
+    process.exit(2)
+  }
+  /* Answered, not gone. A second watcher overwrites the first one's handshake,
+     so a watcher that read "the file I wrote is missing" as "someone answered
+     me" would go live on an answer addressed to another process — and the one
+     nobody answered would heartbeat forever. The token stays on the record, and
+     only the watcher that owns it clears it. */
+  writeJSON(P.handshake(), { ...waiting, answeredAt: new Date().toISOString() })
+  // Whether the workspace goes Linked is the watcher's to report: it knows
+  // which reviews it covers, and this command does not.
+  console.log('Answered — the watcher is wired to this session. Read its next line.')
 }
 
 /**
@@ -731,12 +797,74 @@ function liveStores (from = process.cwd(), depth = 5) {
  *
  *   node review-server.mjs watch --all --stream
  */
-async function cmdStream (stores, beatAll, stop, label, all) {
+async function cmdStream (stores, label, all, subjectFlags) {
   const seen = new Map(stores.map(s => [s, { sent: null, flags: new Set(), replies: repliesIn(s) }]))
   const say = line => { process.stdout.write(line + '\n') }
   say(`WATCHING  ${stores.length} review(s): ${stores.map(label).join(', ')}`)
 
+  /* Presence is proven before it is claimed. Nothing here can tell which tool
+     started this process — every host spawns children the same way — so ask for
+     the one thing only a live session can do, and run a command back. The
+     heartbeat starts when that lands, which is what makes the page's Linked
+     mean a session is receiving this stream. */
+  const token = randomBytes(4).toString('hex')
+  fs.mkdirSync(STORE, { recursive: true })
+  writeJSON(P.handshake(), { token, at: new Date().toISOString(), pid: process.pid })
+  say(`HANDSHAKE this stream is not live until you answer it. Run now:`)
+  say(`          node "${process.argv[1]}" ack ${subjectFlags} --token ${token}`)
+  const askedAt = Date.now()
+
+  /* Answered means answered *here*. A second watcher on the same review
+     overwrites this record, so an answer carrying someone else's token is not
+     this watcher's to act on — and only the watcher that owns the record clears
+     it. Without that, the watcher nobody answered goes live too, and heartbeats
+     long after the answered one has stopped. */
+  const mine = () => readJSON(P.handshake())?.token === token
+  const answered = () => { const record = readJSON(P.handshake()); return record?.token === token && !!record.answeredAt }
+
+  /* The handshake proves a session is reading this stream. It says nothing
+     about whether the stream reaches the review the reviewer is looking at, and
+     a watcher covering no store heartbeats into nothing — so LINKED waits for a
+     store to be under it, and the gap is named rather than papered over. */
+  let saidLinked = false, saidUnlinked = false, answeredAt = 0
+  const sayLink = () => {
+    if (saidLinked || !stores.length) return
+    saidLinked = true
+    say('LINKED    handshake answered — the workspace says Linked from here')
+  }
+  /* Arming the watcher before the serve is a supported order, and a review that
+     turns up a moment later needs no explaining — so the empty case is only
+     worth reporting once it has had time to stop being empty. */
+  const EMPTY_LINK_MS = 15_000
+  const sayNoLink = () => {
+    if (saidLinked || saidUnlinked || Date.now() - answeredAt < EMPTY_LINK_MS) return
+    saidUnlinked = true
+    say(`UNLINKED  handshake answered, but no live review is visible from ${process.cwd()},`)
+    say('          so no workspace says Linked. A serve started here is picked up on its')
+    say('          own; one already running for a page outside this directory is not —')
+    say('          for that, start this again with the tool your adapter names for')
+    say(`          watch_stream:  node "${process.argv[1]}" watch --file <page.html> --stream`)
+  }
+
   while (true) {
+    if (!heartbeat) {
+      if (answered()) {
+        fs.rmSync(P.handshake(), { force: true })
+        answeredAt = Date.now()
+        heartbeat = startHeartbeat(() => stores.map(store => inStore(store, 'watching')))
+        sayLink()
+      } else if (Date.now() - askedAt > HANDSHAKE_MS) {
+        /* Exiting is the point: on a host where a finished background command
+           re-invokes the session, this delivers itself to whoever started the
+           watcher. */
+        if (mine()) fs.rmSync(P.handshake(), { force: true })
+        say('UNWIRED   the handshake went unanswered, so these events reach no one.')
+        say('          Start this again with the Host op watch_stream, using the tool')
+        say('          your Host adapter names for it.')
+        return process.exit(3)
+      }
+    } else sayNoLink()
+
     for (const store of [...stores]) {
       const at = n => inStore(store, n)
       const was = seen.get(store)
@@ -750,7 +878,7 @@ async function cmdStream (stores, beatAll, stop, label, all) {
       }
 
       // Each sentinel is announced once per appearance, not once per poll.
-      for (const [file, what] of [['approved', 'APPROVED '], ['cancel', 'CANCELLED'], ['share', 'SHARE    ']]) {
+      for (const [file, what] of [['approved', 'APPROVED '], ['share', 'SHARE    ']]) {
         if (fs.existsSync(at(file))) {
           if (!was.flags.has(file)) { say(`${what} ${label(store)} · read ${at(file)}`); was.flags.add(file) }
         } else was.flags.delete(file)
@@ -783,15 +911,17 @@ async function cmdStream (stores, beatAll, stop, label, all) {
         seen.set(store, { sent: null, flags: new Set(), replies: repliesIn(store) })
         say(`OPENED    ${label(store)} · now watching ${stores.length} review(s)`)
       }
+      // A review that arrives after the handshake is what makes the link real.
+      if (heartbeat) sayLink()
     }
 
     // With --all, an empty set means "no tab open right now" — keep the
     // stream and the heartbeat path alive so a later serve can OPENED in.
     // Without --all, empty means the only subject closed: done.
     if (!stores.length) {
-      if (!all) { stop(); say('CLOSED    nothing left to watch'); return process.exit(0) }
+      if (!all) { stopBeating(); say('CLOSED    nothing left to watch'); return process.exit(0) }
     }
-    beatAll()
+    heartbeat?.beat()
     await new Promise(r => setTimeout(r, 1000))
   }
 }
@@ -831,12 +961,8 @@ async function cmdWatch () {
   }
 
   const label = store => path.basename(store)
-  // `stores` shrinks as reviews close; the heartbeat re-reads it every beat.
-  const hb = startHeartbeat(() => stores.map(store => inStore(store, 'watching')))
-  const beatAll = hb.beat
-  const stop = hb.stop
-  process.on('SIGINT', () => { stop(); process.exit(130) })
-  process.on('SIGTERM', () => { stop(); process.exit(143) })
+  process.on('SIGINT', () => { stopBeating(); process.exit(130) })
+  process.on('SIGTERM', () => { stopBeating(); process.exit(143) })
   touch()   // the page hears about it straight away
 
   if (args.stream === true || args.stream === 'true') {
@@ -845,9 +971,14 @@ async function cmdWatch () {
     if (!stores.length && all) {
       process.stdout.write('WATCHING  0 review(s): waiting for a live serve…\n')
     }
-    return cmdStream(stores, beatAll, stop, label, all)
+    // The stream arms its heartbeat only once its handshake is answered.
+    return cmdStream(stores, label, all, all ? '--all' : SUBJECT)
   }
 
+  /* The one-shot form proves itself by exiting, which is what delivers its
+     event, so it needs no handshake. `stores` shrinks as reviews close, and the
+     heartbeat re-reads it every beat. */
+  heartbeat = startHeartbeat(() => stores.map(store => inStore(store, 'watching')))
   console.log(`watching ${stores.length} review(s): ${stores.map(label).join(', ')}`)
   /* Exiting IS the wake-up — a running process cannot interrupt an idle agent
      session, so the only way to be called is to finish. That makes re-arming
@@ -856,7 +987,7 @@ async function cmdWatch () {
      puts it back. Prefer `watch --stream` via Host op watch_stream. */
   const rearm = `node "${process.argv[1]}" ${process.argv.slice(2).join(' ')}`
   const done = (what, store, file) => {
-    stop()
+    stopBeating()
     console.log(`${what}  ${label(store)}`)
     if (file) { try { console.log(fs.readFileSync(file, 'utf8')) } catch {} }
     console.log(`\nThis one-shot watch has now ended. Either restart it:\n  ${rearm}`)
@@ -871,7 +1002,6 @@ async function cmdWatch () {
     for (const store of [...stores]) {
       const at = n => inStore(store, n)
       if (fs.existsSync(at('approved'))) return done('APPROVED', store, at('approved'))
-      if (fs.existsSync(at('cancel')))   return done('CANCELLED', store, at('cancel'))
       if (fs.existsSync(at('share')))    return done('SHARE', store, at('share'))
       if (fs.existsSync(at('pending')))  return done('REVIEW', store, at('pending'))
       if (!fs.existsSync(at('url'))) {
@@ -883,7 +1013,7 @@ async function cmdWatch () {
     if (!stores.length) break
     await new Promise(r => setTimeout(r, 1000))
   }
-  stop()
+  stopBeating()
   console.log('CLOSED — nothing left to watch. Nothing to re-arm.')
   process.exit(0)
 }
@@ -904,7 +1034,6 @@ function cmdStatus () {
     versions: listVersions().map(v => `v${v.n}: ${v.label}`),
     activeRound: roundSummary(loadActiveRound(state)),
     pendingReview: fs.existsSync(P.pending()) ? readJSON(P.pending(), {}) : null,
-    cancelRequest: fs.existsSync(P.cancel()) ? readJSON(P.cancel(), {}) : null,
     approved: fs.existsSync(P.approved()) ? readJSON(P.approved(), {}) : null,
     shareRequest: fs.existsSync(P.share()) ? readJSON(P.share(), {}) : null,
     shareUrl: loadState().shareUrl || null,
@@ -917,7 +1046,7 @@ const clients = new Set()
 let reloadTimer = null
 /* Only when it changes — a heartbeat file ticking every two seconds is not
    worth a message every two seconds. */
-startPresence(clients, someoneWatching).unref?.()
+startPresence(clients, agentListening).unref?.()
 /* Set once the server is listening, so a request handler can end the review. */
 let closeServer = null
 /* Live-page bookkeeping, so the server can close itself when the tab does. */
@@ -965,6 +1094,9 @@ function payload () {
   }
   return {
     mode: LIVE ? 'live' : 'local',
+    // What this server is on now. A tab opened before an update still holds the
+    // version that served it, so the workspace can show both.
+    version: currentVersion(),
     name: pageName(),
     fileName: LIVE ? (APP ? APP.host : state.app || '') : path.basename(FILE),
     app: appOrigin(),
@@ -983,12 +1115,12 @@ function payload () {
        or a second tab, showed a review where nothing was happening. */
     pendingReview: fs.existsSync(P.pending()) ? readJSON(P.pending(), {}) : null,
     activeReview: roundSummary(activeRound),
-    cancelRequest: fs.existsSync(P.cancel()) ? readJSON(P.cancel(), {}) : null,
     /* Whether an agent session is actually waiting on this review. The link dot
        used to say "Linked" whenever the page could reach this server, which is
        a fact about the browser and the file server — not about anyone being
-       there to read what you send. */
-    watching: someoneWatching(),
+       there to read what you send. A live heartbeat with a round sitting
+       unclaimed is the same lie one layer up, so that drops it too. */
+    watching: agentListening(),
   }
 }
 
@@ -1197,7 +1329,7 @@ function proxyUpgrade (req, socket, head) {
 function serveWorkspace (res) {
   let html = fs.readFileSync(path.join(HERE, 'workspace.html'), 'utf8')
   if (BASE) html = html.replace(/<head>/i, `<head>\n<script>window.VS_BASE=${JSON.stringify(BASE)}</script>`)
-  html = withHost(html, HOST_PROFILE)
+  html = withVersion(withHost(html, HOST_PROFILE))
   send(res, 200, withUpdate(html, update), MIME['.html'])
 }
 
@@ -1225,7 +1357,7 @@ async function handle (req, res) {
     idleSince = null
     // Presence rides the same stream: a waiter starting or stopping is news the
     // page needs, and it is the one change no file write announces.
-    try { res.write(`event: presence\ndata: ${JSON.stringify({ watching: someoneWatching() })}\n\n`) } catch {}
+    try { res.write(`event: presence\ndata: ${JSON.stringify({ watching: agentListening() })}\n\n`) } catch {}
     const ping = setInterval(() => { try { res.write(': ping\n\n') } catch {} }, 25000)
     req.on('close', () => {
       clearInterval(ping)
@@ -1329,8 +1461,6 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
         feedback: path.join(dir, 'feedback.md'),
         sentAt: stillOut ? prev.sentAt : new Date().toISOString(),
       })
-      // A new review supersedes any earlier "stop" — they have moved on.
-      fs.rmSync(P.cancel(), { force: true })
       console.log(`\n● ${round.id} sent for v${n} — ${round.comments.length} comment(s) → ${path.join(dir, 'feedback.md')}`)
       return sendJSON(res, 200, { ok: true, roundId: round.id })
     })
@@ -1362,24 +1492,6 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
     console.log(`    node review-server.mjs share ${SUBJECT} --url <public-url>`)
     touch()
     return sendJSON(res, 200, { ok: true })
-  }
-  if (p === '/api/cancel' && req.method === 'POST') {
-    const body = JSON.parse(await readBody(req) || '{}')
-    const n = Number(body.version) || loadState().version
-    return withStoreLock(() => {
-      writeJSON(P.cancel(), {
-        page: FILE || appOrigin(), app: appOrigin(),
-        name: pageName(),
-        version: n,
-        comments: body.comments || [],
-        reason: body.reason || 'The reviewer cancelled this round.',
-        at: new Date().toISOString(),
-      })
-      fs.rmSync(P.pending(), { force: true })
-      console.log(`\n■ Cancel requested on v${n} — stop, then tell the reviewer what you had already changed`)
-      touch()
-      return sendJSON(res, 200, { ok: true })
-    })
   }
   /**
    * Sign-off. The review is over: write the verdict and close the server, which
@@ -1413,7 +1525,6 @@ font:14px/1.6 ui-sans-serif,system-ui,-apple-system,sans-serif;color:#667;backgr
         outcomes: Object.fromEntries((active.comments || []).map(comment => [comment.id, 'left_open_on_approval'])),
       })
       fs.rmSync(P.pending(), { force: true })
-      fs.rmSync(P.cancel(), { force: true })
       const left = openComments.length
       console.log(`\n✓ Approved at v${n}${left ? ` — ${left} comment(s) left unapplied` : ''} — the review is closed`)
       sendJSON(res, 200, { ok: true })
@@ -1465,11 +1576,8 @@ async function cmdServe () {
     saveState(state)
   }
   // Terminal signals belong to the review that raised them. A new one starts
-  // clean, or the first waiter it arms fires on last week's verdict. An active
-  // round is recovery, not a new review: preserve its Stop request across a
-  // server restart so publication cannot slip past it.
+  // clean, or the first waiter it arms fires on last week's verdict.
   fs.rmSync(P.approved(), { force: true })
-  if (!loadActiveRound()) fs.rmSync(P.cancel(), { force: true })
   fs.rmSync(P.share(), { force: true })
   const port = Number(args.port || 7788)
   const server = http.createServer((req, res) => {
@@ -1506,6 +1614,7 @@ async function cmdServe () {
      stops waiting instead of hanging until its timeout. */
   const close = why => {
     try { fs.rmSync(P.url(), { force: true }) } catch {}
+    try { fs.rmSync(servingFile(process.cwd(), STORE), { force: true }) } catch {}
     console.log(`closed (${why})`)
     process.exit(0)
   }
@@ -1548,6 +1657,11 @@ async function cmdServe () {
   server.listen(port, '127.0.0.1', () => {
     fs.mkdirSync(STORE, { recursive: true })
     fs.writeFileSync(P.url(), url + '\n')
+    // So `watch --all`, run from here, finds this review wherever the page lives.
+    try {
+      fs.mkdirSync(servingDir(process.cwd()), { recursive: true })
+      writeAtomic(servingFile(process.cwd(), STORE), STORE + '\n')
+    } catch {}
     console.log(`${LIVE ? 'live review' : 'wireframe'} · ${pageName()} · v${loadState().version}`)
     console.log(`  workspace  ${url}`)
     console.log(LIVE ? `  app        ${APP.origin} (proxied)` : `  page       ${FILE}`)
@@ -1563,13 +1677,13 @@ switch (args._) {
   case 'publish': withStoreLock(() => cmdPublish()); break
   case 'claim': withStoreLock(cmdClaim); break
   case 'reply': withStoreLock(cmdReply); break
-  case 'cancelled': withStoreLock(cmdCancelled); break
+  case 'ack': withStoreLock(cmdAck); break
   case 'share': withStoreLock(cmdShare); break
   case 'status': cmdStatus(); break
   case 'check': cmdCheck(); break
   case 'watch': cmdWatch(); break
   case 'serve': cmdServe(); break
   default:
-    console.error(`Unknown command "${args._}". Use: serve | claim | publish | reply | cancelled | share | status | check | watch`)
+    console.error(`Unknown command "${args._}". Use: serve | claim | publish | reply | ack | share | status | check | watch`)
     process.exit(1)
 }

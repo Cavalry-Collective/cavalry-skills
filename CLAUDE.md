@@ -83,7 +83,7 @@ The layering rule that everything else follows (`plugins/vstack/contracts/README
 - **Adapters speak hosts.** Only `skills/review/hosts/*.md` may mention
   host-specific tools (Monitor, Artifact, etc.). A SKILL.md references Host ops
   (`background`, `watch_stream`, `share`, …); the adapter maps them to tools.
-- **Profiles are data.** `hosts/<id>.json` carries UI labels, install steps, and
+- **Profiles are data.** `host-profiles/<id>.json` carries UI labels, install steps, and
   capability flags; servers inject it as `window.__VSTACK_HOST__`, selected by
   `--host` / `VSTACK_HOST` (default `claude`). Loaded via `lib/host.mjs`.
 - **On-disk roles are stable:** review threads use `by: "agent" | "reviewer"`.
@@ -95,7 +95,7 @@ The layering rule that everything else follows (`plugins/vstack/contracts/README
   a self-contained HTML page inside the workspace, or reverse-proxies a running
   app (`--app`) so the workspace shares an origin with what it annotates (that
   origin-sharing is why comments can attach to elements, not coordinates). CLI
-  subcommands (`publish`, `claim`, `reply`, `cancelled`, `share`, `status`,
+  subcommands (`publish`, `claim`, `reply`, `ack`, `share`, `status`,
   `check`, `watch`) drive the protocol; sentinels and round records live on disk.
 - `lib/json-bridge.mjs` — the live link for JSON-document pages (user-story-map,
   plus the experimental spec and phase-build tools): the page POSTs saves and

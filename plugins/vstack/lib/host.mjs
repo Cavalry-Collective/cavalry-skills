@@ -1,7 +1,7 @@
 /**
  * host.mjs — load a Host profile (contracts/host.md).
  *
- * Profiles live in plugins/vstack/hosts/<id>.json. Servers inject the profile
+ * Profiles live in plugins/vstack/host-profiles/<id>.json. Servers inject the profile
  * into pages as window.__VSTACK_HOST__. Skills never hardcode product names
  * in the engine; they pass --host / VSTACK_HOST and read the adapter markdown.
  */
@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url'
 import { injectHead } from './live-link.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
-const HOSTS_DIR = path.join(HERE, '..', 'hosts')
+const HOSTS_DIR = path.join(HERE, '..', 'host-profiles')
 
 const DEFAULT_ID = 'claude'
 

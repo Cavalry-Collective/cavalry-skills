@@ -13,7 +13,7 @@ Host-independent: any Host that fulfills [host.md](host.md) can drive this loop.
 | --- | --- |
 | **Engine** | Serves workspace, stores state, freezes versions, emits events |
 | **Agent** | Applies feedback, publishes versions, replies, fulfills Host ops |
-| **Reviewer** | Comments in the browser; Send / Stop / Approve / Share |
+| **Reviewer** | Comments in the browser; Send / Approve / Share |
 
 ---
 
@@ -47,12 +47,21 @@ a caller never has to pick between the two itself.
 | `reviews/v<n>/feedback.md` | Markdown brief for the agent |
 | `reviews/v<n>/feedback.json` | Same, structured |
 | `rounds/r<n>.json` | Durable membership, revisions, outcomes, and completion record |
+| `handshake` | A stream watcher waiting to be told its events are being read. Carries the token it printed; `ack` marks the record answered rather than deleting it, and only the watcher whose token it holds acts on it and clears it |
 | `pending` | Notification only: review sent, agent must `claim` it |
-| `cancel` | Sentinel: reviewer asked to stop the in-flight round |
 | `approved` | Sentinel: design signed off; engine shutting down |
 | `share` | Sentinel: reviewer wants a shareable link |
 | `url` | Present only while `serve` is running |
 | `watching` | Heartbeat while Host op `watch_stream` is active |
+
+`serve` also records the store it is serving under the directory it was run
+from: `<cwd>/.vstack/local/review/.serving/<key>`, one file per live review,
+holding that review's store path. It is written after `url` and removed with it.
+
+`watch --all` finds a review by walking the directory it was run from **and** by
+following those pointers. The pointer is what covers a page that lives outside
+that directory, whose store lives outside it too. A pointer whose store has no
+`url` is stale, and the reader deletes it.
 
 Every vstack tool keeps its per-machine working files under
 `.vstack/local/<tool>/`, resolved by `lib/workdir.mjs`: the enclosing `.vstack`
@@ -83,12 +92,12 @@ Host selection: `--host <id>` or `VSTACK_HOST=<id>` (affects UI injection only).
 | Command | Contract |
 | --- | --- |
 | `serve --file …` / `serve --app …` | Long-lived via Host `background`. Binds `127.0.0.1`. |
+| `ack --file/name … --token <token>` \| `ack --all --token <token>` | Answer a stream watcher's handshake. Only this arms the `watching` heartbeat |
 | `claim --file/name … --round r<n>` | Acknowledge delivery while preserving the durable round ledger |
 | `publish --file/name … --round r<n> --label … [--addressed ids]` | Validate full round coverage, freeze next version, and mark comments addressed |
 | `reply --file/name … --round r<n> --comment <id> --text "…"` | Append `{ by: "agent", text, at }`; status → `question` |
-| `cancelled --file/name … --round r<n>` | Acknowledge Stop, leave comments open, and close the active round |
 | `share --file/name … --url <url>` | Record public URL; clear `share` sentinel |
-| `check --file/name …` | Exit `0` continue, `2` stop requested |
+| `check --file/name …` | Always exits `0`. Names a queued round nobody has claimed |
 | `status --file/name …` | Human/debug snapshot |
 | `watch [--all] [--file …] --stream` | Event stream via Host `watch_stream` |
 
@@ -101,9 +110,12 @@ One line of stdout per event (from `watch --stream`):
 | Prefix | Meaning | Agent action |
 | --- | --- | --- |
 | `WATCHING` | Stream armed | — |
+| `HANDSHAKE` | The watcher asking whether anyone receives it | Run the `ack` command it prints, immediately |
+| `LINKED` | The handshake was answered and at least one review is covered | — |
+| `UNLINKED` | The handshake was answered and no review turned up to cover, so no workspace goes Linked | Start it again via `watch_stream` with `--file` if a review is running elsewhere; a later serve in the same directory is picked up without it |
+| `UNWIRED` | The handshake went unanswered; the watcher exits `3` | Start it again via `watch_stream` |
 | `REVIEW` | `pending` written; round id and path to `feedback.md` | `claim` the round, apply brief, publish/reply |
 | `REPLIED` | Reviewer answered a question | Continue that comment’s thread |
-| `CANCELLED` | Stop requested | Do not publish half-work; run `cancelled --round …`; report |
 | `SHARE` | Link requested | Host `share` if capable; then `share --url` |
 | `APPROVED` | Sign-off; server exiting | Confirm; next pipeline stage as skill says |
 | `OPENED` | Another live store joined `--all` | — |
@@ -125,7 +137,6 @@ reviewer comments ──Send──► round record + pending + feedback.md
         │                         │
         │◄──── version ready ─────┘
         │
-   Stop ──► cancel ──► CANCELLED (agent must check during long rounds)
  Approve ──► approved ──► APPROVED + server exit
   Share ──► share ──► SHARE ──► share --url
 ```
@@ -134,10 +145,13 @@ Rules:
 
 1. Only a validated `publish --round … --addressed …` closes comments (reviewer has no resolve).
 2. The engine rejects publication unless every round member is addressed, dismissed, or waiting on the reviewer.
-3. The engine rejects unknown IDs, changed comment revisions, unclaimed rounds, stale round IDs, and any publish after Stop.
-4. Agent must `check` at checkpoints; `cancelled --round …` acknowledges Stop. Do not delete protocol files manually.
+3. The engine rejects unknown IDs, changed comment revisions, unclaimed rounds, and stale round IDs.
+4. A round in flight cannot be called off. The reviewer's only correction is to send again, which supersedes the brief. Do not delete protocol files manually.
 5. Retrying an already completed `publish --round …` is idempotent and creates no extra version.
 6. One `watch_stream` per session is enough with `--all`.
+7. Presence is proven. A stream watcher writes its `watching` heartbeat from the moment its handshake is answered, so **Linked** means a session is receiving the stream. Default window 120 s (`--handshake-timeout <seconds>`).
+8. Presence is per review, and per watcher. A watcher heartbeats only the stores it covers, and goes live only on an answer carrying its own token — a second watcher's handshake is not an answer to the first. It reports `LINKED` once it covers a review, and `UNLINKED` when none has turned up.
+9. Presence is also claim-backed. The engine reports the agent present (workspace **Linked**) only while the `watching` heartbeat is fresh **and** no queued round has sat unclaimed past the claim window (90 s). A stalled round drops presence — a watcher whose events nobody reads must look the same to the reviewer as no watcher at all.
 
 ---
 
@@ -148,13 +162,21 @@ Rules:
 | Field | Meaning |
 | --- | --- |
 | `id` | Pass to `--addressed` |
-| `note` | Requirement text |
+| `kind` | `comment` · `area` · `general` · `move` · `strike` |
+| `note` | Requirement text. Empty is valid on `move` and `strike` |
 | `anchor` | Element identity (tag, id, classes, text, region, selector) |
+| `move` | `move` only — `{ target: { …anchor identity, where }, delta }`, `where` is `inside` · `before` · `after` |
+| `strike` | `strike` only — `{ scope: 'text' \| 'element', text }` |
 | `screenSize` | Layout the comment was made at |
 | `route` | Live only — app path |
 | `status` | `open` · `question` · `addressed` |
 | `replies` | `{ by, text, at }[]` |
 | `reopened` / `wantsRevert` | Returned from Refine / Revert |
+
+A comment carries its requirement in `note`. A `move` and a `strike` carry it in
+their own fields instead, so a reader must not treat an empty `note` as an
+incomplete comment. `move.target` outranks `move.delta`: the element and side
+survive a reflow and the pixel distance does not.
 
 ---
 

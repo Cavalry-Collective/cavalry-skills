@@ -12,9 +12,13 @@ this file** — they live only in the Host adapter.
 
 | You are running under… | Load adapter | Set |
 | --- | --- | --- |
-| **Codex** | `hosts/codex.md` | `VSTACK_HOST=codex` (or `--host codex` on `serve`) |
-| **Grok** Build / Grok CLI | `hosts/grok.md` | `VSTACK_HOST=grok` (or `--host grok` on `serve`) |
-| **Claude Code** | `hosts/claude.md` | `VSTACK_HOST=claude` (default if unset) |
+| **Codex** | `skills/review/hosts/codex.md` | `VSTACK_HOST=codex` (or `--host codex` on `serve`) |
+| **Grok** Build / Grok CLI | `skills/review/hosts/grok.md` | `VSTACK_HOST=grok` (or `--host grok` on `serve`) |
+| **Claude Code** | `skills/review/hosts/claude.md` | `VSTACK_HOST=claude` (default if unset) |
+
+Adapters live in the `hosts/` directory beside this SKILL.md. Do not read
+`plugins/vstack/host-profiles/<id>.json` instead: that JSON is UI data with no
+tool mapping.
 
 **Read the adapter before §3.** Every `background`, `watch_stream`, `stop`,
 `share`, and `browser_capture` step is fulfilled exactly as that file says.
@@ -118,10 +122,14 @@ The page opens in **its own browser window** on the canvas — own viewport, own
 
 | | |
 |---|---|
-| **View / Annotate** | two modes, **space** toggles. **View hides every annotation** so the page is judged as it really is; Annotate brings them back |
+| **View / Annotate** | two modes, **esc** toggles. **View hides every annotation** so the page is judged as it really is; Annotate brings them back |
 | **Click** | a comment pin at that spot |
 | **Drag** | an area comment over that region — it carries the element that contains the box *and* everything named inside it |
 | Either way | the note opens **on the canvas** where the mark is. A comment with nothing typed in it is discarded on dismiss |
+| **Toolbar** (left of the canvas) | what Annotate draws with: Comment · Move · Delete, keys **c** · **m** · **d**. Picking one in View mode returns to Annotate with it |
+| **Move** and **Delete** | both are optional-note: the mark is the instruction, and anything typed adds to it. Both outline whatever the pointer is over, so it is clear which element the gesture will take |
+| **Move** | drag a thing to where it should go. Arrives as `kind: move` — the element to move, the element it was dropped on, and which side of it |
+| **Delete** | drag across text to strike exactly those words, or click an element to strike everything written inside it. Arrives as `kind: strike` |
 | **Target** | the note says which element the comment attached to |
 | **Attached to an element** | a comment belongs to the thing it was made on, not to a coordinate. The mark rides it when the layout moves, and **goes off the page with it** — a comment made inside a modal, tab or step is not drawn while that thing is closed. It stays in the list tagged *not on screen*, and it still reaches you |
 | Captions | stay hidden — a mark shows its note when it's open, or on hover in Annotate |
@@ -138,7 +146,6 @@ The page opens in **its own browser window** on the canvas — own viewport, own
 | **Addressed** | comments you closed stay in the list in their own section, each offering **Revert** or **Refine** |
 | **Publish a link to this wireframe** (the ▾ beside Send) | only when Host `capabilities.share` is `artifact`. Asks you to publish **the wireframe** (Host op `share`) and hand the URL back. Hidden on hosts without public share, and in a live review |
 | **Approve & finish** (the ▾ beside Send) | sign-off. Ends the review, closes the server, and tells you the design is settled — behind a confirm that warns how many comments are being left unapplied |
-| **Cancel** | stops the round you're working on. Not a kill: finish what you were mid-way through, then say what you'd already changed |
 
 There is no per-comment resolve button: **you** close comments out by addressing them. Approve is the
 whole-page verdict, not an item-by-item one — one click that means *the design is done*, which is the
@@ -158,56 +165,59 @@ accepts a status going backwards when the reviewer deliberately sent it back.
 
 ## 5 · Catch the review, and hold up your end of the conversation
 
-After starting the server, start the watcher with Host op **`watch_stream`** (adapter
-names the tool). Prefer the streaming form so nothing has to be re-armed:
+After starting the server, start the watcher with Host op **`watch_stream`**. Look up the tool for
+that op in your adapter — `watch_stream` delivers each line of output to you as it arrives, and it
+is a different op from the `background` you used in §3.
 
 ```bash
 node "$SKILL/assets/review-server.mjs" watch --all --stream    # or --file <page.html>
 ```
 
-It never exits. Each line of its output is one event, delivered to you as it happens, and the
-process keeps running — so there is nothing to re-arm after a round, which is the step that gets
-forgotten and leaves a review nobody is reading. `--all` covers every review open in the project,
-so a session with a wireframe and a story map up needs one watcher, not one each.
+Each line of its output is one event, delivered to you as it happens, and the process keeps running,
+so one watcher covers the whole session — `--all` takes in every review open in the project,
+including ones opened later, and any you started from this directory whose page lives elsewhere.
+Run it from the same directory you started the server from; that is what ties the two together.
 
-While it runs the page says **Linked**; with no watcher it says **Unlinked**, in amber, so the
-reviewer can see that what they send will sit there.
+**It opens with a `HANDSHAKE` line naming a command. Run that command straight away.** The watcher
+goes live once you answer, the workspace says **Linked**, and the round events start reaching you.
+Answering proves the op was fulfilled, since only a session that can run commands can answer.
+Answer within two minutes; after that the watcher prints `UNWIRED` and exits, and you start it again
+with the tool your adapter names for `watch_stream`.
+
+The page says **Linked** for as long as the watcher is answered and the rounds are being claimed,
+and **Unlinked** in amber the rest of the time, so the reviewer always knows which one they have.
 
 Each event is one line (full table: `contracts/review-loop.md`):
 
 | | What it means | What you do |
 |---|---|---|
+| **`HANDSHAKE`** | the watcher asking whether you can hear it | run the command it prints, now — it is what brings the watcher live |
+| **`LINKED`** | the handshake is answered and a review is under the watcher; the workspace says Linked | carry on — the loop is live |
+| **`UNLINKED`** | the handshake is answered, but the watcher found no review to cover, so no workspace says Linked | start it again with `--file <page.html>` if a review is already running for a page outside this directory. A serve started here after it needs nothing |
+| **`UNWIRED`** | the handshake went unanswered and the watcher exited | start it again with the tool your adapter names for `watch_stream` |
 | **`REVIEW`** | a review landed; the line names its round and brief | `claim` the round, then apply it — the steps below |
 | **`REPLIED`** | they answered a question you asked | read the thread and carry on with that comment. Nothing else announces this — a reply writes no sentinel |
-| **`CANCELLED`** | the reviewer pressed **Stop** | don't publish what you had half-done. Say what you had already changed and what you hadn't, then run `cancelled --round …` |
 | **`SHARE`** | they want a link to send someone | Host op `share` if capable, then §6; if the Host cannot share publicly, say so and offer a file/bundle instead |
 | **`APPROVED`** | the design is signed off; the server has closed itself | say it's approved, note any `openComments` deliberately left, and carry on with whatever comes next |
 | **`CLOSED`** | that review's tab went away | the watcher drops it and keeps watching the rest; it only stops when none are left |
 
-**Use the protocol commands rather than deleting state files.** `claim --round …` consumes `pending`,
-`cancelled --round …` acknowledges Stop, and `share --url` clears `share`. The durable round record
-remains available for validation, recovery, and idempotent retries.
+**Use the protocol commands rather than deleting state files.** `claim --round …` consumes `pending`
+and `share --url` clears `share`. The durable round record remains available for validation,
+recovery, and idempotent retries.
 
-### Stopping a round in flight
+### Checking during a round
 
-While you work, **no waiter is armed** — you are the only thing that can notice the reviewer changing
-their mind. The workspace's **Stop** button writes the `cancel` sentinel; nothing in it can interrupt
-a turn already running, so a round that never looks is a round that cannot be stopped.
+While you work, **no waiter is armed** — nothing will interrupt you, and a round in flight cannot be
+called off. If the reviewer changes their mind they send again, and that brief supersedes.
 
-**Check at every checkpoint of a round** — after reading the feedback, between batches of edits, and
-always immediately before `publish`:
+**Check at the checkpoints of a long round** — after reading the feedback, and before `publish`:
 
 ```bash
-node "$SKILL/assets/review-server.mjs" check --file "$FILE" || STOP=1
+node "$SKILL/assets/review-server.mjs" check --file "$FILE"
 ```
 
-Exit 2 means stop. Then:
-
-1. **Don't publish.** A half-applied version published as a new one is the worst outcome — the
-   reviewer now has to review your interrupted work.
-2. Leave the file as it is. Say plainly what you had already changed and what you hadn't.
-3. Run `node "$SKILL/assets/review-server.mjs" cancelled --file "$FILE" --round <round-id>`.
-   The review is still open; only this round ended, and the watcher is still running.
+It always exits 0. It exists to name a round sitting in the queue that nobody has claimed: if it does,
+claim that round before anything else, because comments are sitting unread.
 
 The longer the round, the more it matters: a check costs nothing, and one that never runs makes the
 button a lie.
@@ -233,7 +243,7 @@ On a review landing:
      --round r17 --label "Filters collapsed, overdue sorts first" --addressed c1f3k2,c9dk1
    ```
    Only `--addressed` marks a comment done. Publish fails before creating a version if the round was
-   not claimed, an id is unknown or stale, Stop is outstanding, or any open comment is unaccounted for.
+   not claimed, an id is unknown or stale, or any open comment is unaccounted for.
 7. Leave **`watch_stream` running** and say what changed in a few lines. Then wait — don't ask "shall I continue?", the loop is the point. (Only re-arm if you used one-shot `watch` without `--stream`.)
 
 **Closing the browser tab closes the review.** The workspace holds an SSE
@@ -303,7 +313,7 @@ node "$SKILL/assets/bundle-artifact.mjs" --file "$FILE" --out review.html
 ## 7 · Reviewing a UI that already exists
 
 Point the same workspace at a running app and everything above still holds — the
-modes, the marks, the threads, the timeline, Stop, Approve. Three things differ,
+modes, the marks, the threads, the timeline, Approve. Three things differ,
 and they all follow from the same fact: **what is under review is code, not a
 file you own.**
 
@@ -406,12 +416,12 @@ route.
 - State lives in `<dir>/.vstack/local/review/<name>/` beside the file — versions, reviews, threads, and the sentinels. The page itself stays clean. A live review has nothing to sit beside, so it lands in `.vstack/local/review/<name>/` under the directory you started it from.
 - **Every vstack tool writes under `.vstack/local/<tool>/`**, so a project grows one dot-directory, not one per engine. `lib/workdir.mjs` resolves it — use that rather than joining the path by hand. One gitignore line covers the lot (`**/.vstack/local/`); the rest of `.vstack/` is the pipeline and belongs in the repo.
 - The server binds to `127.0.0.1` only. Port 7788 busy usually means a review server is already running — pass `--port`.
-- `node "$SKILL/assets/review-server.mjs" status --file "$FILE"` prints the current version, whether a review is waiting, and any stop / sign-off / share request outstanding.
-- `check --file "$FILE"` is the same question reduced to an exit code — 0 carry on, 2 stop. Use it inside a round, where `status` is too much output to read repeatedly.
+- `node "$SKILL/assets/review-server.mjs" status --file "$FILE"` prints the current version, whether a review is waiting, and any sign-off / share request outstanding.
+- `check --file "$FILE"` is the same question in one line, and always exits 0. Use it inside a round, where `status` is too much output to read repeatedly. If it names a round waiting unclaimed, claim that round before anything else — comments are sitting unread.
 - **Every command takes `--name <slug>` in place of `--file` for a live review** — `publish`, `reply`, `share`, `status`, `check`. The brief tells you which name to use.
 - Full command reference and troubleshooting: `references/workflow.md`.
 - Contracts: `plugins/vstack/contracts/` — Host ops and review-loop protocol.
-- Host adapters: `hosts/claude.md`, `hosts/codex.md`, `hosts/grok.md`.
+- Host adapters: `skills/review/hosts/claude.md`, `skills/review/hosts/codex.md`, `skills/review/hosts/grok.md`.
 
 ## State & handoff
 
